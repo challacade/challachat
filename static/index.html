@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>challachat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css" />
+  <style> body { background: transparent; } </style>
+  <!-- Overlay served at / and /overlay; connects to /api/stream -->
+</head>
+<body>
+  <div id="overlay" class="overlay">
+    <div id="messages" class="messages" aria-live="polite"></div>
+    <div id="toast" class="toast hidden"></div>
+    <button id="settingsBtn" class="settings-btn hidden" aria-label="Appearance">🎨</button>
+  <button id="soundSettingsBtn" class="settings-btn sound hidden" aria-label="Sound Settings">🔊</button>
+  <button id="generalSettingsBtn" class="settings-btn general hidden" aria-label="Settings">⚙️</button>
+  </div>
+  <div id="settings" class="settings hidden">
+    <h2>Appearance</h2>
+    <div class="grid">
+      <label>
+        Preset
+        <select id="preset">
+          <option value="Dark">Dark</option>
+          <option value="Light">Light</option>
+          <option value="Transparent">Transparent</option>
+          <option value="Custom">Custom</option>
+        </select>
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        Text color
+        <input id="textColor" type="color" value="#ffffff" />
+      </label>
+      <label>
+        Bubble color
+        <input id="bubbleColor" type="color" value="#000000" />
+      </label>
+      <label>
+        Page background color
+        <input id="pageBgColor" type="color" value="#000000" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        Scale
+        <input id="scale" type="range" min="0.5" max="3" step="0.01" value="1.8" />
+      </label>
+      <label>
+        Bubble opacity
+        <input id="bgOpacity" type="range" min="0" max="1" step="0.05" value="0.0" />
+      </label>
+      <label>
+        Page background opacity
+        <input id="pageBgOpacity" type="range" min="0" max="1" step="0.05" value="1" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        Vertical gap (rem)
+        <input id="messageGap" type="range" min="0" max="1.5" step="0.05" value="0.4" />
+      </label>
+    </div>
+    <div class="grid">
+      <label>
+        Show message bubble
+        <input id="showBubbles" type="checkbox" checked />
+      </label>
+      <label>
+        Show Avatars
+        <input id="showAvatars" type="checkbox" checked />
+      </label>
+      <label>
+        Show Badges
+        <input id="showBadges" type="checkbox" checked />
+      </label>
+    </div>
+  </div>
+
+  <!-- Sound Settings Panel -->
+  <div id="soundSettings" class="settings hidden">
+    <h2>Sound Settings</h2>
+    <div class="grid sound-grid">
+      <label class="span-2">
+        Message Volume
+        <input id="msgVolume" type="range" min="0" max="2" step="0.05" value="1" />
+      </label>
+      <button id="testMessageBtn" class="secondary" title="Play sample message sound">Test</button>
+    </div>
+    <div class="grid sound-grid">
+      <label class="span-2">
+        Donation Volume
+        <input id="donationVolume" type="range" min="0" max="2" step="0.05" value="1" />
+      </label>
+      <button id="testDonationBtn" class="secondary" title="Play sample donation sound">Test</button>
+    </div>
+    <div class="grid sound-grid">
+      <label class="span-2">
+        Membership Volume
+        <input id="memberVolume" type="range" min="0" max="2" step="0.05" value="1" />
+      </label>
+      <button id="testMemberBtn" class="secondary" title="Play sample membership sound">Test</button>
+    </div>
+  </div>
+
+  <!-- General Settings Panel -->
+  <div id="generalSettings" class="settings hidden">
+    <h2>Settings</h2>
+    <div class="grid">
+      <label>
+        Demo Mode
+        <input id="demoMode" type="checkbox" />
+      </label>
+      <label>
+        Poll Interval (ms)
+  <input id="pollIntervalMs" type="number" min="100" step="100" value="1000" />
+      </label>
+    </div>
+    <div class="row">
+      <button id="clearMessagesBtn" class="secondary" title="Clear all messages from the overlay">Clear All Messages</button>
+      <button id="copyUrlBtn" class="secondary">Copy URL With Settings</button>
+    </div>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
