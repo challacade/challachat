@@ -18,6 +18,8 @@ export class TerminalUI {
   private currentUrl: string | null = null;
   private recent: RecentMessage[] = [];
   private connectingShown = false;
+  private headerPrinted = false;
+  private lastPrintedUrl: string | null = null;
 
   constructor(port: number) {
     this.port = port;
@@ -37,7 +39,16 @@ export class TerminalUI {
 
   prompt() { this.rl.prompt(); }
 
-  setUrl(url: string) { this.currentUrl = url; }
+  setUrl(url: string) {
+    this.currentUrl = url;
+    // If header is already printed, append the URL once without clearing
+    if (this.headerPrinted && this.currentUrl && this.currentUrl !== this.lastPrintedUrl) {
+      // Print ONLY the URL on the next line after the already-printed label
+      console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
+      console.log('');
+      this.lastPrintedUrl = this.currentUrl;
+    }
+  }
 
   showConnectingOnce() {
     if (!this.connectingShown) {
@@ -46,25 +57,26 @@ export class TerminalUI {
     }
   }
 
-  addRecent(name: string, text: string) {
-    this.recent.push({ name, text });
-    if (this.recent.length > 8) this.recent = this.recent.slice(-8);
+  addRecent(_name: string, _text: string) {
+    // Intentionally no-op: we no longer preview chat in the terminal
   }
 
   render() {
-    try { console.clear(); } catch {}
-    console.log(`${ANSI.bold}${ANSI.green}ChallaChat Overlay is Active${ANSI.reset}`);
+  if (this.headerPrinted) return; // One-time render only
+  try { console.clear(); } catch {}
+  console.log(`${ANSI.bold}${ANSI.green}ChallaChat Overlay is Active${ANSI.reset}`);
+  console.log('');
+  const overlayUrl = `http://localhost:${this.port}/overlay`;
+  console.log('Overlay URL:');
+  console.log(`${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);
+  console.log('');
+  console.log('Connected to livestream:');
+  if (this.currentUrl) {
+    console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
     console.log('');
-    const overlayUrl = `http://localhost:${this.port}/overlay`;
-    console.log('Overlay URL:');
-    console.log(`${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);
-    console.log('');
-    console.log('Connected to livestream:');
-    console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl || ''}${ANSI.reset}`);
-    console.log('');
-    for (const m of this.recent) {
-      console.log(`${ANSI.bold}${m.name}${ANSI.reset}: ${ANSI.white}${m.text}${ANSI.reset}`);
-    }
+  }
+  this.headerPrinted = true;
+  this.lastPrintedUrl = this.currentUrl;
   }
 
   close() { this.rl.close(); }

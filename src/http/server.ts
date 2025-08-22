@@ -124,15 +124,13 @@ class App {
     this.messageCount = 0;
     this.startTime = Date.now();
     this.tui.setUrl(url);
+  this.tui.render();
     this.io.emit('scraper-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
   }
 
   private onScraperMessage(message: ChatEvent) {
     this.messageCount++;
-    const name = message.author?.name || 'User';
-    const text = message.text || '';
-    this.tui.addRecent(name, text);
-    this.tui.render();
+  // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', message);
     this.sse.send('chat', { events: [this.normalizeForOverlay(message)] });
   }
