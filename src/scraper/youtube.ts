@@ -45,14 +45,7 @@ export class YouTubeChatScraper {
     for (let attempt = 1; attempt <= this.opts.maxRetries; attempt++) {
       try {
         if (!this.opts.quiet) console.log(`[Scraper] Attempt ${attempt}/${this.opts.maxRetries}`);
-        this.browser = await puppeteer.launch({
-          headless: true,
-          args: [
-            '--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--disable-accelerated-2d-canvas', '--no-first-run', '--no-zygote', '--disable-gpu', '--disable-background-timer-throttling', '--disable-backgrounding-occluded-windows', '--disable-renderer-backgrounding', '--disable-features=TranslateUI,VizDisplayCompositor', '--disable-extensions', '--disable-plugins', '--mute-audio', '--disable-web-security', '--disable-features=site-per-process'
-          ],
-          timeout: 60000,
-          protocolTimeout: 60000
-        });
+  this.browser = await this.launchBrowser();
         this.page = await this.browser.newPage();
         this.page.setDefaultTimeout(90000);
         this.page.setDefaultNavigationTimeout(90000);
@@ -88,6 +81,70 @@ export class YouTubeChatScraper {
     const err = new Error(msg);
     this.onError(err);
     throw err;
+  }
+
+  private buildLaunchArgs(): string[] {
+    return [
+      '--no-sandbox',
+      '--disable-setuid-sandbox',
+      '--disable-dev-shm-usage',
+      '--disable-accelerated-2d-canvas',
+      '--no-first-run',
+      '--no-zygote',
+      '--disable-gpu',
+      '--disable-background-timer-throttling',
+      '--disable-backgrounding-occluded-windows',
+      '--disable-renderer-backgrounding',
+      '--disable-features=TranslateUI,VizDisplayCompositor,site-per-process',
+      '--disable-extensions',
+      '--disable-plugins',
+      '--mute-audio',
+      '--disable-web-security'
+    ];
+  }
+
+  private async launchBrowser(): Promise<Browser> {
+    const base: any = { headless: true, args: this.buildLaunchArgs(), timeout: 60000, protocolTimeout: 60000 };
+    // 1) Try using system Chrome via channel (best UX, no managed download needed)
+    try {
+      return await puppeteer.launch({ ...base, channel: 'chrome' as any });
+    } catch {}
+    // 2) Try using system Microsoft Edge
+    try {
+      return await puppeteer.launch({ ...base, channel: 'msedge' as any });
+    } catch {}
+    // 3) Try common Windows install paths explicitly
+    if (process.platform === 'win32') {
+      const candidates = this.findWindowsBrowserPaths();
+      for (const exe of candidates) {
+        try {
+          return await puppeteer.launch({ ...base, executablePath: exe });
+        } catch {}
+      }
+    }
+    // 4) Fall back to default (managed) Chrome-for-Testing if present
+    return await puppeteer.launch(base);
+  }
+
+  private findWindowsBrowserPaths(): string[] {
+    const paths: string[] = [];
+    const env = process.env;
+    const candidates = [
+      // Chrome
+      `${env['PROGRAMFILES']}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${env['PROGRAMW6432']}\\Google\\Chrome\\Application\\chrome.exe`,
+      `${env['LOCALAPPDATA']}\\Google\\Chrome\\Application\\chrome.exe`,
+      // Edge
+      `${env['PROGRAMFILES']}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${env['PROGRAMFILES(X86)']}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${env['PROGRAMW6432']}\\Microsoft\\Edge\\Application\\msedge.exe`,
+      `${env['LOCALAPPDATA']}\\Microsoft\\Edge\\Application\\msedge.exe`
+    ];
+    for (const p of candidates) {
+      if (p && p.trim().length > 0) paths.push(p);
+    }
+    return paths;
   }
 
   private async navigate(attempt: number) {
