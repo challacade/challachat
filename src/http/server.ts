@@ -17,6 +17,7 @@ class App {
   private server = http.createServer(this.app);
   private io = new SocketIOServer(this.server, { cors: { origin: '*', methods: ['GET','POST'] } });
   private port = DEFAULT_PORT;
+  private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<{ events: ChatEvent[] }>();
   private scraper: YouTubeChatScraper | null = null;
   private isRunning = false;
@@ -27,9 +28,14 @@ class App {
   private tui = new TerminalUI(this.port);
 
   constructor() {
-    this.setupServer();
-    this.setupTerminal();
-    this.handleSignals();
+  this.setupServer();
+  this.setupTerminal();
+  this.handleSignals();
+  // Attempt initial bind and if in use, prompt for a new port repeatedly
+  this.ensureServerWithRetry().then(() => {
+    this.tui.showWelcome();
+    this.tui.prompt();
+  });
   }
 
   private setupServer() {
@@ -70,14 +76,11 @@ class App {
       socket.emit('scraper-status', { status: this.isRunning ? 'active' : 'stopped', videoId: this.currentVideoId, messageCount: this.messageCount });
     });
 
-    // Start listening immediately so static overlay and APIs are available
-    if (!(this.server as any)._listening) {
-      this.server.listen(this.port, () => { (this.server as any)._listening = true; });
-    }
+  // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
   }
 
   private setupTerminal() {
-    this.tui.prompt();
+  // Do not prompt until we are successfully listening on a port
     this.tui.onLine(async (line) => {
       const trimmed = line.trim();
       if (!trimmed) { this.tui.prompt(); return; }
@@ -104,6 +107,61 @@ class App {
     await new Promise<void>((resolve) => {
       this.server.listen(this.port, () => { (this.server as any)._listening = true; resolve(); });
     });
+  }
+
+  private async ensureServerWithRetry() {
+    // Try to listen; on EADDRINUSE, prompt for another port until success.
+    while (!(this.server as any)._listening) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          const onError = (err: any) => {
+            this.server.off('listening', onListening);
+            reject(err);
+          };
+          const onListening = () => {
+            this.server.off('error', onError);
+            (this.server as any)._listening = true;
+            if (this.pendingPortConfirmation != null && this.pendingPortConfirmation === this.port) {
+              console.log(`Port successfully switched to ${this.port}.`);
+              console.log('');
+              this.pendingPortConfirmation = null;
+            }
+            resolve();
+          };
+          this.server.once('error', onError);
+          this.server.once('listening', onListening);
+          this.server.listen(this.port);
+        });
+      } catch (err: any) {
+        if (err?.code === 'EADDRINUSE') {
+          console.log(`Port ${this.port} is in use.`);
+          // Ask user for a new port
+          const ans = await this.tui.askOnce('Enter a different port number');
+          const next = parseInt(ans, 10);
+          if (!Number.isFinite(next) || next <= 0 || next > 65535) {
+            console.log('Please enter a valid port number between 1 and 65535.');
+            continue;
+          }
+          this.port = next;
+          this.tui.setPort(this.port);
+          this.pendingPortConfirmation = this.port;
+          // Update Express to reflect the new port in status API
+          // No explicit Express change needed; only server.listen uses the port.
+          continue;
+        }
+        // Unknown error: show concise message, not stack
+        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}`);
+        const ans = await this.tui.askOnce('Enter a different port');
+        const next = parseInt(ans, 10);
+        if (!Number.isFinite(next) || next <= 0 || next > 65535) {
+          console.log('Please enter a valid port number between 1 and 65535.');
+          continue;
+        }
+        this.port = next;
+        this.tui.setPort(this.port);
+        this.pendingPortConfirmation = this.port;
+      }
+    }
   }
 
   private async startScraping(url: string) {

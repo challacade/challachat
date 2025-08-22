@@ -23,17 +23,31 @@ export class TerminalUI {
   // Number of lines to move cursor UP from the bottom to reach the reserved URL line.
   // When null, no reposition is needed (URL already printed in place).
   private urlOffsetFromBottom: number | null = null;
+  private captureNextResolver: ((line: string) => void) | null = null;
+  private defaultPrompt: string;
 
   constructor(port: number) {
     this.port = port;
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
     try { console.clear(); } catch {}
-    console.log('Welcome to the ChallaChat Overlay!');
-    this.rl.setPrompt(`${ANSI.bold}${ANSI.yellow}Enter livestream URL:${ANSI.reset} `);
+    this.defaultPrompt = `${ANSI.bold}${ANSI.yellow}Enter livestream URL:${ANSI.reset} `;
+    this.rl.setPrompt(this.defaultPrompt);
   }
 
   onLine(cb: (line: string) => void) {
-  this.rl.on('line', (input: string) => cb(input.trim()));
+  // Ensure only one listener that respects one-off capture
+  this.rl.removeAllListeners('line');
+  this.rl.on('line', (input: string) => {
+      const trimmed = input.trim();
+      if (this.captureNextResolver) {
+        const resolver = this.captureNextResolver; this.captureNextResolver = null;
+        // Restore default prompt for main entry
+        this.rl.setPrompt(this.defaultPrompt);
+        resolver(trimmed);
+        return;
+      }
+      cb(trimmed);
+    });
   }
 
   onClose(cb: () => void) {
@@ -41,6 +55,26 @@ export class TerminalUI {
   }
 
   prompt() { this.rl.prompt(); }
+
+  showWelcome() {
+    console.log('Welcome to the ChallaChat Overlay!');
+    this.rl.setPrompt(this.defaultPrompt);
+  }
+
+  async askOnce(question: string): Promise<string> {
+    return new Promise<string>((resolve) => {
+      this.captureNextResolver = (ans: string) => {
+        resolve(ans);
+        // After resolving, show the main prompt again (but don't auto-prompt here to avoid double prompts)
+      };
+      this.rl.setPrompt(`${ANSI.bold}${ANSI.yellow}${question}:${ANSI.reset} `);
+      this.rl.prompt();
+    });
+  }
+
+  setPort(port: number) {
+    this.port = port;
+  }
 
   setUrl(url: string) {
     this.currentUrl = url;

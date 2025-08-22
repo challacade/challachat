@@ -36,9 +36,11 @@ else {
 if ($needChrome) { Run "npx puppeteer browsers install chrome" }
 
 if ($Dev) {
+  Write-Host "ChallaChat is starting..." -ForegroundColor Green
   Run "npm run dev"
   exit 0
 }
 
+Write-Host "ChallaChat is starting..." -ForegroundColor Green
 Run "npm run build"
 Run "npm start"
