@@ -1,4 +1,4 @@
-export const DEFAULT_PORT = Number(process.env.PORT) || 3000;
+export const DEFAULT_PORT = Number(process.env.PORT) || 5050;
 export const DEFAULT_POLL_INTERVAL = 1000;
 export const MIN_POLL_INTERVAL = 100;
 

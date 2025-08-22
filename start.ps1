@@ -1,6 +1,6 @@
 Param(
   [switch]$Dev,
-  [int]$Port = 3000
+  [int]$Port = 5050
 )
 
 $ErrorActionPreference = 'Stop'
