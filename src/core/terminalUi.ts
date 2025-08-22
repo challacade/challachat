@@ -20,6 +20,9 @@ export class TerminalUI {
   private connectingShown = false;
   private headerPrinted = false;
   private lastPrintedUrl: string | null = null;
+  // Number of lines to move cursor UP from the bottom to reach the reserved URL line.
+  // When null, no reposition is needed (URL already printed in place).
+  private urlOffsetFromBottom: number | null = null;
 
   constructor(port: number) {
     this.port = port;
@@ -43,9 +46,26 @@ export class TerminalUI {
     this.currentUrl = url;
     // If header is already printed, append the URL once without clearing
     if (this.headerPrinted && this.currentUrl && this.currentUrl !== this.lastPrintedUrl) {
-      // Print ONLY the URL on the next line after the already-printed label
-      console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
-      console.log('');
+      if (this.urlOffsetFromBottom != null) {
+        // Move to the reserved URL line (directly under the label), write the URL, then return to bottom
+        try {
+          readline.moveCursor(process.stdout, 0, -this.urlOffsetFromBottom);
+          readline.clearLine(process.stdout, 0);
+          // Write URL (reserved line) and keep exactly one blank line before instructions
+          process.stdout.write(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}` + '\n');
+          // After writing one newline, the distance to bottom decreases by 1
+          readline.moveCursor(process.stdout, 0, this.urlOffsetFromBottom - 1);
+        } catch {
+          // Fallback: just append at bottom if cursor ops fail
+          console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
+          console.log('');
+        }
+        this.urlOffsetFromBottom = null;
+      } else {
+        // No reserved slot tracked; append at bottom
+        console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
+        console.log('');
+      }
       this.lastPrintedUrl = this.currentUrl;
     }
   }
@@ -64,17 +84,39 @@ export class TerminalUI {
   render() {
   if (this.headerPrinted) return; // One-time render only
   try { console.clear(); } catch {}
-  console.log(`${ANSI.bold}${ANSI.green}ChallaChat Overlay is Active${ANSI.reset}`);
+  const headerWhite = `${ANSI.bold}${ANSI.white}ChallaChat Overlay is${ANSI.reset}`;
+  const headerGreen = `${ANSI.bold}${ANSI.green} Active on Port ${this.port}${ANSI.reset}`;
+  console.log(`${headerWhite}${headerGreen}`);
   console.log('');
-  const overlayUrl = `http://localhost:${this.port}/overlay`;
-  console.log('Overlay URL:');
-  console.log(`${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);
-  console.log('');
+  // Livestream URL section
   console.log('Connected to livestream:');
   if (this.currentUrl) {
     console.log(`${ANSI.bold}${ANSI.yellow}${this.currentUrl}${ANSI.reset}`);
+    // Do not add another blank here; the instructions block starts with a spacer line
+    this.urlOffsetFromBottom = null;
+  } else {
+    // Reserve a blank line for the URL to be filled later, and remember how far up it is from the bottom
     console.log('');
+  // Lines after the reserved URL line (current layout):
+  // 1) spacer before instructions
+  // 2) step 1
+  // 3) step 2
+  // 4) step 3
+  // 5) spacer
+  // 6) background note
+  // 7) visit link
+  // To reach the reserved line from the bottom, move up N+1 = 8 lines
+  this.urlOffsetFromBottom = 8;
   }
+  // Instructions block
+  const overlayUrl = `http://localhost:${this.port}/overlay`;
+  console.log('');
+  console.log('1. Create a new Browser source in your streaming software.');
+  console.log(`2. Set the URL to: ${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);
+  console.log("3. Once created, select 'Interact' on the source to edit settings.");
+  console.log('');
+  console.log('This terminal runs in the background, keeping the overlay updated.');
+console.log(`Visit ${ANSI.bold}challachat.com${ANSI.reset} for more information!`);
   this.headerPrinted = true;
   this.lastPrintedUrl = this.currentUrl;
   }
