@@ -109,7 +109,7 @@ export class TerminalUI {
   this.urlOffsetFromBottom = 8;
   }
   // Instructions block
-  const overlayUrl = `http://localhost:${this.port}/overlay`;
+  const overlayUrl = `http://localhost:${this.port}`;
   console.log('');
   console.log('1. Create a new Browser source in your streaming software.');
   console.log(`2. Set the URL to: ${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);
