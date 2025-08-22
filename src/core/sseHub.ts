@@ -1,5 +1,6 @@
 import type { Response } from 'express';
 
+// Minimal SSE hub to fan out server-sent events to overlay clients
 export class SSEHub<T = unknown> {
   private clients = new Set<Response>();
   private heartbeatMs: number;

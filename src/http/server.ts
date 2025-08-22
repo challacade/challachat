@@ -12,6 +12,7 @@ import type { ChatEvent } from '../scraper/types';
 // __dirname is available in CommonJS; TS compiles to CJS per tsconfig
 const __dirnameResolved = __dirname;
 
+// HTTP server + overlay + SSE wiring
 class App {
   private app = express();
   private server = http.createServer(this.app);
@@ -38,6 +39,7 @@ class App {
   });
   }
 
+  // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
   const staticDir = path.resolve(__dirnameResolved, '..', '..', 'static');
@@ -79,6 +81,7 @@ class App {
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
   }
 
+  // Wire terminal input handlers; actual prompt is shown after port bind
   private setupTerminal() {
   // Do not prompt until we are successfully listening on a port
     this.tui.onLine(async (line) => {
@@ -102,6 +105,7 @@ class App {
     process.on('SIGTERM', () => { console.log('\nReceived termination signal...'); this.shutdown(); });
   }
 
+  // One-shot bind if not already listening
   private async ensureServer() {
     if ((this.server as any)._listening) return;
     await new Promise<void>((resolve) => {
@@ -109,6 +113,7 @@ class App {
     });
   }
 
+  // Bind with retry: on EADDRINUSE, ask user for a different port until success
   private async ensureServerWithRetry() {
     // Try to listen; on EADDRINUSE, prompt for another port until success.
     while (!(this.server as any)._listening) {
@@ -164,6 +169,7 @@ class App {
     }
   }
 
+  // Start scraper for the provided livestream URL
   private async startScraping(url: string) {
     if (this.isRunning) { console.log('Already scraping. Use "stop" first to change streams.'); return; }
     const videoId = this.extractVideoId(url);
@@ -186,6 +192,7 @@ class App {
     this.io.emit('scraper-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
   }
 
+  // Relay messages to SSE clients and overlay
   private onScraperMessage(message: ChatEvent) {
     this.messageCount++;
   // No terminal preview or re-rendering of the header during message flow.
@@ -193,6 +200,7 @@ class App {
     this.sse.send('chat', { events: [this.normalizeForOverlay(message)] });
   }
 
+  // Normalize event shape for the overlay client
   private normalizeForOverlay(message: ChatEvent): ChatEvent {
     const flags = message.author?.flags || { owner: false, mod: false, verified: false, member: false };
     return {
@@ -207,6 +215,7 @@ class App {
     };
   }
 
+  // Support multiple YouTube URL shapes for extracting the video id
   private extractVideoId(url: string): string | null {
     try {
       const u = new URL(url);
@@ -222,6 +231,7 @@ class App {
     return null;
   }
 
+  // Gracefully stop the scraper and summarize the session
   private async shutdownScraper() {
     if (!this.isRunning) return;
     try { await this.scraper?.stop(); } catch (e: any) { console.log(`Error stopping scraper: ${e?.message || e}`); }

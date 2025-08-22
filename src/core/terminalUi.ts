@@ -12,6 +12,7 @@ const ANSI = {
 
 export interface RecentMessage { name: string; text: string }
 
+// Terminal UI: handles prompts and the one-time status header
 export class TerminalUI {
   private rl: readline.Interface;
   private port: number;

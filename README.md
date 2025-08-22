@@ -2,11 +2,11 @@ ChallaChat (TypeScript)
 
 A full TypeScript refactor of the standalone ChallaChat app. It scrapes YouTube Live Chat locally with Puppeteer and serves a browser overlay you can drop into OBS. No cloud services required.
 
-Key URLs
+Key URLs (default port 5050)
 
-- Overlay: http://localhost:3000/overlay (or /)
-- SSE stream: http://localhost:3000/api/stream
-- Status: http://localhost:3000/api/status
+- Overlay: http://localhost:5050/
+- SSE stream: http://localhost:5050/api/stream
+- Status: http://localhost:5050/api/status
 
 Quick start
 
@@ -15,7 +15,7 @@ Quick start
    - dev (auto-reload via tsx): npm run dev
    - production build: npm run build; npm start
 3) In the terminal prompt, paste a YouTube livestream URL when asked.
-4) In OBS, add a Browser Source pointing to http://localhost:3000/overlay
+4) In OBS, add a Browser Source pointing to http://localhost:5050/
 
 Notes
 
