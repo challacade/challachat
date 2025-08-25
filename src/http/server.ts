@@ -177,7 +177,8 @@ class App {
     this.scraper = new YouTubeChatScraper(videoId, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message) => this.onScraperMessage(message),
+  onMessage: (message) => this.onScraperMessage(message),
+  onDelete: (id) => this.onScraperDelete(id),
       onError: (err) => console.log(`[ERROR] ${err.message}`),
       onStatusChange: (status) => { this.io.emit('scraper-status', status); if (status?.status === 'active') this.tui.render(); }
     });
@@ -198,6 +199,13 @@ class App {
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', message);
     this.sse.send('chat', { events: [this.normalizeForOverlay(message)] });
+  }
+
+  // Relay delete events (by id) so overlays can remove them immediately
+  private onScraperDelete(id: string) {
+    if (!id) return;
+    try { this.io.emit('chat-delete', { id }); } catch {}
+    try { this.sse.send('chat', { events: [{ type: 'delete', id }] as any }); } catch {}
   }
 
   // Normalize event shape for the overlay client

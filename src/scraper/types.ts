@@ -43,4 +43,7 @@ export interface ScraperOptions {
   onMessage?: (message: ChatEvent) => void;
   onError?: (error: Error) => void;
   onStatusChange?: (status: any) => void;
+  // Called when a message that was previously emitted is detected as deleted
+  // or removed from the live chat DOM. The overlay should remove it by id.
+  onDelete?: (id: string) => void;
 }

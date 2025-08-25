@@ -14,6 +14,7 @@ export class YouTubeChatScraper {
   private onMessage: (m: ChatEvent) => void;
   private onError: (e: Error) => void;
   private onStatus: (s: any) => void;
+  private onDelete: (id: string) => void;
 
   constructor(videoId: string, options: ScraperOptions = {}) {
     this.videoId = videoId;
@@ -27,6 +28,7 @@ export class YouTubeChatScraper {
     this.onMessage = options.onMessage ?? (() => {});
     this.onError = options.onError ?? (() => {});
     this.onStatus = options.onStatusChange ?? (() => {});
+  this.onDelete = options.onDelete ?? (() => {});
   }
 
   get pollInterval() { return this.opts.pollInterval; }
@@ -198,7 +200,7 @@ export class YouTubeChatScraper {
     this.pollTimer = setInterval(async () => {
       if (!this.isRunning || !this.page) return;
       try {
-        const messages = await this.page.evaluate(() => {
+  const result = await this.page.evaluate(() => {
           function cyrb53(str: string, seed = 0) {
             let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
             for (let i = 0, ch; i < str.length; i++) {
@@ -322,11 +324,26 @@ export class YouTubeChatScraper {
           function normalizeAssetSize(url: string) { if (!url) return ''; try { return url.replace(/=s(\d+)([^&#?]*)/g, (_m, num: string, rest: string) => { const n = parseInt(num, 10); const target = n <= 64 ? 96 : n; return `=s${target}${rest || ''}`; }); } catch { return url; } }
 
           const out: any[] = []; const emitted = new Set<string>();
+          const visibleIds: string[] = [];
+          const deletedIds: string[] = [];
           const listRoot = document.querySelector('yt-live-chat-item-list-renderer #items') || document.querySelector('yt-live-chat-item-list-renderer') || document;
           const qsa = (sel: string) => Array.from(listRoot!.querySelectorAll(sel));
           const isInTicker = (el: Element) => { try { return !!el.closest('yt-live-chat-ticker-renderer'); } catch { return false; } };
+          const isDeletedState = (el: Element) => {
+            try {
+              const del = (el.querySelector('#deleted-state') as HTMLElement | null);
+              if (del && (del.innerText || del.textContent || '').toLowerCase().includes('deleted')) return true;
+              // Some deleted messages keep author chip but replace message text with moderation note
+              const message = el.querySelector('#message') as HTMLElement | null;
+              if (message && ((message.innerText || '').trim() === '' || /message deleted/i.test(message.innerText || ''))) {
+                const delLike = (el.textContent || '').toLowerCase();
+                if (delLike.includes('message deleted')) return true;
+              }
+            } catch {}
+            return false;
+          };
 
-          const messageElements = qsa('yt-live-chat-text-message-renderer');
+  const messageElements = qsa('yt-live-chat-text-message-renderer');
           messageElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
@@ -334,6 +351,10 @@ export class YouTubeChatScraper {
               const messageElement = element.querySelector('#message') as HTMLElement | null;
               if (!authorElement || !messageElement) return;
               const rendererId = element.getAttribute('id') || '';
+    // Track visibility of this renderer in the DOM for deletion detection
+    if (rendererId) visibleIds.push(rendererId);
+    // Detect and record deleted-state
+    if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
               const segments: any[] = getSegmentsFromMessage(messageElement);
               const messageText = (segments || []).filter((s: any) => s.t === 'text').map((s: any) => s.text).join('').trim();
@@ -343,13 +364,13 @@ export class YouTubeChatScraper {
               if (!messageText && (!segments || segments.length === 0)) return;
               const hasCard = hasCardWithin(element);
               const stableKey = `text|${authorName}|${messageText}|${(segments||[]).filter((s: any)=>s.t==='emote').map((s: any)=>s.url).join(',')}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+      const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'text', hasCard };
               out.push(payload); emitted.add(messageId);
             } catch {}
           });
 
-          const paidElements = qsa('yt-live-chat-paid-message-renderer');
+  const paidElements = qsa('yt-live-chat-paid-message-renderer');
           paidElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
@@ -357,6 +378,8 @@ export class YouTubeChatScraper {
               if (!authorElement) return;
               const messageElement = element.querySelector('#message') as HTMLElement | null;
               const rendererId = element.getAttribute('id') || '';
+    if (rendererId) visibleIds.push(rendererId);
+    if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
               const segments: any[] = messageElement ? getSegmentsFromMessage(messageElement) : [];
               const messageText = messageElement ? (segments || []).filter((s: any) => s.t === 'text').map((s: any) => s.text).join('').trim() : '';
@@ -369,19 +392,21 @@ export class YouTubeChatScraper {
               try { const cs = getComputedStyle(element as HTMLElement); color = (cs.getPropertyValue('--yt-live-chat-paid-message-primary-color') || '').trim(); } catch {}
               const hasCard = hasCardWithin(element);
               const stableKey = `donation|${authorName}|${amountDisplay}|${messageText}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+      const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'donation', amountDisplay, color, hasCard };
               out.push(payload); emitted.add(messageId);
             } catch {}
           });
 
-          const stickerElements = qsa('yt-live-chat-paid-sticker-renderer');
+  const stickerElements = qsa('yt-live-chat-paid-sticker-renderer');
           stickerElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
               const authorElement = element.querySelector('#author-name') as HTMLElement | null;
               if (!authorElement) return;
               const rendererId = element.getAttribute('id') || '';
+    if (rendererId) visibleIds.push(rendererId);
+    if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
               const avatarUrl = getAuthorAvatarUrl(element);
               const flags = detectYouTubeUserRoles(element);
@@ -399,20 +424,22 @@ export class YouTubeChatScraper {
               const segments = stickerUrl ? [{ t: 'emote', url: stickerUrl, alt: 'Super Sticker' }] : [];
               const hasCard = hasCardWithin(element);
               const stableKey = `sticker|${authorName}|${amountDisplay}|${stickerUrl}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+      const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               if (emitted.has(messageId)) return;
               const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: '', segments, timestamp: Date.now(), kind: 'donation', amountDisplay, hasCard };
               out.push(payload); emitted.add(messageId);
             } catch {}
           });
 
-          const memberJoinElements = qsa('yt-live-chat-membership-item-renderer');
+  const memberJoinElements = qsa('yt-live-chat-membership-item-renderer');
           memberJoinElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
               const authorElement = element.querySelector('#author-name') as HTMLElement | null;
               if (!authorElement) return;
               const rendererId = element.getAttribute('id') || '';
+    if (rendererId) visibleIds.push(rendererId);
+    if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
               const messageElement = element.querySelector('#message') || element.querySelector('#header-subtext') || element.querySelector('#subtext') || element as Element;
               const segments: any[] = messageElement ? getSegmentsFromMessage(messageElement) : [];
@@ -422,18 +449,20 @@ export class YouTubeChatScraper {
               const badges = getAuthorBadges(element);
               const hasCard = hasCardWithin(element);
               const stableKey = `member|${authorName}|${messageText}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+      const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'member', hasCard });
             } catch {}
           });
 
-          const milestoneElements = qsa('yt-live-chat-membership-milestone-renderer, yt-live-chat-membership-milestone-chip-renderer');
+  const milestoneElements = qsa('yt-live-chat-membership-milestone-renderer, yt-live-chat-membership-milestone-chip-renderer');
           milestoneElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
               const authorElement = element.querySelector('#author-name') as HTMLElement | null;
               if (!authorElement) return;
               const rendererId = element.getAttribute('id') || '';
+    if (rendererId) visibleIds.push(rendererId);
+    if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
               const messageElement = element.querySelector('#message') || element as Element;
               const segments: any[] = getSegmentsFromMessage(messageElement);
@@ -443,17 +472,18 @@ export class YouTubeChatScraper {
               const badges = getAuthorBadges(element);
               const hasCard = hasCardWithin(element);
               const stableKey = `member-milestone|${authorName}|${messageText}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+      const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'member-milestone', hasCard });
             } catch {}
           });
 
           const giftSelectors = ['ytd-sponsorships-live-chat-header-renderer', 'yt-live-chat-sponsor-gift-purchase-announcement-renderer', 'yt-live-chat-gift-purchase-announcement-renderer'];
-          const giftElements = giftSelectors.flatMap(sel => Array.from(document.querySelectorAll(sel)));
+      const giftElements = giftSelectors.flatMap(sel => Array.from(document.querySelectorAll(sel)));
           giftElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
               const rendererId = element.getAttribute('id') || '';
+        if (rendererId) visibleIds.push(rendererId);
               const authorName = ((element.querySelector('yt-live-chat-author-chip #author-name') as HTMLElement | null)?.textContent || (element.querySelector('#author-name') as HTMLElement | null)?.textContent || '').trim() || 'Unknown';
               const primaryText = (element.querySelector('#primary-text') as HTMLElement | null)?.textContent?.trim() || '';
               const text = primaryText || 'Gifted memberships';
@@ -462,15 +492,18 @@ export class YouTubeChatScraper {
               const badges = getAuthorBadges(element);
               const hasCard = true;
               const stableKey = `member-gift|${authorName}|${text}`;
-              const messageId = (rendererId && rendererId.length >= 10) ? rendererId : `h_${cyrb53(stableKey)}`;
+              const messageId = rendererId || `h_${cyrb53(stableKey)}`;
               if ((emitted as Set<string>).has(messageId)) return;
               out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text, segments: [], timestamp: Date.now(), kind: 'member-gift', hasCard });
               (emitted as Set<string>).add(messageId);
             } catch {}
           });
 
-          return out;
+          return { messages: out, visibleIds, deletedIds };
         });
+        const messages = (result as any)?.messages || [];
+        const visibleRendererIds: Set<string> = new Set((result as any)?.visibleIds || []);
+        const deletedRendererIds: Set<string> = new Set((result as any)?.deletedIds || []);
 
         for (const message of messages as any[]) {
           const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
@@ -490,6 +523,20 @@ export class YouTubeChatScraper {
               hasCard: message.hasCard
             };
             this.onMessage(evt);
+          }
+        }
+
+        // Deletion detection: if a renderer id we previously saw is no longer present,
+        // or the element has transitioned to a deleted-state, emit deletion.
+        // We rely on DOM-only IDs when available; hashed IDs cannot be checked for visibility,
+        // so they won't be auto-deleted unless a deleted-state is observed while still present.
+        // Collect renderer IDs we knew about (subset of seenIds that look like DOM ids)
+        const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith('h_'));
+        for (const id of knownDomIds) {
+          if (deletedRendererIds.has(id) || !visibleRendererIds.has(id)) {
+            // It disappeared from DOM: consider deleted/removed
+            this.onDelete(id);
+            this.seenIds.delete(id);
           }
         }
       } catch (err: any) {
