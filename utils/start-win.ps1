@@ -6,15 +6,15 @@ Param(
 )
 
 $ErrorActionPreference = 'Stop'
-Set-Location -Path $PSScriptRoot
+$ScriptDir = $PSScriptRoot
+$RootDir = Split-Path -Parent $ScriptDir
+Set-Location -Path $RootDir
 
-# Helper: run a command and stop on error
 function Run($cmd) {
   $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c $cmd" -NoNewWindow -Wait -PassThru
   if ($p.ExitCode -ne 0) { throw "Command failed ($($p.ExitCode)): $cmd" }
 }
 
-# 1) Ensure Node.js (portable) if not available
 function Ensure-Node {
   $nodeVer = & node --version 2>$null
   if ($nodeVer) { return }
@@ -24,7 +24,7 @@ function Ensure-Node {
   $nodeVersion = 'v22.5.1'
   $zipName = "node-$nodeVersion-win-$arch.zip"
   $url = "https://nodejs.org/dist/$nodeVersion/$zipName"
-  $toolsDir = Join-Path $PSScriptRoot ".tools"
+  $toolsDir = Join-Path $RootDir ".tools"
   $zipPath = Join-Path $toolsDir $zipName
   $nodeDir = Join-Path $toolsDir "node-$nodeVersion-win-$arch"
   if (-not (Test-Path $toolsDir)) { New-Item -Path $toolsDir -ItemType Directory | Out-Null }
@@ -40,18 +40,13 @@ function Ensure-Node {
   Write-Host "Using portable Node: $($nodeExe)" -ForegroundColor Green
 }
 
-Ensure-Node
-
-$env:PORT = [string]$Port
-
-# 2) Ensure dependencies
 function Ensure-Dependencies {
-  if ($Reinstall -and (Test-Path (Join-Path $PSScriptRoot 'node_modules'))) {
+  if ($Reinstall -and (Test-Path (Join-Path $RootDir 'node_modules'))) {
     Write-Host "Reinstall requested. Removing node_modules..." -ForegroundColor Yellow
-    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $PSScriptRoot 'node_modules')
+    Remove-Item -Recurse -Force -ErrorAction SilentlyContinue (Join-Path $RootDir 'node_modules')
   }
-  if (-not (Test-Path (Join-Path $PSScriptRoot 'node_modules'))) {
-    if (Test-Path (Join-Path $PSScriptRoot 'package-lock.json')) {
+  if (-not (Test-Path (Join-Path $RootDir 'node_modules'))) {
+    if (Test-Path (Join-Path $RootDir 'package-lock.json')) {
       try { Run "npm ci" }
       catch { Write-Host "npm ci failed, falling back to npm install..." -ForegroundColor Yellow; Run "npm install" }
     } else {
@@ -60,29 +55,23 @@ function Ensure-Dependencies {
   }
 }
 
-Ensure-Dependencies
-
-# 3) Ensure a Chromium is available for Puppeteer (prefer system Chrome/Edge)
 function Test-AnyPathExists([string[]]$paths) { foreach ($p in $paths) { if ($p -and (Test-Path $p)) { return $true } } return $false }
 
-$systemChromePaths = @(
-  (Join-Path $env:PROGRAMFILES 'Google\Chrome\Application\chrome.exe'),
-  (Join-Path ${env:PROGRAMFILES(X86)} 'Google\Chrome\Application\chrome.exe'),
-  (Join-Path $env:PROGRAMW6432 'Google\Chrome\Application\chrome.exe'),
-  (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
-)
-$systemEdgePaths = @(
-  (Join-Path $env:PROGRAMFILES 'Microsoft\Edge\Application\msedge.exe'),
-  (Join-Path ${env:PROGRAMFILES(X86)} 'Microsoft\Edge\Application\msedge.exe'),
-  (Join-Path $env:PROGRAMW6432 'Microsoft\Edge\Application\msedge.exe'),
-  (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\Application\msedge.exe')
-)
-
-$hasSystemBrowser = (Test-AnyPathExists $systemChromePaths) -or (Test-AnyPathExists $systemEdgePaths)
-
 function Ensure-Puppeteer-Chrome {
+  $systemChromePaths = @(
+    (Join-Path $env:PROGRAMFILES 'Google\Chrome\Application\chrome.exe'),
+    (Join-Path ${env:PROGRAMFILES(X86)} 'Google\Chrome\Application\chrome.exe'),
+    (Join-Path $env:PROGRAMW6432 'Google\Chrome\Application\chrome.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Google\Chrome\Application\chrome.exe')
+  )
+  $systemEdgePaths = @(
+    (Join-Path $env:PROGRAMFILES 'Microsoft\Edge\Application\msedge.exe'),
+    (Join-Path ${env:PROGRAMFILES(X86)} 'Microsoft\Edge\Application\msedge.exe'),
+    (Join-Path $env:PROGRAMW6432 'Microsoft\Edge\Application\msedge.exe'),
+    (Join-Path $env:LOCALAPPDATA 'Microsoft\Edge\Application\msedge.exe')
+  )
+  $hasSystemBrowser = (Test-AnyPathExists $systemChromePaths) -or (Test-AnyPathExists $systemEdgePaths)
   if ($hasSystemBrowser) { return }
-  # Check Puppeteer cache locations on Windows
   $ppWinCache1 = Join-Path $env:LOCALAPPDATA 'puppeteer'
   $ppWinCache2 = Join-Path $env:USERPROFILE '.cache\puppeteer'
   $cacheHasChrome = $false
@@ -100,14 +89,15 @@ function Ensure-Puppeteer-Chrome {
   }
 }
 
+Ensure-Node
+Ensure-Dependencies
 Ensure-Puppeteer-Chrome
 
-# 4) Run in Dev or Build+Start mode
+$env:PORT = [string]$Port
 Write-Host "ChallaChat is starting on port $Port..." -ForegroundColor Green
 if ($Dev) {
   Run "npm run dev"
-  exit 0
+} else {
+  if (-not $SkipBuild) { Run "npm run build" }
+  Run "npm start"
 }
-
-if (-not $SkipBuild) { Run "npm run build" }
-Run "npm start"
