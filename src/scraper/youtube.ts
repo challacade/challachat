@@ -124,8 +124,26 @@ export class YouTubeChatScraper {
         } catch {}
       }
     }
-    // 4) Fall back to default (managed) Chrome-for-Testing if present
-    return await puppeteer.launch(base);
+    // 3b) Try macOS explicit paths
+    if (process.platform === 'darwin') {
+      const candidates = this.findMacBrowserPaths();
+      for (const exe of candidates) {
+        try { return await puppeteer.launch({ ...base, executablePath: exe }); } catch {}
+      }
+    }
+    // 3c) Try Linux common paths
+    if (process.platform === 'linux') {
+      const candidates = this.findLinuxBrowserPaths();
+      for (const exe of candidates) {
+        try { return await puppeteer.launch({ ...base, executablePath: exe }); } catch {}
+      }
+    }
+    // 4) Fall back to default (managed) Chrome-for-Testing if present; if unavailable, throw a helpful error
+    try {
+      return await puppeteer.launch(base);
+    } catch (e) {
+      throw new Error('No Chrome/Edge found. Please install Google Chrome or Microsoft Edge and try again.');
+    }
   }
 
   private findWindowsBrowserPaths(): string[] {
@@ -147,6 +165,25 @@ export class YouTubeChatScraper {
       if (p && p.trim().length > 0) paths.push(p);
     }
     return paths;
+  }
+
+  private findMacBrowserPaths(): string[] {
+    return [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
+      '/Applications/Chromium.app/Contents/MacOS/Chromium'
+    ];
+  }
+
+  private findLinuxBrowserPaths(): string[] {
+    return [
+      '/usr/bin/google-chrome',
+      '/usr/bin/google-chrome-stable',
+      '/usr/bin/chromium-browser',
+      '/usr/bin/chromium',
+      '/usr/bin/microsoft-edge',
+      '/snap/bin/chromium'
+    ];
   }
 
   private async navigate(attempt: number) {

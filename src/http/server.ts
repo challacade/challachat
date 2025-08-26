@@ -2,6 +2,7 @@
 import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
@@ -9,8 +10,12 @@ import { TerminalUI } from '../core/terminalUi';
 import YouTubeChatScraper from '../scraper/youtube';
 import type { ChatEvent } from '../scraper/types';
 
-// __dirname is available in CommonJS; TS compiles to CJS per tsconfig
+// Resolve static directory for both dev and single-exe (pkg) builds
 const __dirnameResolved = __dirname;
+const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'static');
+const externalStatic = (() => {
+  try { return path.join(path.dirname(process.execPath), 'static'); } catch { return snapshotStatic; }
+})();
 
 // HTTP server + overlay + SSE wiring
 class App {
@@ -32,17 +37,16 @@ class App {
   this.setupServer();
   this.setupTerminal();
   this.handleSignals();
-  // Attempt initial bind and if in use, prompt for a new port repeatedly
-  this.ensureServerWithRetry().then(() => {
-    this.tui.showWelcome();
-    this.tui.prompt();
-  });
+  // Show prompt immediately; bind server in background with retry
+  this.tui.showWelcome();
+  this.tui.prompt();
+  void this.ensureServerWithRetry();
   }
 
   // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
-  const staticDir = path.resolve(__dirnameResolved, '..', '..', 'static');
+  const staticDir = fs.existsSync(snapshotStatic) ? snapshotStatic : externalStatic;
     this.app.use(express.static(staticDir));
   this.app.get('/', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
   this.app.get('/overlay', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
@@ -115,7 +119,8 @@ class App {
 
   // Bind with retry: on EADDRINUSE, ask user for a different port until success
   private async ensureServerWithRetry() {
-    // Try to listen; on EADDRINUSE, prompt for another port until success.
+    // Try to listen; on EADDRINUSE, auto-increment to the next port until success.
+    let attempts = 0;
     while (!(this.server as any)._listening) {
       try {
         await new Promise<void>((resolve, reject) => {
@@ -139,32 +144,21 @@ class App {
         });
       } catch (err: any) {
         if (err?.code === 'EADDRINUSE') {
-          console.log(`Port ${this.port} is in use.`);
-          // Ask user for a new port
-          const ans = await this.tui.askOnce('Enter a different port number');
-          const next = parseInt(ans, 10);
-          if (!Number.isFinite(next) || next <= 0 || next > 65535) {
-            console.log('Please enter a valid port number between 1 and 65535.');
-            continue;
-          }
-          this.port = next;
+          console.log(`Port ${this.port} is in use. Trying ${this.port + 1}...`);
+          this.port = Math.min(65535, this.port + 1);
           this.tui.setPort(this.port);
           this.pendingPortConfirmation = this.port;
-          // Update Express to reflect the new port in status API
-          // No explicit Express change needed; only server.listen uses the port.
+          attempts++;
+          if (attempts > 50) throw new Error('Failed to find a free port.');
           continue;
         }
         // Unknown error: show concise message, not stack
-        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}`);
-        const ans = await this.tui.askOnce('Enter a different port');
-        const next = parseInt(ans, 10);
-        if (!Number.isFinite(next) || next <= 0 || next > 65535) {
-          console.log('Please enter a valid port number between 1 and 65535.');
-          continue;
-        }
-        this.port = next;
+        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}. Trying next port...`);
+        this.port = Math.min(65535, this.port + 1);
         this.tui.setPort(this.port);
         this.pendingPortConfirmation = this.port;
+        attempts++;
+        if (attempts > 50) throw err;
       }
     }
   }

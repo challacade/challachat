@@ -1,0 +1,61 @@
+name: Build releases
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            target: node22-win-x64
+            artifact: challachat-win-x64.exe
+          - os: macos-latest
+            target: node22-macos-x64
+            artifact: challachat-macos-x64
+          - os: macos-latest
+            target: node22-macos-arm64
+            artifact: challachat-macos-arm64
+          - os: ubuntu-latest
+            target: node22-linux-x64
+            artifact: challachat-linux-x64
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install deps
+        run: npm ci || npm install
+      - name: Build
+        run: npm run build
+      - name: Package
+        run: npx pkg --compress Brotli --targets ${{ matrix.target }} --out-path build dist/http/server.js
+      - name: Rename artifact
+        shell: bash
+        run: |
+          cd build
+          ls -la
+          # Find produced file
+          FILE=$(ls | head -n1)
+          mv "$FILE" "${{ matrix.artifact }}"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.artifact }}
+          path: build/${{ matrix.artifact }}
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**/*
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
