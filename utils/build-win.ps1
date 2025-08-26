@@ -14,6 +14,12 @@ function Run($cmd) {
   if ($p.ExitCode -ne 0) { throw "Command failed ($($p.ExitCode)): $cmd" }
 }
 
+# Like Run, but never throws. Returns the exit code.
+function TryRun($cmd) {
+  $p = Start-Process -FilePath "cmd.exe" -ArgumentList "/c $cmd" -NoNewWindow -Wait -PassThru
+  return $p.ExitCode
+}
+
 function Ensure-Dependencies {
   if ($Reinstall -and (Test-Path (Join-Path $RootDir 'node_modules'))) {
     Write-Host "Reinstall requested. Removing node_modules..." -ForegroundColor Yellow
@@ -36,16 +42,12 @@ Run "npm run build"
 
 # Try to package with pkg (Node 22 targets)
 $packSucceeded = $false
-try {
-  if ($All) {
-    Run "npm run pack:all"
-  } else {
-    Run "npm run pack:win"
-  }
-  $packSucceeded = $true
-} catch {
-  $msg = $_.Exception.Message
-  Write-Warning "pkg packaging failed: $msg"
+if ($All) {
+  $code = TryRun "npm run pack:all"
+  if ($code -eq 0) { $packSucceeded = $true } else { Write-Warning "pkg packaging failed with exit code $code (this will fall back to a portable Node 22 bundle)." }
+} else {
+  $code = TryRun "npm run pack:win"
+  if ($code -eq 0) { $packSucceeded = $true } else { Write-Warning "pkg packaging failed with exit code $code (this will fall back to a portable Node 22 bundle)." }
 }
 
 # If pkg failed due to missing runtime support or explicitly requested, create a portable Node 22 bundle
@@ -106,6 +108,22 @@ if (-not $packSucceeded -or $PortableFallback) {
   if (Test-Path $zipOut) { Remove-Item -Force $zipOut }
   Compress-Archive -Path (Join-Path $stage '*') -DestinationPath $zipOut
   Write-Host "Portable bundle created: $zipOut" -ForegroundColor Green
+}
+
+# If EXE exists and an icon is provided, stamp icon using rcedit
+try {
+  $exePath = Join-Path $RootDir 'build/challachat.exe'
+  $icoPath = Join-Path $RootDir 'static/images/challachat.ico'
+  if (Test-Path $exePath -and (Test-Path $icoPath)) {
+    Write-Host "Stamping icon on challachat.exe..." -ForegroundColor Cyan
+    # Ensure rcedit is available
+    $exeEsc = '"' + $exePath + '"'
+    $icoEsc = '"' + $icoPath + '"'
+    Run "npx rcedit $exeEsc --set-icon $icoEsc"
+    Write-Host "Icon applied to challachat.exe" -ForegroundColor Green
+  }
+} catch {
+  Write-Warning "Failed to set icon: $($_.Exception.Message)"
 }
 
 Write-Host "Build complete. See .\\build for artifacts." -ForegroundColor Green
