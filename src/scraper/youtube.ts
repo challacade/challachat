@@ -468,7 +468,7 @@ export class YouTubeChatScraper {
             } catch {}
           });
 
-  const memberJoinElements = qsa('yt-live-chat-membership-item-renderer');
+          const memberJoinElements = qsa('yt-live-chat-membership-item-renderer');
           memberJoinElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
@@ -478,20 +478,44 @@ export class YouTubeChatScraper {
     if (rendererId) visibleIds.push(rendererId);
     if (isDeletedState(element)) { if (rendererId) deletedIds.push(rendererId); return; }
               const authorName = authorElement.textContent?.trim() || 'Unknown';
+              
+              // Check if this is a renewal or new member
+              const headerPrimaryText = (element.querySelector('#header-primary-text') as HTMLElement | null)?.textContent?.trim() || '';
+              const isRenewal = /Member for \d+/i.test(headerPrimaryText) || /\d+\s*months?/i.test(headerPrimaryText) || /\d+\s*years?/i.test(headerPrimaryText);
+              
+              // Also check badges for existing membership duration
+              const badgeElements = element.querySelectorAll('#chat-badges yt-live-chat-author-badge-renderer, #chip-badges yt-live-chat-author-badge-renderer');
+              const hasLongTermBadge = Array.from(badgeElements).some(badge => {
+                const aria = badge.getAttribute('aria-label') || badge.getAttribute('shared-tooltip-text') || '';
+                return /Member \(\d+\s*(month|year)/i.test(aria);
+              });
+              
               const messageElement = element.querySelector('#message') || element.querySelector('#header-subtext') || element.querySelector('#subtext') || element as Element;
               const segments: any[] = messageElement ? getSegmentsFromMessage(messageElement) : [];
-              const messageText = (segments || []).filter((s: any) => s.t === 'text').map((s: any) => s.text).join('').trim() || 'New member!';
+              
+              let messageText = (segments || []).filter((s: any) => s.t === 'text').map((s: any) => s.text).join('').trim();
+              let kind = 'member';
+              
+              if (isRenewal || hasLongTermBadge) {
+                kind = 'member-renewal';
+                if (!messageText) {
+                  messageText = headerPrimaryText || 'Membership renewed';
+                }
+              } else {
+                if (!messageText) {
+                  messageText = 'New member!';
+                }
+              }
+              
               const avatarUrl = getAuthorAvatarUrl(element);
               const flags = detectYouTubeUserRoles(element);
               const badges = getAuthorBadges(element);
               const hasCard = hasCardWithin(element);
-              const stableKey = `member|${authorName}|${messageText}`;
+              const stableKey = `${kind}|${authorName}|${messageText}`;
       const messageId = rendererId || `h_${cyrb53(stableKey)}`;
-              out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'member', hasCard });
+              out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind, hasCard });
             } catch {}
-          });
-
-  const milestoneElements = qsa('yt-live-chat-membership-milestone-renderer, yt-live-chat-membership-milestone-chip-renderer');
+          });  const milestoneElements = qsa('yt-live-chat-membership-milestone-renderer, yt-live-chat-membership-milestone-chip-renderer');
           milestoneElements.forEach((element) => {
             try {
               if (isInTicker(element)) return;
@@ -545,7 +569,7 @@ export class YouTubeChatScraper {
         for (const message of messages as any[]) {
           const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
           const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
-          const highPriority = !!message.hasCard || ['donation','member','member-milestone','member-gift'].includes(message.kind);
+          const highPriority = !!message.hasCard || ['donation','member','member-renewal','member-milestone','member-gift'].includes(message.kind);
           if (!this.seenIds.has(message.id) && (hasText || hasSegments || highPriority)) {
             this.seenIds.add(message.id);
             const evt: ChatEvent = {

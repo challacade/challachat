@@ -75,7 +75,7 @@ OutputBaseFilename=challachat-setup
 Compression=lzma
 SolidCompression=yes
 WizardStyle=modern
-PrivilegesRequired=lowest
+PrivilegesRequired=admin
 ArchitecturesAllowed=x64compatible
 
 [Languages]
