@@ -32,9 +32,23 @@ const externalStatic = (() => {
 function getStaticFile(filePath: string): Buffer | string | null {
   console.log(`[DEBUG] Attempting to load static file: ${filePath}`);
   
-  if (sea && sea.isSea && sea.isSea()) {
-    console.log('[DEBUG] Running in SEA mode');
-    // For SEA, we need to add the static/ prefix to match the asset keys
+  // Check if we're in optimized SEA mode with external static files
+  if (process.env.CHALLACHAT_OPTIMIZED === 'true' && process.env.CHALLACHAT_STATIC_DIR) {
+    console.log('[DEBUG] Running in optimized SEA mode with external static files');
+    const staticDir = process.env.CHALLACHAT_STATIC_DIR;
+    const fullPath = path.join(staticDir, filePath);
+    console.log(`[DEBUG] Looking for external static file: ${fullPath}`);
+    
+    if (fs.existsSync(fullPath)) {
+      console.log(`[DEBUG] Found external static file: ${fullPath}`);
+      return fs.readFileSync(fullPath);
+    } else {
+      console.log(`[DEBUG] External static file not found: ${fullPath}`);
+      return null;
+    }
+  } else if (sea && sea.isSea && sea.isSea()) {
+    console.log('[DEBUG] Running in embedded SEA mode');
+    // For embedded SEA, we need to add the static/ prefix to match the asset keys
     const assetKey = `static/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
     console.log(`[DEBUG] Looking for SEA asset: ${assetKey}`);
     try {

@@ -81,7 +81,7 @@ $readme = @(
   'Usage:',
   '  1. Run challachat.exe',
   '  2. Paste a YouTube livestream URL when prompted',
-  '  3. Add a Browser Source in OBS pointing to http://localhost:5050/',
+  '  3. Add a Browser Source in OBS pointing to http://localhost:3000/',
   '',
   'Requirements:',
   '  - Chrome or Edge browser installed on the system',
@@ -90,10 +90,10 @@ $readme = @(
   'Features:',
   '  - Self-contained executable (no Node.js installation required)',
   '  - All static assets embedded in the executable',
-  '  - Automatic port detection if 5050 is in use',
+  '  - Automatic port detection if 3000 is in use',
   '',
-  'Default port: 5050',
-  'If port 5050 is in use, the app will automatically try the next available port.',
+  'Default port: 3000',
+  'If port 3000 is in use, the app will automatically try the next available port.',
   '',
   'Generated with Node.js 24 SEA and postject',
   ''
@@ -102,8 +102,19 @@ $readme = @(
 Set-Content -Path "build/README.txt" -Value $readme -Encoding ASCII
 
 # Clean up intermediate files
+Write-Host "Cleaning up intermediate files..." -ForegroundColor Yellow
 if (Test-Path "sea-prep.blob") {
   Remove-Item "sea-prep.blob" -Force
+  Write-Host "Removed sea-prep.blob" -ForegroundColor DarkGray
+}
+if (Test-Path "server-bundled.js") {
+  Remove-Item "server-bundled.js" -Force
+  Write-Host "Removed server-bundled.js" -ForegroundColor DarkGray
+}
+# Clean up any webpack chunk files that might be left in root
+Get-ChildItem -Path "." -Name "*.server-bundled.js" | ForEach-Object {
+  Remove-Item -Path $_ -Force -ErrorAction SilentlyContinue
+  Write-Host "Removed $_" -ForegroundColor DarkGray
 }
 
 Write-Host "" -ForegroundColor Green
