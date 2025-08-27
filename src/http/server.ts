@@ -15,10 +15,8 @@ let sea: any = null;
 
 try {
   sea = require('node:sea');
-  console.log('[DEBUG] SEA module loaded successfully');
-  console.log('[DEBUG] SEA isSea:', sea.isSea ? sea.isSea() : 'function not available');
 } catch (error) {
-  console.log('[DEBUG] SEA module not available - running in development mode', String(error));
+  // SEA module not available - running in development mode
 }
 
 // Resolve static directory for both dev and SEA builds
@@ -30,27 +28,19 @@ const externalStatic = (() => {
 
 // Helper function to get static files
 function getStaticFile(filePath: string): Buffer | string | null {
-  console.log(`[DEBUG] Attempting to load static file: ${filePath}`);
-  
   // Check if we're in optimized SEA mode with external static files
   if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_STATIC_DIR) {
-    console.log('[DEBUG] Running in optimized SEA mode with external static files');
     const staticDir = process.env.CHALLACHAT_STATIC_DIR;
     const fullPath = path.join(staticDir, filePath);
-    console.log(`[DEBUG] Looking for external static file: ${fullPath}`);
     
     if (fs.existsSync(fullPath)) {
-      console.log(`[DEBUG] Found external static file: ${fullPath}`);
       return fs.readFileSync(fullPath);
     } else {
-      console.log(`[DEBUG] External static file not found: ${fullPath}`);
       return null;
     }
   } else if (sea && sea.isSea && sea.isSea()) {
-    console.log('[DEBUG] Running in embedded SEA mode');
     // For embedded SEA, we need to add the static/ prefix to match the asset keys
     const assetKey = `static/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
-    console.log(`[DEBUG] Looking for SEA asset: ${assetKey}`);
     try {
       // For text files (HTML, CSS, JS), get as UTF-8 string
       // For binary files (images, audio), get as ArrayBuffer
@@ -58,26 +48,20 @@ function getStaticFile(filePath: string): Buffer | string | null {
       const isTextFile = ['.html', '.css', '.js', '.txt', '.json'].includes(ext);
       
       const asset = isTextFile ? sea.getAsset(assetKey, 'utf8') : sea.getAsset(assetKey);
-      console.log(`[DEBUG] Successfully loaded SEA asset: ${assetKey}, type: ${typeof asset}, isText: ${isTextFile}, length: ${asset?.length || 'undefined'}`);
       return asset;
     } catch (error) {
-      console.log(`[DEBUG] Failed to load SEA asset: ${assetKey}`, error);
       return null;
     }
   } else {
-    console.log('[DEBUG] Running in development mode');
     // Development mode - use file system
     const fullPath = path.join(snapshotStatic, filePath);
     if (fs.existsSync(fullPath)) {
-      console.log(`[DEBUG] Found file at: ${fullPath}`);
       return fs.readFileSync(fullPath);
     }
     const altPath = path.join(externalStatic, filePath);
     if (fs.existsSync(altPath)) {
-      console.log(`[DEBUG] Found file at: ${altPath}`);
       return fs.readFileSync(altPath);
     }
-    console.log(`[DEBUG] File not found at either path: ${fullPath} or ${altPath}`);
     return null;
   }
 }
