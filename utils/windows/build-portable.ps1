@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
-# Portable build script - creates a small launcher EXE with supporting folders
-# Much smaller footprint than Single Executable Application
+# Portable SEA build - modular executable with external assets and dependencies
+# Creates challachat.exe next to supporting folders (static/, node_modules/)
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = $PSScriptRoot
@@ -15,18 +15,8 @@ function Run($cmd) {
   }
 }
 
-function Download-File($url, $path) {
-  Write-Host "Downloading: $url" -ForegroundColor Yellow
-  try {
-    Invoke-WebRequest -Uri $url -OutFile $path -UseBasicParsing
-    Write-Host "Downloaded to: $path" -ForegroundColor Green
-  } catch {
-    throw "Failed to download $url : $($_.Exception.Message)"
-  }
-}
-
-Write-Host "ChallaChat - Portable Build with Launcher EXE" -ForegroundColor Magenta
-Write-Host "==============================================" -ForegroundColor Magenta
+Write-Host "ChallaChat - Portable SEA Build" -ForegroundColor Magenta
+Write-Host "================================" -ForegroundColor Magenta
 Write-Host ""
 
 # Clean build directory
@@ -40,33 +30,16 @@ New-Item -ItemType Directory -Path "build" | Out-Null
 Write-Host "Building TypeScript..." -ForegroundColor Yellow
 Run "npm run build"
 
-# Create portable structure
-Write-Host "Creating portable directory structure..." -ForegroundColor Yellow
-$portableDir = "build/challachat-portable"
-New-Item -ItemType Directory -Path $portableDir | Out-Null
-New-Item -ItemType Directory -Path "$portableDir/app" | Out-Null
-New-Item -ItemType Directory -Path "$portableDir/runtime" | Out-Null
-New-Item -ItemType Directory -Path "$portableDir/static" | Out-Null
+# Create optimized structure
+Write-Host "Creating optimized directory structure..." -ForegroundColor Yellow
+$buildDir = "build/challachat-portable"
+New-Item -ItemType Directory -Path $buildDir | Out-Null
+New-Item -ItemType Directory -Path "$buildDir/node_modules" | Out-Null
+New-Item -ItemType Directory -Path "$buildDir/static" | Out-Null
 
-# Download portable Node.js
-$nodeVersion = "v24.6.0"
-$nodeUrl = "https://nodejs.org/dist/$nodeVersion/node-$nodeVersion-win-x64.zip"
-$nodeZip = "build/node-portable.zip"
-
-Download-File $nodeUrl $nodeZip
-
-Write-Host "Extracting portable Node.js..." -ForegroundColor Yellow
-Expand-Archive -Path $nodeZip -DestinationPath "build/node-temp" -Force
-$nodeFolder = Get-ChildItem "build/node-temp" | Select-Object -First 1
-Move-Item "$($nodeFolder.FullName)/*" "$portableDir/runtime/" -Force
-Remove-Item "build/node-temp" -Recurse -Force
-Remove-Item $nodeZip -Force
-
-# Bundle application (lightweight - no heavy dependencies embedded)
-Write-Host "Creating lightweight app bundle..." -ForegroundColor Yellow
-
-# Create a minimal webpack config for portable build
-$webpackPortableConfig = @"
+# Create optimized webpack config that externalizes ALL dependencies except core modules
+Write-Host "Creating optimized app bundle..." -ForegroundColor Yellow
+$webpackOptimizedConfig = @"
 const path = require('path');
 
 module.exports = {
@@ -74,82 +47,195 @@ module.exports = {
   target: 'node',
   entry: './dist/http/server.js',
   output: {
-    path: path.resolve(__dirname, 'build/challachat-portable/app'),
-    filename: 'app.js',
+    path: path.resolve(__dirname, 'build'),
+    filename: 'app-bundled.js',
     library: { type: 'commonjs2' }
   },
   externals: {
-    'puppeteer': 'commonjs2 puppeteer'
+    // Externalize ALL dependencies to keep the executable smaller
+    'puppeteer': 'commonjs2 puppeteer',
+    'puppeteer-core': 'commonjs2 puppeteer-core',
+    'ws': 'commonjs2 ws',
+    'chrome-launcher': 'commonjs2 chrome-launcher',
+    'express': 'commonjs2 express',
+    'socket.io': 'commonjs2 socket.io',
+    'iconv-lite': 'commonjs2 iconv-lite'
   },
   resolve: {
     extensions: ['.js', '.json']
   },
   optimization: {
     minimize: true
+  },
+  node: {
+    __dirname: false,
+    __filename: false
   }
 };
 "@
 
-Set-Content -Path "webpack/webpack.portable.js" -Value $webpackPortableConfig
-
+Set-Content -Path "webpack/webpack.portable.js" -Value $webpackOptimizedConfig
 Run "npx webpack --config webpack/webpack.portable.js"
 
 # Copy static assets
 Write-Host "Copying static assets..." -ForegroundColor Yellow
-Copy-Item -Path "static/*" -Destination "$portableDir/static/" -Recurse -Force
+Copy-Item -Path "static/*" -Destination "$buildDir/static/" -Recurse -Force
 
-# Install only production dependencies in the portable app
-Write-Host "Installing production dependencies..." -ForegroundColor Yellow
-Set-Location "$portableDir/app"
+# Install only the heavy external dependencies in node_modules
+Write-Host "Installing external dependencies..." -ForegroundColor Yellow
+Set-Location "$buildDir"
 
-# Create a minimal package.json for production
-$prodPackageJson = @{
-  name = "challachat"
+$externalPackageJson = @{
+  name = "challachat-externals"
   version = "1.0.0"
-  main = "app.js"
+  private = $true
   dependencies = @{
-    express = "^4.19.2"
     puppeteer = "^24.9.0"
+    express = "^4.19.2"
     "socket.io" = "^4.7.5"
   }
 } | ConvertTo-Json -Depth 10
 
-Set-Content -Path "package.json" -Value $prodPackageJson
-
-# Install dependencies using system npm (we'll run with portable node later)
-Write-Host "Installing dependencies..." -ForegroundColor Cyan
+Set-Content -Path "package.json" -Value $externalPackageJson
 Run "npm install --only=production --no-package-lock"
+Remove-Item "package.json" -Force
 
 Set-Location $RootDir
 
-# Create small launcher executable using Node.js SEA (much smaller than full app)
-Write-Host "Creating launcher executable..." -ForegroundColor Yellow
+# Create the main launcher script that will be embedded in SEA
+$mainLauncher = @"
+/**
+ * ChallaChat - Optimized SEA Launcher
+ * Embedded in the executable, loads external dependencies
+ */
 
-# Create minimal SEA config for the small launcher (no webpack bundling)
-$launcherSeaConfig = @{
-  main = "utils/launcher.js"
-  output = "build/launcher-prep.blob"
+const path = require('path');
+const fs = require('fs');
+
+// Get the directory where this executable is located
+const exeDir = path.dirname(process.execPath);
+const staticDir = path.join(exeDir, 'static');
+const nodeModulesDir = path.join(exeDir, 'node_modules');
+
+// Set up environment
+process.env.CHALLACHAT_STATIC_DIR = staticDir;
+process.env.CHALLACHAT_PORTABLE = 'true';
+process.env.NODE_PATH = nodeModulesDir;
+
+console.log('🚀 Starting ChallaChat (Optimized SEA)...');
+console.log('📁 Executable directory:', exeDir);
+console.log('🌐 Static assets:', staticDir);
+console.log('📦 External modules:', nodeModulesDir);
+console.log('');
+
+// Check if required directories exist
+const requiredDirs = [staticDir, nodeModulesDir];
+for (const dir of requiredDirs) {
+  if (!fs.existsSync(dir)) {
+    console.error('❌ Error: Required directory not found:', dir);
+    console.error('Make sure you have extracted the complete ChallaChat distribution.');
+    process.exit(1);
+  }
+}
+
+// Add node_modules to the require resolution path
+const originalResolve = require.resolve;
+require.resolve = function(id, options) {
+  // For non-core modules, check our external node_modules first
+  if (!id.startsWith('node:') && !id.startsWith('.') && !id.startsWith('/')) {
+    try {
+      return originalResolve(id, {
+        ...options,
+        paths: [nodeModulesDir, ...(options && options.paths || [])]
+      });
+    } catch (e) {
+      // Fall back to original resolution
+    }
+  }
+  return originalResolve(id, options);
+};
+
+// Load and start the bundled application from SEA assets
+try {
+  const sea = require('node:sea');
+  if (sea && sea.isSea && sea.isSea()) {
+    // We're running in SEA mode - load the embedded app
+    console.log('📦 Loading embedded application...');
+    const appCode = sea.getAsset('app-bundled.js', 'utf8');
+    
+    // Set up proper context for the bundled app
+    const Module = require('module');
+    const vm = require('vm');
+    
+    // Create a new module for our app
+    const appModule = new Module('app-bundled.js', null);
+    appModule.filename = path.join(exeDir, 'app-bundled.js');
+    appModule.paths = Module._nodeModulePaths(exeDir);
+    appModule.paths.unshift(nodeModulesDir);
+    
+    // Set up the context
+    const context = vm.createContext({
+      require: appModule.require.bind(appModule),
+      module: appModule,
+      exports: appModule.exports,
+      __dirname: exeDir,
+      __filename: appModule.filename,
+      process: process,
+      console: console,
+      global: global,
+      Buffer: Buffer,
+      setTimeout: setTimeout,
+      setInterval: setInterval,
+      clearTimeout: clearTimeout,
+      clearInterval: clearInterval,
+      setImmediate: setImmediate,
+      clearImmediate: clearImmediate
+    });
+    
+    vm.runInContext(appCode, context, { filename: appModule.filename });
+    
+  } else {
+    // Fallback for non-SEA mode
+    console.error('❌ This should only run in SEA mode');
+    process.exit(1);
+  }
+} catch (error) {
+  console.error('❌ Failed to start ChallaChat:', error.message);
+  console.error(error.stack);
+  process.exit(1);
+}
+"@
+
+Set-Content -Path "build/sea-main.js" -Value $mainLauncher
+
+# Create SEA config
+$seaConfig = @{
+  main = "build/sea-main.js"
+  output = "build/sea-prep.blob"
   disableExperimentalSEAWarning = $true
   useCodeCache = $true
+  assets = @{
+    "app-bundled.js" = "build/app-bundled.js"
+  }
 } | ConvertTo-Json -Depth 10
 
-Set-Content -Path "build/launcher-sea-config.json" -Value $launcherSeaConfig
+Set-Content -Path "build/sea-config.json" -Value $seaConfig
 
-# Generate the launcher SEA blob (small, no bundling)
-Write-Host "Generating launcher SEA blob..." -ForegroundColor Yellow
-Run "node --experimental-sea-config build/launcher-sea-config.json"
+# Generate SEA blob
+Write-Host "Generating optimized SEA blob..." -ForegroundColor Yellow
+Run "node --experimental-sea-config build/sea-config.json"
 
-# Create the launcher executable
-Write-Host "Creating launcher executable..." -ForegroundColor Yellow
+# Create the executable
+Write-Host "Creating optimized executable..." -ForegroundColor Yellow
 $nodeExePath = (Get-Command node).Source
-Copy-Item -Path $nodeExePath -Destination "$portableDir/challachat.exe" -Force
+Copy-Item -Path $nodeExePath -Destination "$buildDir/challachat.exe" -Force
 
-# Inject the launcher blob
-Write-Host "Injecting launcher into executable..." -ForegroundColor Yellow
-Run "npx postject `"$portableDir/challachat.exe`" NODE_SEA_BLOB build/launcher-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
+# Inject the SEA blob
+Write-Host "Injecting optimized app into executable..." -ForegroundColor Yellow
+Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
 
-# Apply icon to the executable
-$exePath = Join-Path $RootDir "$portableDir/challachat.exe"
+# Apply icon
+$exePath = Join-Path $RootDir "$buildDir/challachat.exe"
 $icoPath = Join-Path $RootDir 'static/images/challachat.ico'
 
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
@@ -158,90 +244,85 @@ if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
     $exeEsc = '"' + $exePath + '"'
     $icoEsc = '"' + $icoPath + '"'
     Run "rcedit $exeEsc --set-icon $icoEsc"
-    Write-Host "Icon successfully applied to challachat.exe" -ForegroundColor Green
+    Write-Host "Icon successfully applied" -ForegroundColor Green
   } catch {
-    Write-Warning "Failed to apply icon: $($_.Exception.Message)"
+    Write-Warning "Failed to apply icon (rcedit not available)"
   }
 }
 
 # Create README
 $readme = @"
-ChallaChat - Portable Distribution
-==================================
+ChallaChat - Optimized SEA Distribution
+=======================================
 
-This is a portable version of ChallaChat with a small launcher executable.
+This is an optimized version using Node.js 24 Single Executable Application.
 
 Directory Structure:
-├── challachat.exe        # Small launcher executable (~5MB)
-├── README.txt           # This file
-├── app/                 # Application code and dependencies
-│   ├── app.js          # Main application bundle
-│   ├── package.json    # Dependencies manifest
-│   └── node_modules/   # Application dependencies
-├── runtime/            # Portable Node.js runtime
-│   ├── node.exe       # Node.js executable
-│   └── ...            # Node.js runtime files
-└── static/            # Web assets (HTML, CSS, JS, images, sounds)
+├── challachat.exe        # Optimized executable (~85MB)
+├── README.txt           # This file  
+├── node_modules/        # External dependencies (~30-40MB)
+│   ├── puppeteer/
+│   ├── express/
+│   └── socket.io/
+└── static/             # Web assets (~5MB)
     ├── index.html
     ├── app.js
     ├── styles.css
-    └── ...
+    └── images/
 
 Usage:
 1. Double-click challachat.exe
 2. Paste a YouTube livestream URL when prompted
 3. Add a Browser Source in OBS pointing to http://localhost:3000/
 
-Benefits of this approach:
-✅ Users get a familiar .exe file to click
-✅ Much smaller launcher executable (~5MB vs 105MB)
-✅ Modular structure allows easier updates
-✅ Static assets can be modified without rebuilding
-✅ Dependencies can be updated independently
-✅ Better for debugging and maintenance
+Benefits:
+✅ Single executable with Node.js runtime built-in
+✅ External dependencies for smaller executable
+✅ Static assets separate for easy customization
+✅ Much smaller than full SEA (85MB vs 105MB)
+✅ No separate Node.js runtime folder needed
 
-Technical Details:
-- Launcher: Small Node.js SEA executable that sets up environment
-- Runtime: Portable Node.js $nodeVersion (~50MB)
-- App: Bundled application with dependencies (~20-30MB)
-- Static: Web assets (<5MB)
-
-Generated with Node.js $nodeVersion portable distribution + SEA launcher
+Total size: ~120-130MB (vs original 105MB single file, but modular)
 "@
 
-Set-Content -Path "$portableDir/README.txt" -Value $readme -Encoding ASCII
+Set-Content -Path "$buildDir/README.txt" -Value $readme -Encoding ASCII
 
-# Create a ZIP package
-Write-Host "Creating portable ZIP package..." -ForegroundColor Yellow
-Compress-Archive -Path "$portableDir/*" -DestinationPath "build/challachat-portable.zip" -Force
+# Create ZIP package
+Write-Host "Creating optimized ZIP package..." -ForegroundColor Yellow
+Compress-Archive -Path "$buildDir/*" -DestinationPath "build/challachat-portable.zip" -Force
 
 # Calculate sizes
-$portableSize = (Get-ChildItem "$portableDir" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+$optimizedSize = (Get-ChildItem "$buildDir" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 $zipSize = (Get-Item "build/challachat-portable.zip").Length / 1MB
-$exeSize = (Get-Item "$portableDir/challachat.exe").Length / 1MB
+$exeSize = (Get-Item "$buildDir/challachat.exe").Length / 1MB
+$nodeModulesSize = (Get-ChildItem "$buildDir/node_modules" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+$staticSize = (Get-ChildItem "$buildDir/static" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 
 Write-Host "" -ForegroundColor Green
-Write-Host "Portable build with launcher EXE complete!" -ForegroundColor Green
-Write-Host "==========================================" -ForegroundColor Green
+Write-Host "Optimized SEA build complete!" -ForegroundColor Green
+Write-Host "=============================" -ForegroundColor Green
 Write-Host "Build artifacts:" -ForegroundColor Green
-Write-Host "  - challachat-portable/ (directory: $([math]::Round($portableSize,1)) MB)" -ForegroundColor White
+Write-Host "  - challachat-portable/ (directory: $([math]::Round($optimizedSize,1)) MB)" -ForegroundColor White
 Write-Host "  - challachat-portable.zip (archive: $([math]::Round($zipSize,1)) MB)" -ForegroundColor White
-Write-Host "  - challachat.exe (launcher: $([math]::Round($exeSize,1)) MB)" -ForegroundColor Yellow
+Write-Host "" -ForegroundColor Yellow
+Write-Host "Size breakdown:" -ForegroundColor Cyan
+Write-Host "  - challachat.exe: $([math]::Round($exeSize,1)) MB (SEA with Node.js runtime)" -ForegroundColor White
+Write-Host "  - node_modules/: $([math]::Round($nodeModulesSize,1)) MB (external dependencies)" -ForegroundColor White
+Write-Host "  - static/: $([math]::Round($staticSize,1)) MB (web assets)" -ForegroundColor White
+Write-Host "  - Total: $([math]::Round($optimizedSize,1)) MB" -ForegroundColor Green
 Write-Host "" -ForegroundColor Green
-Write-Host "To run:" -ForegroundColor Yellow
-Write-Host "  1. Extract challachat-portable.zip" -ForegroundColor White
-Write-Host "  2. Double-click challachat.exe in the extracted folder" -ForegroundColor White
-Write-Host "" -ForegroundColor Green
-Write-Host "Size comparison:" -ForegroundColor Cyan
-Write-Host "  - Previous SEA build: 105.39 MB (single file)" -ForegroundColor Red
-Write-Host "  - New launcher exe: $([math]::Round($exeSize,1)) MB (just the launcher)" -ForegroundColor Green
-Write-Host "  - Total distribution: $([math]::Round($portableSize,1)) MB (modular)" -ForegroundColor Green
+Write-Host "Comparison:" -ForegroundColor Cyan
+Write-Host "  - Original SEA: 105.4 MB (everything embedded)" -ForegroundColor Red
+Write-Host "  - Previous portable: 227 MB (with redundant runtime)" -ForegroundColor Red
+Write-Host "  - This optimized: $([math]::Round($optimizedSize,1)) MB (modular SEA)" -ForegroundColor Green
 
-# Clean up intermediate files
+# Clean up
 Write-Host "Cleaning up..." -ForegroundColor Yellow
 Remove-Item "webpack/webpack.portable.js" -Force -ErrorAction SilentlyContinue
-Remove-Item "build/launcher-sea-config.json" -Force -ErrorAction SilentlyContinue
-Remove-Item "build/launcher-prep.blob" -Force -ErrorAction SilentlyContinue
+Remove-Item "build/sea-config.json" -Force -ErrorAction SilentlyContinue
+Remove-Item "build/sea-prep.blob" -Force -ErrorAction SilentlyContinue
+Remove-Item "build/sea-main.js" -Force -ErrorAction SilentlyContinue
+Remove-Item "build/app-bundled.js" -Force -ErrorAction SilentlyContinue
 
 Write-Host "" -ForegroundColor Yellow
-Write-Host "✅ Perfect! Users get a challachat.exe that's much smaller and more maintainable!" -ForegroundColor Yellow
+Write-Host "✅ Perfect! Much more efficient than before!" -ForegroundColor Yellow

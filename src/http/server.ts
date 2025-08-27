@@ -33,7 +33,7 @@ function getStaticFile(filePath: string): Buffer | string | null {
   console.log(`[DEBUG] Attempting to load static file: ${filePath}`);
   
   // Check if we're in optimized SEA mode with external static files
-  if (process.env.CHALLACHAT_OPTIMIZED === 'true' && process.env.CHALLACHAT_STATIC_DIR) {
+  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_STATIC_DIR) {
     console.log('[DEBUG] Running in optimized SEA mode with external static files');
     const staticDir = process.env.CHALLACHAT_STATIC_DIR;
     const fullPath = path.join(staticDir, filePath);
