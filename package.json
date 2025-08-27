@@ -10,15 +10,15 @@
   "scripts": {
     "dev": "tsx src/http/server.ts",
     "build": "tsc -p .",
-    "bundle": "webpack",
+    "bundle": "webpack --config webpack/webpack.config.js",
     "start": "node dist/http/server.js",
     "typecheck": "tsc -p . --noEmit",
     "build:win": "npm run build && npm run bundle && npm run sea:win",
-    "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/build-portable.ps1",
-    "build:optimized": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/build-optimized.ps1",
+    "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/build-portable.ps1",
+    "build:optimized": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/build-optimized.ps1",
     "sea:win": "npm run sea:generate && npm run sea:inject",
-    "sea:generate": "node --experimental-sea-config sea-config.json",
-    "sea:inject": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/inject-sea.ps1"
+    "sea:generate": "node --experimental-sea-config webpack/sea-config.json",
+    "sea:inject": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/inject-sea.ps1"
   },
   "dependencies": {
     "express": "^4.19.2",

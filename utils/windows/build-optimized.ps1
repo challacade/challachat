@@ -74,8 +74,8 @@ module.exports = {
 };
 "@
 
-Set-Content -Path "webpack.optimized.js" -Value $webpackOptimizedConfig
-Run "npx webpack --config webpack.optimized.js"
+Set-Content -Path "webpack/webpack.optimized.js" -Value $webpackOptimizedConfig
+Run "npx webpack --config webpack/webpack.optimized.js"
 
 # Copy static assets
 Write-Host "Copying static assets..." -ForegroundColor Yellow
@@ -318,7 +318,7 @@ Write-Host "  - This optimized: $([math]::Round($optimizedSize,1)) MB (modular S
 
 # Clean up
 Write-Host "Cleaning up..." -ForegroundColor Yellow
-Remove-Item "webpack.optimized.js" -Force -ErrorAction SilentlyContinue
+Remove-Item "webpack/webpack.optimized.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-config.json" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-prep.blob" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-main.js" -Force -ErrorAction SilentlyContinue

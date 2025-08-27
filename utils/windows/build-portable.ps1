@@ -90,9 +90,9 @@ module.exports = {
 };
 "@
 
-Set-Content -Path "webpack.portable.js" -Value $webpackPortableConfig
+Set-Content -Path "webpack/webpack.portable.js" -Value $webpackPortableConfig
 
-Run "npx webpack --config webpack.portable.js"
+Run "npx webpack --config webpack/webpack.portable.js"
 
 # Copy static assets
 Write-Host "Copying static assets..." -ForegroundColor Yellow
@@ -239,7 +239,7 @@ Write-Host "  - Total distribution: $([math]::Round($portableSize,1)) MB (modula
 
 # Clean up intermediate files
 Write-Host "Cleaning up..." -ForegroundColor Yellow
-Remove-Item "webpack.portable.js" -Force -ErrorAction SilentlyContinue
+Remove-Item "webpack/webpack.portable.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/launcher-sea-config.json" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/launcher-prep.blob" -Force -ErrorAction SilentlyContinue
 
