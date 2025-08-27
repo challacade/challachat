@@ -97,7 +97,7 @@ try {
     $compressionRatio = [math]::Round((1 - ($outputSize / $sourceSize)) * 100, 1)
     
     Write-Host ""
-    Write-Host "✅ ZIP package created successfully!" -ForegroundColor Green
+    Write-Host "ZIP package created successfully!" -ForegroundColor Green
     Write-Host ""
     Write-Host "Output: $OutputPath" -ForegroundColor White
     Write-Host "  Archive size: $(Format-FileSize $outputSize)" -ForegroundColor Gray
@@ -106,7 +106,7 @@ try {
     
 } catch {
     Write-Host ""
-    Write-Host "❌ Failed to create ZIP archive" -ForegroundColor Red
+    Write-Host "Failed to create ZIP archive" -ForegroundColor Red
     Write-Host "Error: $($_.Exception.Message)" -ForegroundColor Red
     exit 1
 }

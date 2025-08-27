@@ -122,17 +122,17 @@ process.env.CHALLACHAT_STATIC_DIR = staticDir;
 process.env.CHALLACHAT_PORTABLE = 'true';
 process.env.NODE_PATH = nodeModulesDir;
 
-console.log('🚀 Starting ChallaChat (Optimized SEA)...');
-console.log('📁 Executable directory:', exeDir);
-console.log('🌐 Static assets:', staticDir);
-console.log('📦 External modules:', nodeModulesDir);
+console.log('Starting ChallaChat (Optimized SEA)...');
+console.log('Executable directory:', exeDir);
+console.log('Static assets:', staticDir);
+console.log('External modules:', nodeModulesDir);
 console.log('');
 
 // Check if required directories exist
 const requiredDirs = [staticDir, nodeModulesDir];
 for (const dir of requiredDirs) {
   if (!fs.existsSync(dir)) {
-    console.error('❌ Error: Required directory not found:', dir);
+  console.error('Error: Required directory not found:', dir);
     console.error('Make sure you have extracted the complete ChallaChat distribution.');
     process.exit(1);
   }
@@ -160,7 +160,7 @@ try {
   const sea = require('node:sea');
   if (sea && sea.isSea && sea.isSea()) {
     // We're running in SEA mode - load the embedded app
-    console.log('📦 Loading embedded application...');
+  console.log('Loading embedded application...');
     const appCode = sea.getAsset('app-bundled.js', 'utf8');
     
     // Set up proper context for the bundled app
@@ -196,11 +196,11 @@ try {
     
   } else {
     // Fallback for non-SEA mode
-    console.error('❌ This should only run in SEA mode');
+  console.error('This should only run in SEA mode');
     process.exit(1);
   }
 } catch (error) {
-  console.error('❌ Failed to start ChallaChat:', error.message);
+  console.error('Failed to start ChallaChat:', error.message);
   console.error(error.stack);
   process.exit(1);
 }
@@ -277,11 +277,11 @@ Usage:
 3. Add a Browser Source in OBS pointing to http://localhost:3000/
 
 Benefits:
-✅ Single executable with Node.js runtime built-in
-✅ External dependencies for smaller executable
-✅ Static assets separate for easy customization
-✅ Much smaller than full SEA (85MB vs 105MB)
-✅ No separate Node.js runtime folder needed
+- Single executable with Node.js runtime built-in
+- External dependencies for smaller executable
+- Static assets separate for easy customization
+- Much smaller than full SEA (85MB vs 105MB)
+- No separate Node.js runtime folder needed
 
 Total size: ~120-130MB (vs original 105MB single file, but modular)
 "@
@@ -303,7 +303,7 @@ Write-Host "build/challachat-portable (directory: $([math]::Round($optimizedSize
 Write-Host "" -ForegroundColor Yellow
 
 # Clean up
-Write-Host "Cleaning up..." -ForegroundColor Yellow
+Write-Host "Cleaning up... " -ForegroundColor Yellow -NoNewline
 Remove-Item "webpack/webpack.portable.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "app-bundled.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-config.json" -Force -ErrorAction SilentlyContinue

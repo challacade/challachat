@@ -34,10 +34,10 @@ process.env.NODE_PATH = path.join(appDir, 'node_modules');
 process.env.CHALLACHAT_STATIC_DIR = staticDir;
 process.env.CHALLACHAT_PORTABLE = 'true';
 
-console.log('🚀 Starting ChallaChat...');
-console.log(`📁 App directory: ${appDir}`);
-console.log(`⚙️  Runtime: ${runtimeDir}`);
-console.log(`🌐 Static assets: ${staticDir}`);
+console.log('Starting ChallaChat...');
+console.log(`App directory: ${appDir}`);
+console.log(`Runtime: ${runtimeDir}`);
+console.log(`Static assets: ${staticDir}`);
 console.log('');
 
 // Launch the main application
@@ -52,9 +52,9 @@ const child = spawn(nodeExe, [appMain], {
 
 child.on('close', (code) => {
   if (code !== 0) {
-    console.error(`\n❌ ChallaChat exited with code ${code}`);
+  console.error(`\nChallaChat exited with code ${code}`);
   } else {
-    console.log('\n✅ ChallaChat closed successfully');
+  console.log('\nChallaChat closed successfully');
   }
   
   // Keep console open for a moment
@@ -65,7 +65,7 @@ child.on('close', (code) => {
 });
 
 child.on('error', (err) => {
-  console.error('❌ Failed to start ChallaChat:', err.message);
+  console.error('Failed to start ChallaChat:', err.message);
   console.log('\nPress any key to exit...');
   process.stdin.setRawMode(true);
   process.stdin.resume();
@@ -74,6 +74,6 @@ child.on('error', (err) => {
 
 // Handle Ctrl+C gracefully
 process.on('SIGINT', () => {
-  console.log('\n🛑 Shutting down ChallaChat...');
+  console.log('\nShutting down ChallaChat...');
   child.kill('SIGINT');
 });
