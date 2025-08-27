@@ -14,9 +14,9 @@ function Run($cmd) {
     throw "Command failed with exit code $($p.ExitCode): $cmd" 
   }
 }
-
-Write-Host "ChallaChat - Portable SEA Build" -ForegroundColor Magenta
-Write-Host "================================" -ForegroundColor Magenta
+Write-Host "=================================" -ForegroundColor Magenta
+Write-Host " ChallaChat - Portable SEA Build" -ForegroundColor Magenta
+Write-Host "=================================" -ForegroundColor Magenta
 Write-Host ""
 
 # Clean build directory
@@ -252,6 +252,7 @@ if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
 
 # Create README
 $readme = @"
+=======================================
 ChallaChat - Optimized SEA Distribution
 =======================================
 
@@ -287,34 +288,19 @@ Total size: ~120-130MB (vs original 105MB single file, but modular)
 
 Set-Content -Path "$buildDir/README.txt" -Value $readme -Encoding ASCII
 
-# Create ZIP package
-Write-Host "Creating optimized ZIP package..." -ForegroundColor Yellow
-Compress-Archive -Path "$buildDir/*" -DestinationPath "build/challachat-portable.zip" -Force
-
 # Calculate sizes
 $optimizedSize = (Get-ChildItem "$buildDir" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
-$zipSize = (Get-Item "build/challachat-portable.zip").Length / 1MB
 $exeSize = (Get-Item "$buildDir/challachat.exe").Length / 1MB
 $nodeModulesSize = (Get-ChildItem "$buildDir/node_modules" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 $staticSize = (Get-ChildItem "$buildDir/static" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 
 Write-Host "" -ForegroundColor Green
-Write-Host "Optimized SEA build complete!" -ForegroundColor Green
 Write-Host "=============================" -ForegroundColor Green
-Write-Host "Build artifacts:" -ForegroundColor Green
-Write-Host "  - challachat-portable/ (directory: $([math]::Round($optimizedSize,1)) MB)" -ForegroundColor White
-Write-Host "  - challachat-portable.zip (archive: $([math]::Round($zipSize,1)) MB)" -ForegroundColor White
+Write-Host "Portable SEA build complete!" -ForegroundColor Green
+Write-Host "=============================" -ForegroundColor Green
 Write-Host "" -ForegroundColor Yellow
-Write-Host "Size breakdown:" -ForegroundColor Cyan
-Write-Host "  - challachat.exe: $([math]::Round($exeSize,1)) MB (SEA with Node.js runtime)" -ForegroundColor White
-Write-Host "  - node_modules/: $([math]::Round($nodeModulesSize,1)) MB (external dependencies)" -ForegroundColor White
-Write-Host "  - static/: $([math]::Round($staticSize,1)) MB (web assets)" -ForegroundColor White
-Write-Host "  - Total: $([math]::Round($optimizedSize,1)) MB" -ForegroundColor Green
-Write-Host "" -ForegroundColor Green
-Write-Host "Comparison:" -ForegroundColor Cyan
-Write-Host "  - Original SEA: 105.4 MB (everything embedded)" -ForegroundColor Red
-Write-Host "  - Previous portable: 227 MB (with redundant runtime)" -ForegroundColor Red
-Write-Host "  - This optimized: $([math]::Round($optimizedSize,1)) MB (modular SEA)" -ForegroundColor Green
+Write-Host "build/challachat-portable (directory: $([math]::Round($optimizedSize,1)) MB)" -ForegroundColor Cyan
+Write-Host "" -ForegroundColor Yellow
 
 # Clean up
 Write-Host "Cleaning up..." -ForegroundColor Yellow
@@ -325,5 +311,4 @@ Remove-Item "build/sea-prep.blob" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-main.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/app-bundled.js" -Force -ErrorAction SilentlyContinue
 
-Write-Host "" -ForegroundColor Yellow
-Write-Host "✅ Perfect! Much more efficient than before!" -ForegroundColor Yellow
+Write-Host "Done!" -ForegroundColor Yellow
