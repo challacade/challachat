@@ -1,0 +1,15 @@
+{
+  "main": "build/server-bundled.js",
+  "output": "sea-prep.blob",
+  "disableExperimentalSEAWarning": true,
+  "useCodeCache": true,
+  "assets": {
+    "static/index.html": "static/index.html",
+    "static/app.js": "static/app.js", 
+    "static/styles.css": "static/styles.css",
+    "static/images/challachat.ico": "static/images/challachat.ico",
+    "static/sounds/donation.mp3": "static/sounds/donation.mp3",
+    "static/sounds/member.mp3": "static/sounds/member.mp3",
+    "static/sounds/message.mp3": "static/sounds/message.mp3"
+  }
+}

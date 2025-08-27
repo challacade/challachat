@@ -10,12 +10,63 @@ import { TerminalUI } from '../core/terminalUi';
 import YouTubeChatScraper from '../scraper/youtube';
 import type { ChatEvent } from '../scraper/types';
 
-// Resolve static directory for both dev and single-exe (pkg) builds
+// Check if we're running as a Single Executable Application
+let sea: any = null;
+
+try {
+  sea = require('node:sea');
+  console.log('[DEBUG] SEA module loaded successfully');
+  console.log('[DEBUG] SEA isSea:', sea.isSea ? sea.isSea() : 'function not available');
+} catch (error) {
+  console.log('[DEBUG] SEA module not available - running in development mode', String(error));
+}
+
+// Resolve static directory for both dev and SEA builds
 const __dirnameResolved = __dirname;
 const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'static');
 const externalStatic = (() => {
   try { return path.join(path.dirname(process.execPath), 'static'); } catch { return snapshotStatic; }
 })();
+
+// Helper function to get static files
+function getStaticFile(filePath: string): Buffer | string | null {
+  console.log(`[DEBUG] Attempting to load static file: ${filePath}`);
+  
+  if (sea && sea.isSea && sea.isSea()) {
+    console.log('[DEBUG] Running in SEA mode');
+    // For SEA, we need to add the static/ prefix to match the asset keys
+    const assetKey = `static/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
+    console.log(`[DEBUG] Looking for SEA asset: ${assetKey}`);
+    try {
+      // For text files (HTML, CSS, JS), get as UTF-8 string
+      // For binary files (images, audio), get as ArrayBuffer
+      const ext = path.extname(filePath).toLowerCase();
+      const isTextFile = ['.html', '.css', '.js', '.txt', '.json'].includes(ext);
+      
+      const asset = isTextFile ? sea.getAsset(assetKey, 'utf8') : sea.getAsset(assetKey);
+      console.log(`[DEBUG] Successfully loaded SEA asset: ${assetKey}, type: ${typeof asset}, isText: ${isTextFile}, length: ${asset?.length || 'undefined'}`);
+      return asset;
+    } catch (error) {
+      console.log(`[DEBUG] Failed to load SEA asset: ${assetKey}`, error);
+      return null;
+    }
+  } else {
+    console.log('[DEBUG] Running in development mode');
+    // Development mode - use file system
+    const fullPath = path.join(snapshotStatic, filePath);
+    if (fs.existsSync(fullPath)) {
+      console.log(`[DEBUG] Found file at: ${fullPath}`);
+      return fs.readFileSync(fullPath);
+    }
+    const altPath = path.join(externalStatic, filePath);
+    if (fs.existsSync(altPath)) {
+      console.log(`[DEBUG] Found file at: ${altPath}`);
+      return fs.readFileSync(altPath);
+    }
+    console.log(`[DEBUG] File not found at either path: ${fullPath} or ${altPath}`);
+    return null;
+  }
+}
 
 // HTTP server + overlay + SSE wiring
 class App {
@@ -46,10 +97,101 @@ class App {
   // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
-  const staticDir = fs.existsSync(snapshotStatic) ? snapshotStatic : externalStatic;
-    this.app.use(express.static(staticDir));
-  this.app.get('/', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
-  this.app.get('/overlay', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
+    
+    // Handle static files through SEA assets or filesystem at /static/ prefix
+    this.app.use('/static', (req: Request, res: Response) => {
+      const filePath = req.path.substring(1); // Remove leading slash
+      const file = getStaticFile(filePath);
+      
+      if (file) {
+        // Set appropriate content type based on file extension
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = {
+          '.html': 'text/html',
+          '.css': 'text/css',
+          '.js': 'application/javascript',
+          '.ico': 'image/x-icon',
+          '.mp3': 'audio/mpeg'
+        }[ext] || 'application/octet-stream';
+        
+        res.setHeader('Content-Type', contentType);
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    // Handle static files at root level (for HTML references like /styles.css)
+    this.app.get('/styles.css', (_req: Request, res: Response) => {
+      const file = getStaticFile('styles.css');
+      if (file) {
+        res.setHeader('Content-Type', 'text/css');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/app.js', (_req: Request, res: Response) => {
+      const file = getStaticFile('app.js');
+      if (file) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/images/:filename', (req: Request, res: Response) => {
+      const filename = req.params.filename;
+      const file = getStaticFile(`images/${filename}`);
+      if (file) {
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = {
+          '.ico': 'image/x-icon',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif'
+        }[ext] || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/sounds/:filename', (req: Request, res: Response) => {
+      const filename = req.params.filename;
+      const file = getStaticFile(`sounds/${filename}`);
+      if (file) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    // Serve main pages
+    this.app.get('/', (_req: Request, res: Response) => {
+      const indexHtml = getStaticFile('index.html');
+      if (indexHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.send(indexHtml);
+      } else {
+        res.status(500).send('Unable to load index.html');
+      }
+    });
+    
+    this.app.get('/overlay', (_req: Request, res: Response) => {
+      const indexHtml = getStaticFile('index.html');
+      if (indexHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.send(indexHtml);
+      } else {
+        res.status(500).send('Unable to load index.html');
+      }
+    });
 
   this.app.get('/api/status', (_req: Request, res: Response) => {
       res.json({
