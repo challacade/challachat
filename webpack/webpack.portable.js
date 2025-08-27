@@ -5,7 +5,7 @@ module.exports = {
   target: 'node',
   entry: './dist/http/server.js',
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, '..', 'build'),
     filename: 'app-bundled.js',
     library: { type: 'commonjs2' }
   },

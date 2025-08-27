@@ -4,7 +4,7 @@
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = $PSScriptRoot
-$RootDir = Split-Path -Parent $ScriptDir
+$RootDir = Split-Path -Parent (Split-Path -Parent $ScriptDir)
 Set-Location -Path $RootDir
 
 function Run($cmd) {
@@ -47,7 +47,7 @@ module.exports = {
   target: 'node',
   entry: './dist/http/server.js',
   output: {
-    path: path.resolve(__dirname, 'build'),
+    path: path.resolve(__dirname, '..', 'build'),
     filename: 'app-bundled.js',
     library: { type: 'commonjs2' }
   },
@@ -319,6 +319,7 @@ Write-Host "  - This optimized: $([math]::Round($optimizedSize,1)) MB (modular S
 # Clean up
 Write-Host "Cleaning up..." -ForegroundColor Yellow
 Remove-Item "webpack/webpack.portable.js" -Force -ErrorAction SilentlyContinue
+Remove-Item "app-bundled.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-config.json" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-prep.blob" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-main.js" -Force -ErrorAction SilentlyContinue
