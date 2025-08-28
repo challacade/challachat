@@ -15,7 +15,12 @@ body {
     line-height: 1.6;
     color: #e2e8f0;
     background: #1a202c;
+    display: flex;
+    min-height: 100vh;
+    flex-direction: column;
 }
+
+html, body { height: 100%; }
 
 .container {
     max-width: 1200px;
@@ -1013,6 +1018,7 @@ section h2 {
     text-align: center;
     padding: 1rem 0;
     font-size: 0.9rem;
+    margin-top: auto; /* push footer to bottom when content is short */
 }
 
 /* Features responsive */
