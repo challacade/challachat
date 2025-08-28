@@ -74,8 +74,8 @@ module.exports = {
 };
 "@
 
-Set-Content -Path "launcher/webpack.portable.js" -Value $webpackOptimizedConfig
-Run "npx webpack --config launcher/webpack.portable.js"
+Set-Content -Path "build/webpack.portable.js" -Value $webpackOptimizedConfig
+Run "npx webpack --config build/webpack.portable.js"
 
 # Copy overlay assets
 Write-Host "Copying overlay assets..." -ForegroundColor Yellow
@@ -296,7 +296,7 @@ Write-Host "" -ForegroundColor Yellow
 
 # Clean up
 Write-Host "Cleaning up... " -ForegroundColor Yellow -NoNewline
-Remove-Item "launcher/webpack.portable.js" -Force -ErrorAction SilentlyContinue
+Remove-Item "build/webpack.portable.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "app-bundled.js" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-config.json" -Force -ErrorAction SilentlyContinue
 Remove-Item "build/sea-prep.blob" -Force -ErrorAction SilentlyContinue

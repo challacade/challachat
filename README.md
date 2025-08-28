@@ -11,15 +11,10 @@ Local-first YouTube Live Chat capture + overlay server. Drop the overlay into OB
 
 ```
 app/
-   core/         # config, SSE hub, terminal UI
-   http/         # express + socket.io server
-```
-app/
    capture/      # Livestream chat capture (Puppeteer)
    core/         # config, SSE hub, terminal UI
    http/         # express + socket.io server
 overlay/        # client overlay (HTML/CSS/JS, images, sounds)
-launcher/       # webpack configs for bundles/SEA helpers
 scripts/windows # build-portable, build-installer, package-zip, etc.
 website/        # marketing site (static)
 ```

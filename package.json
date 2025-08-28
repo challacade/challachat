@@ -30,20 +30,5 @@
     "typescript": "^5.5.4",
     "webpack": "^5.101.3",
     "webpack-cli": "^6.0.1"
-  },
-  "sea": {
-    "main": "dist/http/server.js",
-    "output": "sea-prep.blob",
-    "disableExperimentalSEAWarning": true,
-    "useCodeCache": true,
-    "assets": {
-      "overlay/index.html": "overlay/index.html",
-      "overlay/app.js": "overlay/app.js",
-      "overlay/styles.css": "overlay/styles.css",
-      "overlay/favicon.ico": "overlay/favicon.ico",
-      "overlay/sounds/donation.mp3": "overlay/sounds/donation.mp3",
-      "overlay/sounds/member.mp3": "overlay/sounds/member.mp3",
-      "overlay/sounds/message.mp3": "overlay/sounds/message.mp3"
-    }
   }
 }
