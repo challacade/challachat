@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version number (e.g., 1.2.3 or v1.2.3)'
+        description: 'Version number (example: v1.5.0)'
         required: true
         type: string
 
@@ -27,9 +27,6 @@ jobs:
       - name: Build portable
         shell: pwsh
         run: npm run build:portable
-      - name: Package portable zip
-        run: ./scripts/windows/package-zip.ps1 -SourcePath build/challachat-portable -OutputPath build/challachat-win-portable.zip -Overwrite
-        shell: pwsh
       - name: Compute version and tag
         id: version
         shell: pwsh
@@ -46,6 +43,9 @@ jobs:
           CHALLACHAT_VERSION: ${{ steps.version.outputs.version }}
         run: npm run build:installer
         shell: pwsh
+      - name: Package portable zip
+        run: ./scripts/windows/package-zip.ps1 -SourcePath build/challachat-portable -OutputPath build/challachat-win-portable.zip -Overwrite
+        shell: pwsh
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
@@ -60,14 +60,43 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/download-artifact@v4
         with:
           name: challachat-windows-artifacts
           path: dist
+      - name: Generate release notes
+        shell: bash
+        run: |
+          set -e
+          git fetch origin main --tags --force
+          PREV=$(git describe --abbrev=0 --tags 2>/dev/null || echo "")
+          TAG='${{ needs.build-windows.outputs.tag }}'
+          REPO_URL="https://github.com/${{ github.repository }}"
+          RANGE="origin/main"
+          if [ -n "$PREV" ]; then RANGE="$PREV..origin/main"; fi
+          {
+            echo "# ChallaChat $TAG"
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Changes since $PREV (main):"
+            else
+              echo "Changes on main:"
+            fi
+            echo
+            git log --first-parent --pretty=format:'- %s (%h) by %an' $RANGE
+            echo
+            if [ -n "$PREV" ]; then
+              echo "Compare: $REPO_URL/compare/$PREV...$TAG"
+            fi
+          } > release_notes.md
       - uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ needs.build-windows.outputs.tag }}
           name: ChallaChat ${{ needs.build-windows.outputs.tag }}
+          body_path: release_notes.md
           files: dist/**/*
           draft: false
           prerelease: false
