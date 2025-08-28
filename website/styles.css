@@ -121,24 +121,29 @@ section h2 {
 }
 
 .cc-card-title {
-    font-size: 1.8rem; /* larger than standard h3 */
-    margin-bottom: 0.25rem;
+    font-size: 2.1rem; /* larger title */
+    margin-bottom: 0.3rem;
     color: #f7fafc;
     font-weight: 700;
 }
 
 .cc-card-desc {
-    font-size: 1.15rem; /* slightly larger paragraph */
+    font-size: 1.3rem; /* larger paragraph */
     color: #cbd5e0;
     line-height: 1.6;
-    margin-bottom: 0.25rem;
+    margin-bottom: 0.35rem;
 }
 
 .cc-card-subdesc {
-    font-size: 1.05rem;
+    font-size: 1.2rem;
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 0.5rem;
+}
+
+/* Slightly larger download button text inside product card */
+.product-card .download-link {
+    font-size: 1.1rem;
 }
 
 /* Lighter, high-contrast links inside the ChallaChat card */
@@ -366,7 +371,7 @@ section h2 {
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    max-width: 700px;
+    max-width: 760px;
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -995,4 +1000,19 @@ section h2 {
 /* Smooth scrolling */
 html {
     scroll-behavior: smooth;
+}
+
+/* App card typography overrides (ensure larger sizes apply) */
+.products .product-card .cc-card-title {
+    font-size: 2.3rem; /* visibly larger title */
+    line-height: 1.15;
+    margin-bottom: 0.3rem;
+}
+
+.products .product-card .cc-card-desc {
+    font-size: 1.35rem; /* larger paragraph */
+}
+
+.products .product-card .cc-card-subdesc {
+    font-size: 1.2rem; /* larger supporting text */
 }
