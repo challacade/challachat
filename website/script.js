@@ -130,18 +130,26 @@ document.addEventListener('DOMContentLoaded', function() {
         function pickAssetForOS(assets, label) {
             if (!Array.isArray(assets) || !label) return null;
             const name = a => (a && (a.name || a.label || '')) + '';
+            
+            // Define patterns for each OS - more specific for your release naming
             const patterns = {
-                Windows: /(win|windows).*(portable|setup|exe|zip)|\.exe$|\.zip$/i,
-                macOS: /(mac|osx|darwin).*(dmg|zip)|\.dmg$|\.zip$/i,
+                Windows: /challachat-setup\.exe$|challachat-win-portable\.zip$/i,
+                macOS: /(mac|osx|darwin).*(dmg|zip)|\.dmg$|mac.*\.zip$/i,
                 Linux: /(linux).*(AppImage|deb|rpm|tar|gz)|\.(AppImage|deb|rpm|tar\.gz)$/i
             };
+            
             const rx = patterns[label];
             if (!rx) return null;
-            // Prefer more specific formats first
-            const prioritized = assets
-                .filter(a => rx.test(name(a)))
-                .sort((a, b) => (name(b).length - name(a).length));
-            return prioritized[0] || null;
+            
+            // For Windows, prefer the installer over portable
+            if (label === 'Windows') {
+                const installer = assets.find(a => /challachat-setup\.exe$/i.test(name(a)));
+                const portable = assets.find(a => /challachat-win-portable\.zip$/i.test(name(a)));
+                return installer || portable;
+            }
+            
+            // For other platforms, find the first matching asset
+            return assets.find(a => rx.test(name(a))) || null;
         }
     })();
 });
