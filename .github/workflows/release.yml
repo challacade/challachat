@@ -1,13 +1,19 @@
 name: Build releases
 
 on:
-  push:
-    tags:
-      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version number (e.g., 1.2.3 or v1.2.3)'
+        required: true
+        type: string
 
 jobs:
   build-windows:
     runs-on: windows-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+      version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -15,15 +21,29 @@ jobs:
           node-version: '24'
           cache: 'npm'
       - name: Install dependencies
-        run: npm ci || npm install
         shell: pwsh
+        run: |
+          npm ci || npm install
       - name: Build portable
-        run: npm run build:portable
         shell: pwsh
+        run: npm run build:portable
       - name: Package portable zip
         run: ./scripts/windows/package-zip.ps1 -SourcePath build/challachat-portable -OutputPath build/challachat-win-portable.zip -Overwrite
         shell: pwsh
+      - name: Compute version and tag
+        id: version
+        shell: pwsh
+        run: |
+          $input = '${{ github.event.inputs.version }}'
+          if ($input.StartsWith('v')) { $tag = $input; $version = $input.Substring(1) } else { $tag = "v$input"; $version = $input }
+          echo "tag=$tag" >> $env:GITHUB_OUTPUT
+          echo "version=$version" >> $env:GITHUB_OUTPUT
+      - name: Install Inno Setup
+        shell: pwsh
+        run: choco install innosetup --no-progress -y
       - name: Build installer
+        env:
+          CHALLACHAT_VERSION: ${{ steps.version.outputs.version }}
         run: npm run build:installer
         shell: pwsh
       - name: Upload artifacts
@@ -37,6 +57,8 @@ jobs:
   release:
     needs: build-windows
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/download-artifact@v4
         with:
@@ -44,6 +66,10 @@ jobs:
           path: dist
       - uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ needs.build-windows.outputs.tag }}
+          name: ChallaChat ${{ needs.build-windows.outputs.tag }}
           files: dist/**/*
+          draft: false
+          prerelease: false
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

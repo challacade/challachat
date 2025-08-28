@@ -38,9 +38,13 @@ if (-not (Test-Path $payloadDir)) {
   throw "Portable build failed - payload directory not found: $payloadDir"
 }
 
-# Get version from package.json
-$packageJson = Get-Content "package.json" | ConvertFrom-Json
-$version = $packageJson.version
+# Get version from env or package.json
+if ($env:CHALLACHAT_VERSION -and $env:CHALLACHAT_VERSION.Trim() -ne '') {
+  $version = $env:CHALLACHAT_VERSION.Trim()
+} else {
+  $packageJson = Get-Content "package.json" | ConvertFrom-Json
+  $version = $packageJson.version
+}
 Write-Host "Building installer for version: $version" -ForegroundColor Cyan
 
 # Create Inno Setup script
