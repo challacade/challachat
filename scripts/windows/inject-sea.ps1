@@ -42,7 +42,7 @@ Run $postjectCmd
 
 # Apply icon to the executable
 $exePath = Join-Path $RootDir 'build/challachat.exe'
-$icoPath = Join-Path $RootDir 'static/images/challachat.ico'
+$icoPath = Join-Path $RootDir 'overlay/favicon.ico'
 
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
   Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan

@@ -236,7 +236,7 @@ Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob
 
 # Apply icon
 $exePath = Join-Path $RootDir "$buildDir/challachat.exe"
-$icoPath = Join-Path $RootDir 'overlay/images/challachat.ico'
+$icoPath = Join-Path $RootDir 'overlay/favicon.ico'
 
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
   Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan
@@ -269,7 +269,7 @@ Directory Structure:
     ├── index.html
     ├── app.js
     ├── styles.css
-    └── images/
+    └── favicon.ico
 
 Usage:
 1. Double-click challachat.exe

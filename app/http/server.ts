@@ -140,19 +140,10 @@ class App {
       }
     });
 
-    this.app.get('/images/:filename', (req: Request, res: Response) => {
-      const filename = req.params.filename;
-      const file = getStaticFile(`images/${filename}`);
+    this.app.get('/favicon.ico', (_req: Request, res: Response) => {
+      const file = getStaticFile('favicon.ico');
       if (file) {
-        const ext = path.extname(filename).toLowerCase();
-        const contentType = {
-          '.ico': 'image/x-icon',
-          '.png': 'image/png',
-          '.jpg': 'image/jpeg',
-          '.jpeg': 'image/jpeg',
-          '.gif': 'image/gif'
-        }[ext] || 'application/octet-stream';
-        res.setHeader('Content-Type', contentType);
+        res.setHeader('Content-Type', 'image/x-icon');
         res.send(file);
       } else {
         res.status(404).send('Not found');

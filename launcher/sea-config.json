@@ -7,7 +7,7 @@
     "overlay/index.html": "overlay/index.html",
     "overlay/app.js": "overlay/app.js", 
     "overlay/styles.css": "overlay/styles.css",
-    "overlay/images/challachat.ico": "overlay/images/challachat.ico",
+    "overlay/favicon.ico": "overlay/favicon.ico",
     "overlay/sounds/donation.mp3": "overlay/sounds/donation.mp3",
     "overlay/sounds/member.mp3": "overlay/sounds/member.mp3",
     "overlay/sounds/message.mp3": "overlay/sounds/message.mp3"
