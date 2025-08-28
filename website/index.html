@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ChallaChat</title>
+    <meta name="description" content="Create stunning, customizable chat overlays for your YouTube streams! Local application that captures live chat and displays it in a beautiful overlay.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💬</text></svg>">
+    <link rel="stylesheet" href="styles.css">
+ </head>
+ <body>
+
+    <section id="products" class="products">
+        <div class="container">
+            <div class="product-card main-product">
+                <div class="product-icon">
+                    <img src="img/challachat.png" alt="ChallaChat Application" />
+                </div>
+                <div class="cc-card-content">
+                    <h3 class="cc-card-title">ChallaChat</h3>
+                    <p class="cc-card-desc">Capture and display any livestream chat in a custom overlay.</p>
+                    <p class="cc-card-desc">No cloud, all local. Completely free and <a href="https://github.com/challacade/challachat" target="_blank" rel="noopener noreferrer">open source!</a></p>
+                </div>
+                <div class="cta-buttons">
+                    <a href="https://github.com/challacade/challachat/releases/latest" class="download-link" target="_blank" rel="noopener noreferrer">
+                        <img src="img/github.png" alt="GitHub" width="20" height="20" style="filter: brightness(1.2);" />
+                        Download on GitHub
+                    </a>
+                    <a href="https://github.com/challacade/challachat/releases/latest" target="_blank" rel="noopener noreferrer" class="tagline-link" style="font-size: 1rem; flex-basis: 100%; text-align: center; margin-top: -0.5rem; margin-bottom: -0.3rem;">
+                        View latest release
+                    </a>
+                </div>
+            </div>
+
+            <div class="streaming-card">
+                <div class="streaming-icon">
+                    <img src="img/stream.png" alt="Streaming Software Compatibility" />
+                </div>
+                <div class="streaming-content">
+                    <h3>Works with Any Streaming Software</h3>
+                    <p>Compatible with OBS Studio, Streamlabs, and any streaming software that supports Browser sources. <a href="https://demo.challachat.com" target="_blank" rel="noopener noreferrer" class="tagline-link">Try the live demo!</a></p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="features" class="features">
+        <div class="container">
+            <div class="feature-grid">
+                <div class="feature-card">
+                    <h3>🌐 Cross Platform</h3>
+                    <p>Portable Windows app today with no installation required. Works with any streaming software via Browser Source. macOS and Linux support planned.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>⚡ Ultra‑Low Latency</h3>
+                    <p>Built‑in chat scraper connects directly to YouTube for instant message display and minimal CPU usage—no browser extensions required.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🔒 Secure & Private</h3>
+                    <p>Digitally signed releases, no telemetry, and everything runs locally—your chat data never leaves your computer.</p>
+                </div>
+                <div class="feature-card">
+                    <h3>🎨 Full Customization</h3>
+                    <p>Dark, Light, and Transparent themes with adjustable colors, fonts, animations, and notification sounds (with volume control).</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!--<section id="demo" class="demo">
+        <div class="container">
+            <h2>See It In Action</h2>
+            <div class="demo-container">
+                <div class="demo-placeholder">
+                    <p>🎬 Demo Video Coming Soon</p>
+                </div>
+            </div>
+        </div>
+    </section>-->
+
+    <section id="setup" class="setup">
+        <div class="container">
+            <div class="demo-container">
+                <div class="video-card">
+                    <div class="video-embed">
+                        <iframe 
+                            src="https://www.youtube.com/embed/M7lc1UVf-VE" 
+                            title="ChallaChat Setup"
+                            frameborder="0"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                            referrerpolicy="strict-origin-when-cross-origin"
+                            allowfullscreen>
+                        </iframe>
+                    </div>
+                </div>
+            </div>
+            <div class="setup-steps">
+                <div class="setup-step animate">
+                    <ol class="setup-list">
+                        <li>Download & install ChallaChat — <a href="https://github.com/challacade/challachat/releases/latest/download/challachat-win-portable.zip" class="tagline-link" target="_blank" rel="noopener noreferrer">Direct</a> or <a href="https://github.com/challacade/challachat/releases/latest" class="tagline-link" target="_blank" rel="noopener noreferrer">View Latest Release</a></li>
+                        <li>Launch the program, paste-in any livestream URL</li>
+                        <li>Once connected, create a Browser source using the provided localhost.</li>
+                        <li>Use the Interact feature to adjust the overlay settings</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer class="simple-footer">
+        <p>&copy; 2025 Challacade LLC. This project is licensed under the Apache-2.0 license.</p>
+    </footer>
+
+    <script src="script.js"></script>
+</body>
+</html>
