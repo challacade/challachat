@@ -5,6 +5,11 @@
     box-sizing: border-box;
 }
 
+/* Site-wide variables */
+:root {
+    --site-card-max-width: 760px; /* Adjust once to change all card widths */
+}
+
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
@@ -164,7 +169,7 @@ section h2 {
     display: flex;
     justify-content: center;
     align-items: stretch;
-    max-width: 500px;
+    max-width: var(--site-card-max-width);
     margin: 0 auto;
 }
 
@@ -188,7 +193,7 @@ section h2 {
 }
 
 .product-icon {
-    width: 50%;
+    width: 190px; /* standard icon width for main product */
     height: auto;
     margin: 0 auto 1rem;
     display: flex;
@@ -212,7 +217,9 @@ section h2 {
 
 .main-product {
     width: 100%;
-    max-width: 400px;
+    max-width: var(--site-card-max-width);
+    margin: 0 auto;
+    text-align: center;
 }
 
 .main-product .product-icon img {
@@ -329,7 +336,7 @@ section h2 {
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    max-width: 700px;
+    max-width: var(--site-card-max-width);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -380,7 +387,7 @@ section h2 {
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    max-width: 760px;
+    max-width: var(--site-card-max-width);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -436,7 +443,7 @@ section h2 {
     align-items: center;
     gap: 0.5rem;
     box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    max-width: 700px;
+    max-width: var(--site-card-max-width);
     transition: transform 0.3s ease, box-shadow 0.3s ease;
 }
 
@@ -668,11 +675,13 @@ section h2 {
 
 .feature-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr; /* two columns */
     gap: 20px;
-    max-width: 1200px;
+    max-width: var(--site-card-max-width);
     margin: 0 auto;
 }
+
+/* Feature grid itself is constrained; container uses default padding and width */
 
 .feature-card {
     padding: 1.2rem;
