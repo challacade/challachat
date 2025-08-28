@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "target": "ES2022",
+    "target": "ES2024",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "esModuleInterop": true,
@@ -8,11 +8,11 @@
     "skipLibCheck": true,
     "strict": true,
     "outDir": "dist",
-    "rootDir": "src",
+    "rootDir": "app",
     "resolveJsonModule": true,
-    "lib": ["ES2022", "DOM"],
+    "lib": ["ES2024", "DOM"],
     "types": ["node"]
   },
-  "include": ["src/**/*"],
+  "include": ["app/**/*"],
   "exclude": ["node_modules", "dist"]
 }

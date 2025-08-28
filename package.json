@@ -5,23 +5,52 @@
   "description": "TypeScript version of the ChallaChat standalone app: local YouTube chat scraper + overlay server",
   "type": "commonjs",
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   },
   "scripts": {
-    "dev": "tsx src/http/server.ts",
+    "dev": "tsx app/http/server.ts",
     "build": "tsc -p .",
+    "bundle": "webpack --config launcher/webpack.config.js",
     "start": "node dist/http/server.js",
-    "typecheck": "tsc -p . --noEmit"
+    "start:system": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
+    "typecheck": "tsc -p . --noEmit",
+    "build:win": "npm run build && npm run bundle && npm run sea:win",
+    "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
+    "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-installer.ps1",
+    "release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/release.ps1",
+    "sea:win": "npm run sea:generate && npm run sea:inject",
+    "sea:generate": "node --experimental-sea-config launcher/sea-config.json",
+    "sea:inject": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/inject-sea.ps1"
   },
   "dependencies": {
     "express": "^4.19.2",
-    "puppeteer": "^22.15.0",
+    "puppeteer": "^24.9.0",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {
     "@types/express": "^4.17.21",
-    "@types/node": "^20.12.12",
+    "@types/node": "^24.0.0",
+    "postject": "^1.0.0-alpha.6",
+    "rcedit": "^4.0.1",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4"
+    "typescript": "^5.5.4",
+    "webpack": "^5.101.3",
+    "webpack-cli": "^6.0.1",
+    "webpack-node-externals": "^3.0.0"
+  },
+  "sea": {
+    "main": "dist/http/server.js",
+    "output": "sea-prep.blob",
+    "disableExperimentalSEAWarning": true,
+    "useCodeCache": true,
+    "assets": {
+      "overlay/index.html": "overlay/index.html",
+      "overlay/app.js": "overlay/app.js",
+      "overlay/styles.css": "overlay/styles.css",
+      "overlay/images/challachat.ico": "overlay/images/challachat.ico",
+      "overlay/sounds/donation.mp3": "overlay/sounds/donation.mp3",
+      "overlay/sounds/member.mp3": "overlay/sounds/member.mp3",
+      "overlay/sounds/message.mp3": "overlay/sounds/message.mp3"
+    }
   }
 }

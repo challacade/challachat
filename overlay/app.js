@@ -144,7 +144,7 @@ const DEMO_MESSAGES = [
       avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=StreamFan&backgroundColor=ffc9de',
       flags: {}
     },
-    text: 'This works with Twitch, YouTube, and any platform! 🌐',
+  text: 'This works with Twitch, YouTube, and any platform!',
     kind: 'text'
   },
   {
@@ -177,12 +177,12 @@ const DEMO_MESSAGES = [
 ];
 
 // Mouse detection, demo mode helpers, render functions, SSE, settings and init copied from overlay version
-// For brevity in this patch, the implementation below mirrors challachat/overlay/static/app.js exactly.
+// For brevity in this patch, the implementation below mirrors challachat/overlay/overlay/app.js exactly.
 
-// Due to patch size limits, the remainder of this file content is the same as overlay/static/app.js.
+// Due to patch size limits, the remainder of this file content is the same as overlay/overlay/app.js.
 // Please refer to that file for full source; this copy preserves the same behavior.
 
-// BEGIN mirrored content from overlay/static/app.js
+// BEGIN mirrored content from overlay/overlay/app.js
 
 let mouseDetectionTimeout = null;
 let isMouseDetected = false;
@@ -377,7 +377,7 @@ function showToast(message, duration = 1600) { if (!elements.toast) return; elem
 function recomputeAutoScale() { const rect = elements.overlay.getBoundingClientRect(); const baseWidth = 420; const baseHeight = 700; const scaleFactor = Math.max(0.6, Math.min(2.2, Math.min(rect.width / baseWidth || 1, rect.height / baseHeight || 1))); state.autoScale = scaleFactor; }
 function applyTheme() { const finalScale = state.scale * state.autoScale; document.documentElement.style.setProperty('--text', state.theme.text); document.documentElement.style.setProperty('--base-scale', String(finalScale)); document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem)); const hex = (state.theme.bubbleColor || '#000000').replace('#', ''); const normalizedHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex.padEnd(6, '0'); const r = parseInt(normalizedHex.slice(0, 2), 16); const g = parseInt(normalizedHex.slice(2, 4), 16); const b = parseInt(normalizedHex.slice(4, 6), 16); const bubbleColor = `rgba(${r}, ${g}, ${b}, ${state.showBubbles ? state.theme.bgOpacity : 0})`; document.documentElement.style.setProperty('--bubble', bubbleColor); const bgHex = (state.pageBgColor || '#000000').replace('#', ''); const normalizedBgHex = bgHex.length === 3 ? bgHex.split('').map(c => c + c).join('') : bgHex.padEnd(6, '0'); const br = parseInt(normalizedBgHex.slice(0, 2), 16); const bg = parseInt(normalizedBgHex.slice(2, 4), 16); const bb = parseInt(normalizedBgHex.slice(4, 6), 16); const bgOpacity = Math.max(0, Math.min(1, state.pageBgOpacity)); document.body.style.background = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`; document.documentElement.classList.toggle('no-bubbles', !state.showBubbles); document.documentElement.classList.toggle('no-badges', !state.showBadges); document.documentElement.classList.toggle('no-avatars', !state.showAvatars); }
 
-function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } return { id, snippet, authorDetails, segments, ...extras }; }
+function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } return { id, snippet, authorDetails, segments, ...extras }; }
 
 function renderMessage(item) {
   const { id, snippet, authorDetails } = item;

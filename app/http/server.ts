@@ -2,6 +2,7 @@
 import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
+import fs from 'fs';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
@@ -9,8 +10,61 @@ import { TerminalUI } from '../core/terminalUi';
 import YouTubeChatScraper from '../scraper/youtube';
 import type { ChatEvent } from '../scraper/types';
 
-// __dirname is available in CommonJS; TS compiles to CJS per tsconfig
+// Check if we're running as a Single Executable Application
+let sea: any = null;
+
+try {
+  sea = require('node:sea');
+} catch (error) {
+  // SEA module not available - running in development mode
+}
+
+// Resolve static directory for both dev and SEA builds
 const __dirnameResolved = __dirname;
+const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
+const externalStatic = (() => {
+  try { return path.join(path.dirname(process.execPath), 'overlay'); } catch { return snapshotStatic; }
+})();
+
+// Helper function to get static files
+function getStaticFile(filePath: string): Buffer | string | null {
+  // Check if we're in optimized SEA mode with external static files
+  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_OVERLAY_DIR) {
+    const overlayDir = process.env.CHALLACHAT_OVERLAY_DIR;
+    const fullPath = path.join(overlayDir, filePath);
+    
+    if (fs.existsSync(fullPath)) {
+      return fs.readFileSync(fullPath);
+    } else {
+      return null;
+    }
+  } else if (sea && sea.isSea && sea.isSea()) {
+    // For embedded SEA, we need to add the overlay/ prefix to match the asset keys
+    const assetKey = `overlay/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
+    try {
+      // For text files (HTML, CSS, JS), get as UTF-8 string
+      // For binary files (images, audio), get as ArrayBuffer
+      const ext = path.extname(filePath).toLowerCase();
+      const isTextFile = ['.html', '.css', '.js', '.txt', '.json'].includes(ext);
+      
+      const asset = isTextFile ? sea.getAsset(assetKey, 'utf8') : sea.getAsset(assetKey);
+      return asset;
+    } catch (error) {
+      return null;
+    }
+  } else {
+    // Development mode - use file system
+    const fullPath = path.join(snapshotStatic, filePath);
+    if (fs.existsSync(fullPath)) {
+      return fs.readFileSync(fullPath);
+    }
+    const altPath = path.join(externalStatic, filePath);
+    if (fs.existsSync(altPath)) {
+      return fs.readFileSync(altPath);
+    }
+    return null;
+  }
+}
 
 // HTTP server + overlay + SSE wiring
 class App {
@@ -32,20 +86,110 @@ class App {
   this.setupServer();
   this.setupTerminal();
   this.handleSignals();
-  // Attempt initial bind and if in use, prompt for a new port repeatedly
-  this.ensureServerWithRetry().then(() => {
-    this.tui.showWelcome();
-    this.tui.prompt();
-  });
+  // Show prompt immediately; bind server in background with retry
+  this.tui.showWelcome();
+  this.tui.prompt();
+  void this.ensureServerWithRetry();
   }
 
   // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
-  const staticDir = path.resolve(__dirnameResolved, '..', '..', 'static');
-    this.app.use(express.static(staticDir));
-  this.app.get('/', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
-  this.app.get('/overlay', (_req: Request, res: Response) => res.sendFile(path.join(staticDir, 'index.html')));
+    
+    // Handle static files through SEA assets or filesystem at /overlay/ prefix
+    this.app.use('/overlay', (req: Request, res: Response) => {
+      const filePath = req.path.substring(1); // Remove leading slash
+      const file = getStaticFile(filePath);
+      
+      if (file) {
+        // Set appropriate content type based on file extension
+        const ext = path.extname(filePath).toLowerCase();
+        const contentType = {
+          '.html': 'text/html',
+          '.css': 'text/css',
+          '.js': 'application/javascript',
+          '.ico': 'image/x-icon',
+          '.mp3': 'audio/mpeg'
+        }[ext] || 'application/octet-stream';
+        
+        res.setHeader('Content-Type', contentType);
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    // Handle static files at root level (for HTML references like /styles.css)
+    this.app.get('/styles.css', (_req: Request, res: Response) => {
+      const file = getStaticFile('styles.css');
+      if (file) {
+        res.setHeader('Content-Type', 'text/css');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/app.js', (_req: Request, res: Response) => {
+      const file = getStaticFile('app.js');
+      if (file) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/images/:filename', (req: Request, res: Response) => {
+      const filename = req.params.filename;
+      const file = getStaticFile(`images/${filename}`);
+      if (file) {
+        const ext = path.extname(filename).toLowerCase();
+        const contentType = {
+          '.ico': 'image/x-icon',
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.gif': 'image/gif'
+        }[ext] || 'application/octet-stream';
+        res.setHeader('Content-Type', contentType);
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    this.app.get('/sounds/:filename', (req: Request, res: Response) => {
+      const filename = req.params.filename;
+      const file = getStaticFile(`sounds/${filename}`);
+      if (file) {
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
+    // Serve main pages
+    this.app.get('/', (_req: Request, res: Response) => {
+      const indexHtml = getStaticFile('index.html');
+      if (indexHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.send(indexHtml);
+      } else {
+        res.status(500).send('Unable to load index.html');
+      }
+    });
+    
+    this.app.get('/overlay', (_req: Request, res: Response) => {
+      const indexHtml = getStaticFile('index.html');
+      if (indexHtml) {
+        res.setHeader('Content-Type', 'text/html');
+        res.send(indexHtml);
+      } else {
+        res.status(500).send('Unable to load index.html');
+      }
+    });
 
   this.app.get('/api/status', (_req: Request, res: Response) => {
       res.json({
@@ -115,7 +259,8 @@ class App {
 
   // Bind with retry: on EADDRINUSE, ask user for a different port until success
   private async ensureServerWithRetry() {
-    // Try to listen; on EADDRINUSE, prompt for another port until success.
+    // Try to listen; on EADDRINUSE, auto-increment to the next port until success.
+    let attempts = 0;
     while (!(this.server as any)._listening) {
       try {
         await new Promise<void>((resolve, reject) => {
@@ -139,32 +284,21 @@ class App {
         });
       } catch (err: any) {
         if (err?.code === 'EADDRINUSE') {
-          console.log(`Port ${this.port} is in use.`);
-          // Ask user for a new port
-          const ans = await this.tui.askOnce('Enter a different port number');
-          const next = parseInt(ans, 10);
-          if (!Number.isFinite(next) || next <= 0 || next > 65535) {
-            console.log('Please enter a valid port number between 1 and 65535.');
-            continue;
-          }
-          this.port = next;
+          console.log(`Port ${this.port} is in use. Trying ${this.port + 1}...`);
+          this.port = Math.min(65535, this.port + 1);
           this.tui.setPort(this.port);
           this.pendingPortConfirmation = this.port;
-          // Update Express to reflect the new port in status API
-          // No explicit Express change needed; only server.listen uses the port.
+          attempts++;
+          if (attempts > 50) throw new Error('Failed to find a free port.');
           continue;
         }
         // Unknown error: show concise message, not stack
-        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}`);
-        const ans = await this.tui.askOnce('Enter a different port');
-        const next = parseInt(ans, 10);
-        if (!Number.isFinite(next) || next <= 0 || next > 65535) {
-          console.log('Please enter a valid port number between 1 and 65535.');
-          continue;
-        }
-        this.port = next;
+        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}. Trying next port...`);
+        this.port = Math.min(65535, this.port + 1);
         this.tui.setPort(this.port);
         this.pendingPortConfirmation = this.port;
+        attempts++;
+        if (attempts > 50) throw err;
       }
     }
   }

@@ -1,25 +1,51 @@
-ChallaChat (TypeScript)
+# ChallaChat (TypeScript)
 
 A full TypeScript refactor of the standalone ChallaChat app. It scrapes YouTube Live Chat locally with Puppeteer and serves a browser overlay you can drop into OBS. No cloud services required.
 
-Key URLs (default port 5050)
+## Key URLs (default port 3000)
 
-- Overlay: http://localhost:5050/
-- SSE stream: http://localhost:5050/api/stream
-- Status: http://localhost:5050/api/status
+- Overlay: http://localhost:3000/
+- SSE stream: http://localhost:3000/api/stream
+- Status: http://localhost:3000/api/status
 
-Quick start
+## Quick Start
 
-1) Install Node.js 18+.
-2) From this folder:
-   - dev (auto-reload via tsx): npm run dev
-   - production build: npm run build; npm start
-3) In the terminal prompt, paste a YouTube livestream URL when asked.
-4) In OBS, add a Browser Source pointing to http://localhost:5050/
+### Development
+1. Install Node.js 24+ (required for SEA support)
+2. From this folder:
+   ```bash
+   npm install
+   npm run dev
+   ```
+3. In the terminal prompt, paste a YouTube livestream URL when asked
+4. In OBS, add a Browser Source pointing to http://localhost:3000/
 
-Notes
+### Production Build
+1. Install Node.js 24+ (required for Single Executable Applications)
+2. Build the self-contained executable:
+   ```bash
+   npm run build:win  # Creates build/challachat.exe
+   ```
+3. Run the executable:
+   ```bash
+   .\build\challachat.exe
+   ```
 
-- Poll interval can be adjusted from the overlay Settings panel (General tab). The server clamps to >= 100ms.
-- Everything runs locally. If YouTube changes the chat DOM, selectors in the scraper may need updates.
-# challachat
-Overlay application that displays any YouTube/Twitch livestream in a local Browser source for OBS/Streamlabs/etc
+## Build System
+
+This project uses **Node.js 24 Single Executable Applications (SEA)** to create a self-contained executable that includes:
+- Node.js runtime
+- All dependencies
+- Overlay assets (HTML, CSS, JS, images, sounds)
+
+The build process:
+1. Compiles TypeScript to JavaScript
+2. Bundles all dependencies with Webpack
+3. Generates SEA blob with embedded assets
+4. Injects the blob into a Node.js binary
+
+## Notes
+
+- Poll interval can be adjusted from the overlay Settings panel (General tab). The server clamps to >= 100ms
+- Everything runs locally. If YouTube changes the chat DOM, selectors in the scraper may need updates
+- The SEA executable is fully portable and doesn't require Node.js to be installed on the target machine

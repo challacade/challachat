@@ -1,4 +1,4 @@
-export type ChatKind = 'text' | 'donation' | 'member' | 'member-milestone' | 'member-gift' | 'sticker';
+export type ChatKind = 'text' | 'donation' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sticker';
 
 export interface AuthorFlags {
   owner?: boolean;
