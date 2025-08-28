@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx app/http/server.ts",
     "build": "tsc -p .",
-    "bundle": "webpack --config webpack/webpack.config.js",
+    "bundle": "webpack --config launcher/webpack.config.js",
     "start": "node dist/http/server.js",
     "start:system": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/start-on-system.ps1",
     "typecheck": "tsc -p . --noEmit",
@@ -19,7 +19,7 @@
     "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/build-installer.ps1",
     "release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/release.ps1",
     "sea:win": "npm run sea:generate && npm run sea:inject",
-    "sea:generate": "node --experimental-sea-config webpack/sea-config.json",
+    "sea:generate": "node --experimental-sea-config launcher/sea-config.json",
     "sea:inject": "powershell -NoProfile -ExecutionPolicy Bypass -File ./utils/windows/inject-sea.ps1"
   },
   "dependencies": {
