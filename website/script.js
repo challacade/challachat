@@ -37,7 +37,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }, observerOptions);
 
     // Observe elements that should animate in
-    const animateElements = document.querySelectorAll('.feature-card, .step, .download-card, .use-case, .product-card, .streaming-card, .opensource-card, .intro-card, .setup-step');
+    const animateElements = document.querySelectorAll('.feature-card, .step, .download-card, .use-case, .product-card, .streaming-card, .opensource-card, .intro-card, .setup-step, .video-card');
     animateElements.forEach(el => {
         el.style.opacity = '0';
         el.style.transform = 'translateY(20px)';
