@@ -13,21 +13,26 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
+          cache: 'npm'
       - name: Install dependencies
         run: npm ci || npm install
-      - name: Build Windows executable
-        run: npm run build:win
-      - name: Rename artifact
-        run: |
-          cd build
-          if (Test-Path "challachat.exe") {
-            Rename-Item "challachat.exe" "challachat-win-x64.exe"
-          }
         shell: pwsh
-      - uses: actions/upload-artifact@v4
+      - name: Build portable
+        run: npm run build:portable
+        shell: pwsh
+      - name: Package portable zip
+        run: ./scripts/windows/package-zip.ps1 -SourcePath build/challachat-portable -OutputPath build/challachat-win-portable.zip -Overwrite
+        shell: pwsh
+      - name: Build installer
+        run: npm run build:installer
+        shell: pwsh
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: challachat-win-x64.exe
-          path: build/challachat-win-x64.exe
+          name: challachat-windows-artifacts
+          path: |
+            build/challachat-setup.exe
+            build/challachat-win-portable.zip
 
   release:
     needs: build-windows
@@ -35,6 +40,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
+          name: challachat-windows-artifacts
           path: dist
       - uses: softprops/action-gh-release@v2
         with:

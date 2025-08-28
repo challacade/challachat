@@ -1,10 +1,7 @@
-name: Build Windows Installer
+name: Build Windows Installer (manual)
 
 on:
   workflow_dispatch: {}
-  push:
-    tags:
-      - 'v*.*.*'
 
 jobs:
   build-installer:
@@ -42,13 +39,4 @@ jobs:
             build/challachat-setup.exe
           retention-days: 30
 
-      - name: Create release (on tag)
-        if: startsWith(github.ref, 'refs/tags/v')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: |
-            build/challachat-setup.exe
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  # Release is handled in release.yml on tags

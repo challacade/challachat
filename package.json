@@ -17,7 +17,6 @@
     "build:win": "npm run build && npm run bundle && npm run sea:win",
     "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
     "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-installer.ps1",
-    "release": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/release.ps1",
     "sea:win": "npm run sea:generate && npm run sea:inject",
     "sea:generate": "node --experimental-sea-config launcher/sea-config.json",
     "sea:inject": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/inject-sea.ps1"
