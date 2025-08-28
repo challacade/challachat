@@ -43,8 +43,17 @@ function Check-NodeVersion {
 }
 
 function Check-Dependencies {
-  if (-not (Test-Path "node_modules")) {
-    Write-Host "Dependencies not found. Installing..." -ForegroundColor Yellow
+  $needInstall = $false
+  if (-not (Test-Path "node_modules")) { $needInstall = $true }
+  elseif (Test-Path "package-lock.json") {
+    try {
+      $lockTime = (Get-Item "package-lock.json").LastWriteTimeUtc
+      $mods = Get-ChildItem -Path "node_modules" -ErrorAction SilentlyContinue
+      if (-not $mods) { $needInstall = $true }
+    } catch { $needInstall = $true }
+  }
+  if ($needInstall) {
+    Write-Host "Installing dependencies..." -ForegroundColor Yellow
     Run "npm install"
   } else {
     Write-Host "Dependencies found." -ForegroundColor Green
@@ -62,7 +71,7 @@ function Start-Application {
   
   Write-Host ""
   Write-Host "The app will be available at:" -ForegroundColor Yellow
-  Write-Host "  http://localhost:3000" -ForegroundColor White
+  Write-Host "  http://localhost:5050" -ForegroundColor White
   Write-Host ""
   Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
   Write-Host ""
