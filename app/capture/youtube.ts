@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import puppeteer, { Browser, Page, HTTPRequest } from 'puppeteer';
-import { ChatEvent, ScraperOptions } from './types';
+import { ChatEvent, CaptureOptions } from './types';
 
-export class YouTubeChatScraper {
+export class YouTubeChatCapture {
   private videoId: string;
   private chatUrl: string;
   private browser: Browser | null = null;
@@ -10,13 +10,13 @@ export class YouTubeChatScraper {
   private isRunning = false;
   private seenIds = new Set<string>();
   private pollTimer: NodeJS.Timeout | null = null;
-  private opts: Required<Pick<ScraperOptions, 'pollInterval' | 'quiet' | 'maxRetries' | 'retryDelay'>>;
+  private opts: Required<Pick<CaptureOptions, 'pollInterval' | 'quiet' | 'maxRetries' | 'retryDelay'>>;
   private onMessage: (m: ChatEvent) => void;
   private onError: (e: Error) => void;
   private onStatus: (s: any) => void;
   private onDelete: (id: string) => void;
 
-  constructor(videoId: string, options: ScraperOptions = {}) {
+  constructor(videoId: string, options: CaptureOptions = {}) {
     this.videoId = videoId;
     this.chatUrl = `https://www.youtube.com/live_chat?v=${videoId}`;
     this.opts = {
@@ -40,13 +40,13 @@ export class YouTubeChatScraper {
   }
 
   async start() {
-    if (this.isRunning) throw new Error('Scraper is already running');
-    if (!this.opts.quiet) console.log(`[Scraper] Starting for video: ${this.videoId}`);
+    if (this.isRunning) throw new Error('Capture is already running');
+    if (!this.opts.quiet) console.log(`[Capture] Starting for video: ${this.videoId}`);
     this.onStatus({ status: 'starting', videoId: this.videoId });
     let lastErr: Error | null = null;
     for (let attempt = 1; attempt <= this.opts.maxRetries; attempt++) {
       try {
-        if (!this.opts.quiet) console.log(`[Scraper] Attempt ${attempt}/${this.opts.maxRetries}`);
+        if (!this.opts.quiet) console.log(`[Capture] Attempt ${attempt}/${this.opts.maxRetries}`);
   this.browser = await this.launchBrowser();
         this.page = await this.browser.newPage();
         this.page.setDefaultTimeout(90000);
@@ -66,20 +66,20 @@ export class YouTubeChatScraper {
         await this.waitForChat();
         this.isRunning = true;
         this.onStatus({ status: 'active', videoId: this.videoId });
-        if (!this.opts.quiet) console.log('[Scraper] Successfully started, beginning message polling...');
+        if (!this.opts.quiet) console.log('[Capture] Successfully started, beginning message polling...');
         this.startPolling();
         return;
       } catch (e: any) {
         lastErr = e instanceof Error ? e : new Error(String(e));
         await this.cleanup();
         if (attempt < this.opts.maxRetries) {
-          if (!this.opts.quiet) console.log(`[Scraper] Retrying in ${this.opts.retryDelay}ms...`);
+          if (!this.opts.quiet) console.log(`[Capture] Retrying in ${this.opts.retryDelay}ms...`);
           await new Promise(res => setTimeout(res, this.opts.retryDelay));
         }
       }
     }
-    const msg = `Failed to start scraper after ${this.opts.maxRetries} attempts. Last error: ${lastErr?.message || 'Unknown error'}`;
-    if (!this.opts.quiet) console.error(`[Scraper] ${msg}`);
+    const msg = `Failed to start capture after ${this.opts.maxRetries} attempts. Last error: ${lastErr?.message || 'Unknown error'}`;
+    if (!this.opts.quiet) console.error(`[Capture] ${msg}`);
     const err = new Error(msg);
     this.onError(err);
     throw err;
@@ -601,9 +601,9 @@ export class YouTubeChatScraper {
           }
         }
       } catch (err: any) {
-        if (!this.opts.quiet) console.error('[Scraper] Error during polling:', err?.message || err);
+        if (!this.opts.quiet) console.error('[Capture] Error during polling:', err?.message || err);
         if ((err?.message || '').includes('Protocol error') || (err?.message || '').includes('Target closed')) {
-          if (!this.opts.quiet) console.log('[Scraper] Browser connection lost, stopping...');
+          if (!this.opts.quiet) console.log('[Capture] Browser connection lost, stopping...');
           await this.stop();
         }
       }
@@ -612,12 +612,12 @@ export class YouTubeChatScraper {
 
   async stop() {
     if (!this.isRunning) return;
-    if (!this.opts.quiet) console.log('[Scraper] Stopping...');
+    if (!this.opts.quiet) console.log('[Capture] Stopping...');
     this.isRunning = false;
     this.onStatus({ status: 'stopping' });
     await this.cleanup();
     this.onStatus({ status: 'stopped' });
-    if (!this.opts.quiet) console.log('[Scraper] Stopped');
+    if (!this.opts.quiet) console.log('[Capture] Stopped');
   }
 
   private async cleanup() {
@@ -627,4 +627,4 @@ export class YouTubeChatScraper {
   }
 }
 
-export default YouTubeChatScraper;
+export default YouTubeChatCapture;

@@ -35,7 +35,7 @@ export interface ChatEvent {
   hasCard?: boolean;
 }
 
-export interface ScraperOptions {
+export interface CaptureOptions {
   pollInterval?: number;
   quiet?: boolean;
   maxRetries?: number;

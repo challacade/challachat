@@ -1,6 +1,6 @@
-# ChallaChat
+# ChallaChat (TypeScript)
 
-Local-first YouTube Live Chat scraper + overlay server. Drop the overlay into OBS and stream in seconds. No cloud, no accounts. ⚡🔒
+Local-first YouTube Live Chat capture + overlay server. Drop the overlay into OBS and stream in seconds. No cloud, no accounts. ⚡🔒
 
 - Ultra‑low latency local SSE stream to your overlay
 - Secure & private: all processing runs on your machine
@@ -13,7 +13,11 @@ Local-first YouTube Live Chat scraper + overlay server. Drop the overlay into OB
 app/
    core/         # config, SSE hub, terminal UI
    http/         # express + socket.io server
-   scraper/      # YouTube chat scraper (Puppeteer)
+```
+app/
+   capture/      # Livestream chat capture (Puppeteer)
+   core/         # config, SSE hub, terminal UI
+   http/         # express + socket.io server
 overlay/        # client overlay (HTML/CSS/JS, images, sounds)
 launcher/       # webpack configs for bundles/SEA helpers
 scripts/windows # build-portable, build-installer, package-zip, etc.

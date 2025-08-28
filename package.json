@@ -2,7 +2,7 @@
   "name": "challachat",
   "version": "1.0.0",
   "private": true,
-  "description": "TypeScript version of the ChallaChat standalone app: local YouTube chat scraper + overlay server",
+  "description": "TypeScript version of the ChallaChat standalone app: local YouTube chat capture + overlay server",
   "type": "commonjs",
   "engines": {
     "node": ">=24"

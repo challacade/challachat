@@ -3,7 +3,13 @@
  * Real-time chat overlay for streaming software with customizable themes and settings
  */
 
-// Emotes are now provided as image segments from the scraper; no emotes.js needed.
+// Status overlay app - websocket client to ChallaChat local server
+//
+// Socket.io events:
+//   'capture-status' - server state (idle/active)
+//   'chat-message' - chat message event
+//   'chat-delete' - delete message by id
+// Emotes are now provided as image segments from the capture; no emotes.js needed.
 
 // ================================
 // DOM Element References

@@ -7,8 +7,8 @@ import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
-import YouTubeChatScraper from '../scraper/youtube';
-import type { ChatEvent } from '../scraper/types';
+import YouTubeChatCapture from '../capture/youtube';
+import type { ChatEvent } from '../capture/types';
 
 // Check if we're running as a Single Executable Application
 let sea: any = null;
@@ -74,7 +74,7 @@ class App {
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<{ events: ChatEvent[] }>();
-  private scraper: YouTubeChatScraper | null = null;
+  private capture: YouTubeChatCapture | null = null;
   private isRunning = false;
   private messageCount = 0;
   private startTime: number | null = null;
@@ -198,18 +198,18 @@ class App {
         url: this.currentUrl,
         messageCount: this.messageCount,
         uptime: this.startTime ? Date.now() - this.startTime : 0,
-        pollIntervalMs: this.scraper?.pollInterval || null,
+        pollIntervalMs: this.capture?.pollInterval || null,
         overlayUrl: `http://localhost:${this.port}/`
       });
     });
 
   this.app.get('/api/poll-interval', (_req: Request, res: Response) => {
-      res.json({ pollIntervalMs: this.scraper?.pollInterval || DEFAULT_POLL_INTERVAL });
+      res.json({ pollIntervalMs: this.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
     });
   this.app.post('/api/poll-interval', (req: Request, res: Response) => {
       const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-      if (this.scraper) this.scraper.setPollInterval(next);
-      res.json({ ok: true, pollIntervalMs: this.scraper?.pollInterval || next });
+      if (this.capture) this.capture.setPollInterval(next);
+      res.json({ ok: true, pollIntervalMs: this.capture?.pollInterval || next });
     });
 
   this.app.get('/api/stream', (_req: Request, res: Response) => {
@@ -219,7 +219,7 @@ class App {
     });
 
   this.io.on('connection', (socket: Socket) => {
-      socket.emit('scraper-status', { status: this.isRunning ? 'active' : 'stopped', videoId: this.currentVideoId, messageCount: this.messageCount });
+      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', videoId: this.currentVideoId, messageCount: this.messageCount });
     });
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
@@ -303,20 +303,20 @@ class App {
     }
   }
 
-  // Start scraper for the provided livestream URL
+  // Start capture for the provided livestream URL
   private async startScraping(url: string) {
-    if (this.isRunning) { console.log('Already scraping. Use "stop" first to change streams.'); return; }
+    if (this.isRunning) { console.log('Already capturing. Use "stop" first to change streams.'); return; }
     const videoId = this.extractVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
-    this.scraper = new YouTubeChatScraper(videoId, {
+    this.capture = new YouTubeChatCapture(videoId, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-  onMessage: (message) => this.onScraperMessage(message),
-  onDelete: (id) => this.onScraperDelete(id),
+  onMessage: (message) => this.onCaptureMessage(message),
+  onDelete: (id) => this.onCaptureDelete(id),
       onError: (err) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status) => { this.io.emit('scraper-status', status); if (status?.status === 'active') this.tui.render(); }
+      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
     });
-    await this.scraper.start();
+    await this.capture.start();
     this.isRunning = true;
     this.currentVideoId = videoId;
     this.currentUrl = url;
@@ -324,11 +324,11 @@ class App {
     this.startTime = Date.now();
     this.tui.setUrl(url);
   this.tui.render();
-    this.io.emit('scraper-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
+    this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
   }
 
   // Relay messages to SSE clients and overlay
-  private onScraperMessage(message: ChatEvent) {
+  private onCaptureMessage(message: ChatEvent) {
     this.messageCount++;
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', message);
@@ -336,7 +336,7 @@ class App {
   }
 
   // Relay delete events (by id) so overlays can remove them immediately
-  private onScraperDelete(id: string) {
+  private onCaptureDelete(id: string) {
     if (!id) return;
     try { this.io.emit('chat-delete', { id }); } catch {}
     try { this.sse.send('chat', { events: [{ type: 'delete', id }] as any }); } catch {}
@@ -373,20 +373,20 @@ class App {
     return null;
   }
 
-  // Gracefully stop the scraper and summarize the session
-  private async shutdownScraper() {
+  // Gracefully stop the capture and summarize the session
+  private async shutdownCapture() {
     if (!this.isRunning) return;
-    try { await this.scraper?.stop(); } catch (e: any) { console.log(`Error stopping scraper: ${e?.message || e}`); }
+    try { await this.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture: ${e?.message || e}`); }
     const duration = Math.round(((Date.now() - (this.startTime || Date.now())) / 1000));
-    console.log('Chat scraper stopped');
+    console.log('Chat capture stopped');
     console.log(`Session duration: ${duration} seconds`);
     console.log(`Messages captured: ${this.messageCount}`);
-    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.scraper = null; this.startTime = null;
-    this.io.emit('scraper-status', { status: 'stopped' });
+    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null;
+    this.io.emit('capture-status', { status: 'stopped' });
   }
 
   async shutdown() {
-    await this.shutdownScraper();
+    await this.shutdownCapture();
     this.server.close(() => { console.log('Server closed. Goodbye!'); process.exit(0); });
   }
 }
