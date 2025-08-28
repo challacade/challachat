@@ -225,43 +225,22 @@ Set-Content -Path "build/sea-config.json" -Value $seaConfig
 Write-Host "Generating optimized SEA blob..." -ForegroundColor Yellow
 Run "node --experimental-sea-config build/sea-config.json"
 
-# Create the executable
-Write-Host "Creating optimized executable..." -ForegroundColor Yellow
+# Create the base executable from Node.js
+Write-Host "Creating base executable..." -ForegroundColor Yellow
 $nodeExePath = (Get-Command node).Source
-Copy-Item -Path $nodeExePath -Destination "$buildDir/challachat.exe" -Force
+$baseExePath = "$buildDir/challachat-base.exe"
+Copy-Item -Path $nodeExePath -Destination $baseExePath -Force
 
-# Apply icon BEFORE postject injection
-$exePath = Join-Path $RootDir "$buildDir/challachat.exe"
+# Use inject-sea.ps1 to handle icon application and SEA injection
+Write-Host "Applying icon and injecting SEA blob..." -ForegroundColor Yellow
+$injectScript = Join-Path $ScriptDir 'inject-sea.ps1'
 $icoPath = Join-Path $RootDir 'overlay/favicon.ico'
+$finalExePath = "$buildDir/challachat.exe"
 
-if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
-  Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan
-  try {
-    # Use rcedit directly through Node.js
-    $rceditScript = @"
-const rcedit = require('rcedit');
-rcedit('$($exePath.Replace('\', '\\'))', { icon: '$($icoPath.Replace('\', '\\'))' })
-  .then(() => {
-    console.log('Icon successfully applied');
-    process.exit(0);
-  })
-  .catch(err => {
-    console.error('Failed to apply icon:', err.message);
-    process.exit(1);
-  });
-"@
-    $rceditScript | Out-File -FilePath "temp-rcedit.js" -Encoding UTF8
-    Run "node temp-rcedit.js"
-    Remove-Item "temp-rcedit.js" -Force -ErrorAction SilentlyContinue
-    Write-Host "Icon successfully applied" -ForegroundColor Green
-  } catch {
-    Write-Warning "Failed to apply icon: $($_.Exception.Message)"
-  }
-}
+& $injectScript -InputExe $baseExePath -SeaBlobPath "build/sea-prep.blob" -OutputExe $finalExePath -IconPath $icoPath
 
-# Inject the SEA blob
-Write-Host "Injecting optimized app into executable..." -ForegroundColor Yellow
-Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
+# Clean up base executable
+Remove-Item $baseExePath -Force -ErrorAction SilentlyContinue
 
 # Create README
 $readme = @"
