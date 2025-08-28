@@ -21,17 +21,17 @@ try {
 
 // Resolve static directory for both dev and SEA builds
 const __dirnameResolved = __dirname;
-const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'static');
+const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
 const externalStatic = (() => {
-  try { return path.join(path.dirname(process.execPath), 'static'); } catch { return snapshotStatic; }
+  try { return path.join(path.dirname(process.execPath), 'overlay'); } catch { return snapshotStatic; }
 })();
 
 // Helper function to get static files
 function getStaticFile(filePath: string): Buffer | string | null {
   // Check if we're in optimized SEA mode with external static files
-  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_STATIC_DIR) {
-    const staticDir = process.env.CHALLACHAT_STATIC_DIR;
-    const fullPath = path.join(staticDir, filePath);
+  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_OVERLAY_DIR) {
+    const overlayDir = process.env.CHALLACHAT_OVERLAY_DIR;
+    const fullPath = path.join(overlayDir, filePath);
     
     if (fs.existsSync(fullPath)) {
       return fs.readFileSync(fullPath);
@@ -39,8 +39,8 @@ function getStaticFile(filePath: string): Buffer | string | null {
       return null;
     }
   } else if (sea && sea.isSea && sea.isSea()) {
-    // For embedded SEA, we need to add the static/ prefix to match the asset keys
-    const assetKey = `static/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
+    // For embedded SEA, we need to add the overlay/ prefix to match the asset keys
+    const assetKey = `overlay/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
     try {
       // For text files (HTML, CSS, JS), get as UTF-8 string
       // For binary files (images, audio), get as ArrayBuffer
@@ -96,8 +96,8 @@ class App {
   private setupServer() {
     this.app.use(express.json());
     
-    // Handle static files through SEA assets or filesystem at /static/ prefix
-    this.app.use('/static', (req: Request, res: Response) => {
+    // Handle static files through SEA assets or filesystem at /overlay/ prefix
+    this.app.use('/overlay', (req: Request, res: Response) => {
       const filePath = req.path.substring(1); // Remove leading slash
       const file = getStaticFile(filePath);
       

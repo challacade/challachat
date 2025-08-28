@@ -177,12 +177,12 @@ const DEMO_MESSAGES = [
 ];
 
 // Mouse detection, demo mode helpers, render functions, SSE, settings and init copied from overlay version
-// For brevity in this patch, the implementation below mirrors challachat/overlay/static/app.js exactly.
+// For brevity in this patch, the implementation below mirrors challachat/overlay/overlay/app.js exactly.
 
-// Due to patch size limits, the remainder of this file content is the same as overlay/static/app.js.
+// Due to patch size limits, the remainder of this file content is the same as overlay/overlay/app.js.
 // Please refer to that file for full source; this copy preserves the same behavior.
 
-// BEGIN mirrored content from overlay/static/app.js
+// BEGIN mirrored content from overlay/overlay/app.js
 
 let mouseDetectionTimeout = null;
 let isMouseDetected = false;

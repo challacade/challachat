@@ -4,12 +4,12 @@
   "disableExperimentalSEAWarning": true,
   "useCodeCache": true,
   "assets": {
-    "static/index.html": "static/index.html",
-    "static/app.js": "static/app.js", 
-    "static/styles.css": "static/styles.css",
-    "static/images/challachat.ico": "static/images/challachat.ico",
-    "static/sounds/donation.mp3": "static/sounds/donation.mp3",
-    "static/sounds/member.mp3": "static/sounds/member.mp3",
-    "static/sounds/message.mp3": "static/sounds/message.mp3"
+    "overlay/index.html": "overlay/index.html",
+    "overlay/app.js": "overlay/app.js", 
+    "overlay/styles.css": "overlay/styles.css",
+    "overlay/images/challachat.ico": "overlay/images/challachat.ico",
+    "overlay/sounds/donation.mp3": "overlay/sounds/donation.mp3",
+    "overlay/sounds/member.mp3": "overlay/sounds/member.mp3",
+    "overlay/sounds/message.mp3": "overlay/sounds/message.mp3"
   }
 }

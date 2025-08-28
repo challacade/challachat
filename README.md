@@ -36,7 +36,7 @@ A full TypeScript refactor of the standalone ChallaChat app. It scrapes YouTube 
 This project uses **Node.js 24 Single Executable Applications (SEA)** to create a self-contained executable that includes:
 - Node.js runtime
 - All dependencies
-- Static assets (HTML, CSS, JS, images, sounds)
+- Overlay assets (HTML, CSS, JS, images, sounds)
 
 The build process:
 1. Compiles TypeScript to JavaScript

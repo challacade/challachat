@@ -13,10 +13,10 @@ const fs = require('fs');
 const launcherDir = path.dirname(process.execPath);
 const appDir = path.join(launcherDir, 'app');
 const runtimeDir = path.join(launcherDir, 'runtime');
-const staticDir = path.join(launcherDir, 'static');
+const overlayDir = path.join(launcherDir, 'overlay');
 
 // Check if required directories exist
-const requiredDirs = [appDir, runtimeDir, staticDir];
+const requiredDirs = [appDir, runtimeDir, overlayDir];
 for (const dir of requiredDirs) {
   if (!fs.existsSync(dir)) {
     console.error(`Error: Required directory not found: ${dir}`);
@@ -31,13 +31,13 @@ for (const dir of requiredDirs) {
 
 // Set up environment
 process.env.NODE_PATH = path.join(appDir, 'node_modules');
-process.env.CHALLACHAT_STATIC_DIR = staticDir;
+process.env.CHALLACHAT_OVERLAY_DIR = overlayDir;
 process.env.CHALLACHAT_PORTABLE = 'true';
 
 console.log('Starting ChallaChat...');
 console.log(`App directory: ${appDir}`);
 console.log(`Runtime: ${runtimeDir}`);
-console.log(`Static assets: ${staticDir}`);
+console.log(`Overlay assets: ${overlayDir}`);
 console.log('');
 
 // Launch the main application

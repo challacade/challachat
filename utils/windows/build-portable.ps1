@@ -1,6 +1,6 @@
 #!/usr/bin/env pwsh
 # Portable SEA build - modular executable with external assets and dependencies
-# Creates challachat.exe next to supporting folders (static/, node_modules/)
+# Creates challachat.exe next to supporting folders (overlay/, node_modules/)
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = $PSScriptRoot
@@ -35,7 +35,7 @@ Write-Host "Creating optimized directory structure..." -ForegroundColor Yellow
 $buildDir = "build/challachat-portable"
 New-Item -ItemType Directory -Path $buildDir | Out-Null
 New-Item -ItemType Directory -Path "$buildDir/node_modules" | Out-Null
-New-Item -ItemType Directory -Path "$buildDir/static" | Out-Null
+New-Item -ItemType Directory -Path "$buildDir/overlay" | Out-Null
 
 # Create optimized webpack config that externalizes ALL dependencies except core modules
 Write-Host "Creating optimized app bundle..." -ForegroundColor Yellow
@@ -77,9 +77,9 @@ module.exports = {
 Set-Content -Path "webpack/webpack.portable.js" -Value $webpackOptimizedConfig
 Run "npx webpack --config webpack/webpack.portable.js"
 
-# Copy static assets
-Write-Host "Copying static assets..." -ForegroundColor Yellow
-Copy-Item -Path "static/*" -Destination "$buildDir/static/" -Recurse -Force
+# Copy overlay assets
+Write-Host "Copying overlay assets..." -ForegroundColor Yellow
+Copy-Item -Path "overlay/*" -Destination "$buildDir/overlay/" -Recurse -Force
 
 # Install only the heavy external dependencies in node_modules
 Write-Host "Installing external dependencies..." -ForegroundColor Yellow
@@ -114,22 +114,22 @@ const fs = require('fs');
 
 // Get the directory where this executable is located
 const exeDir = path.dirname(process.execPath);
-const staticDir = path.join(exeDir, 'static');
+const overlayDir = path.join(exeDir, 'overlay');
 const nodeModulesDir = path.join(exeDir, 'node_modules');
 
 // Set up environment
-process.env.CHALLACHAT_STATIC_DIR = staticDir;
+process.env.CHALLACHAT_OVERLAY_DIR = overlayDir;
 process.env.CHALLACHAT_PORTABLE = 'true';
 process.env.NODE_PATH = nodeModulesDir;
 
 console.log('Starting ChallaChat (Optimized SEA)...');
 console.log('Executable directory:', exeDir);
-console.log('Static assets:', staticDir);
+console.log('Overlay assets:', overlayDir);
 console.log('External modules:', nodeModulesDir);
 console.log('');
 
 // Check if required directories exist
-const requiredDirs = [staticDir, nodeModulesDir];
+const requiredDirs = [overlayDir, nodeModulesDir];
 for (const dir of requiredDirs) {
   if (!fs.existsSync(dir)) {
   console.error('Error: Required directory not found:', dir);
@@ -236,7 +236,7 @@ Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob
 
 # Apply icon
 $exePath = Join-Path $RootDir "$buildDir/challachat.exe"
-$icoPath = Join-Path $RootDir 'static/images/challachat.ico'
+$icoPath = Join-Path $RootDir 'overlay/images/challachat.ico'
 
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
   Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan
@@ -265,7 +265,7 @@ Directory Structure:
 │   ├── puppeteer/
 │   ├── express/
 │   └── socket.io/
-└── static/             # Web assets (~5MB)
+└── overlay/             # Web assets (~5MB)
     ├── index.html
     ├── app.js
     ├── styles.css
@@ -279,7 +279,7 @@ Usage:
 Benefits:
 - Single executable with Node.js runtime built-in
 - External dependencies for smaller executable
-- Static assets separate for easy customization
+- Overlay assets separate for easy customization
 - Much smaller than full SEA (85MB vs 105MB)
 - No separate Node.js runtime folder needed
 
@@ -292,7 +292,7 @@ Set-Content -Path "$buildDir/README.txt" -Value $readme -Encoding ASCII
 $optimizedSize = (Get-ChildItem "$buildDir" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 $exeSize = (Get-Item "$buildDir/challachat.exe").Length / 1MB
 $nodeModulesSize = (Get-ChildItem "$buildDir/node_modules" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
-$staticSize = (Get-ChildItem "$buildDir/static" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
+$overlaySize = (Get-ChildItem "$buildDir/overlay" -Recurse | Measure-Object -Property Length -Sum).Sum / 1MB
 
 Write-Host "" -ForegroundColor Green
 Write-Host "=============================" -ForegroundColor Green
