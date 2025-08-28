@@ -86,9 +86,6 @@ jobs:
             echo
             git log --first-parent --pretty=format:'- %s (%h)' $RANGE
             echo
-            if [ -n "$PREV" ]; then
-              echo "Compare: $REPO_URL/compare/$PREV...$TAG"
-            fi
           } > release_notes.md
       - uses: softprops/action-gh-release@v2
         with:
