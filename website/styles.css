@@ -141,9 +141,9 @@ section h2 {
     margin-bottom: 0.5rem;
 }
 
-/* Slightly larger download button text inside product card */
+/* Ensure larger download button text inside product card */
 .product-card .download-link {
-    font-size: 1.1rem;
+    font-size: 1.2rem;
 }
 
 /* Lighter, high-contrast links inside the ChallaChat card */
@@ -279,15 +279,24 @@ section h2 {
 .download-link {
     background: #4c51bf;
     color: white;
-    padding: 10px 20px;
-    border-radius: 8px;
+    padding: 12px 22px;
+    border-radius: 10px;
     text-decoration: none;
-    font-weight: 600;
-    display: flex;
+    font-weight: 700;
+    display: inline-flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     transition: all 0.3s ease;
     margin-top: 1rem;
+    font-size: 1.15rem; /* larger text */
+    line-height: 1;
+}
+
+/* Larger icon inside the download button */
+.download-link svg {
+    width: 22px;
+    height: 22px;
+    display: inline-block;
 }
 
 .download-link:hover {
