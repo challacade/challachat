@@ -47,9 +47,22 @@ $icoPath = Join-Path $RootDir 'overlay/favicon.ico'
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
   Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan
   try {
-    $exeEsc = '"' + $exePath + '"'
-    $icoEsc = '"' + $icoPath + '"'
-    Run "rcedit $exeEsc --set-icon $icoEsc"
+    # Use rcedit directly through Node.js
+    $rceditScript = @"
+const rcedit = require('rcedit');
+rcedit('$($exePath.Replace('\', '\\'))', { icon: '$($icoPath.Replace('\', '\\'))' })
+  .then(() => {
+    console.log('Icon successfully applied');
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('Failed to apply icon:', err.message);
+    process.exit(1);
+  });
+"@
+    $rceditScript | Out-File -FilePath "temp-rcedit.js" -Encoding UTF8
+    Run "node temp-rcedit.js"
+    Remove-Item "temp-rcedit.js" -Force -ErrorAction SilentlyContinue
     Write-Host "Icon successfully applied to challachat.exe" -ForegroundColor Green
   } catch {
     Write-Warning "Failed to apply icon: $($_.Exception.Message)"

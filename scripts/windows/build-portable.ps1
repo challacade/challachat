@@ -230,25 +230,38 @@ Write-Host "Creating optimized executable..." -ForegroundColor Yellow
 $nodeExePath = (Get-Command node).Source
 Copy-Item -Path $nodeExePath -Destination "$buildDir/challachat.exe" -Force
 
-# Inject the SEA blob
-Write-Host "Injecting optimized app into executable..." -ForegroundColor Yellow
-Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
-
-# Apply icon
+# Apply icon BEFORE postject injection
 $exePath = Join-Path $RootDir "$buildDir/challachat.exe"
 $icoPath = Join-Path $RootDir 'overlay/favicon.ico'
 
 if ((Test-Path $exePath) -and (Test-Path $icoPath)) {
   Write-Host "Applying icon to challachat.exe..." -ForegroundColor Cyan
   try {
-    $exeEsc = '"' + $exePath + '"'
-    $icoEsc = '"' + $icoPath + '"'
-    Run "rcedit $exeEsc --set-icon $icoEsc"
+    # Use rcedit directly through Node.js
+    $rceditScript = @"
+const rcedit = require('rcedit');
+rcedit('$($exePath.Replace('\', '\\'))', { icon: '$($icoPath.Replace('\', '\\'))' })
+  .then(() => {
+    console.log('Icon successfully applied');
+    process.exit(0);
+  })
+  .catch(err => {
+    console.error('Failed to apply icon:', err.message);
+    process.exit(1);
+  });
+"@
+    $rceditScript | Out-File -FilePath "temp-rcedit.js" -Encoding UTF8
+    Run "node temp-rcedit.js"
+    Remove-Item "temp-rcedit.js" -Force -ErrorAction SilentlyContinue
     Write-Host "Icon successfully applied" -ForegroundColor Green
   } catch {
-    Write-Warning "Failed to apply icon (rcedit not available)"
+    Write-Warning "Failed to apply icon: $($_.Exception.Message)"
   }
 }
+
+# Inject the SEA blob
+Write-Host "Injecting optimized app into executable..." -ForegroundColor Yellow
+Run "npx postject `"$buildDir/challachat.exe`" NODE_SEA_BLOB build/sea-prep.blob --sentinel-fuse NODE_SEA_FUSE_fce680ab2cc467b6e072b8b5df1996b2"
 
 # Create README
 $readme = @"
