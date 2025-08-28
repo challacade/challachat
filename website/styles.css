@@ -128,14 +128,14 @@ section h2 {
 }
 
 .cc-card-desc {
-    font-size: 1.3rem; /* larger paragraph */
+    font-size: 1.25rem; /* larger paragraph */
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 0.35rem;
 }
 
 .cc-card-subdesc {
-    font-size: 1.2rem;
+    font-size: 1.1rem;
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 0.5rem;
@@ -412,7 +412,7 @@ section h2 {
 
 .streaming-content p {
     color: #cbd5e0;
-    font-size: 1rem;
+    font-size: 1.05rem;
     line-height: 1.5;
 }
 
@@ -1010,7 +1010,7 @@ html {
 }
 
 .products .product-card .cc-card-desc {
-    font-size: 1.35rem; /* larger paragraph */
+    font-size: 1.25rem; /* larger paragraph */
 }
 
 .products .product-card .cc-card-subdesc {
