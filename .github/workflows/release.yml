@@ -78,15 +78,13 @@ jobs:
           RANGE="origin/main"
           if [ -n "$PREV" ]; then RANGE="$PREV..origin/main"; fi
           {
-            echo "# ChallaChat $TAG"
-            echo
             if [ -n "$PREV" ]; then
               echo "Changes since $PREV (main):"
             else
               echo "Changes on main:"
             fi
             echo
-            git log --first-parent --pretty=format:'- %s (%h) by %an' $RANGE
+            git log --first-parent --pretty=format:'- %s (%h)' $RANGE
             echo
             if [ -n "$PREV" ]; then
               echo "Compare: $REPO_URL/compare/$PREV...$TAG"
