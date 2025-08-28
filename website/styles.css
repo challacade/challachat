@@ -772,7 +772,7 @@ section h2 {
 
 /* Download Section */
 .download {
-    background: #1a202c;
+    background: linear-gradient(135deg, #1f2940 0%, #374659 100%);
 }
 
 .download h2 {
