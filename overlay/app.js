@@ -323,7 +323,7 @@ function normalizeHexColor(hex) {
   // Pad to 6 characters if needed
   cleanHex = cleanHex.padEnd(6, '0');
   
-  return '#' + cleanHex.toLowerCase();
+  return '#' + cleanHex.toUpperCase();
 }
 
 function updateColorPreview(inputElement, previewElement) {
@@ -346,8 +346,13 @@ function setupColorInput(inputElement, previewElement) {
   // Initialize preview
   updateColorPreview(inputElement, previewElement);
   
-  // Update preview on input
+  // Update preview and force uppercase on input
   inputElement.addEventListener('input', () => {
+    // Force uppercase as user types
+    const cursorPos = inputElement.selectionStart;
+    inputElement.value = inputElement.value.toUpperCase();
+    inputElement.setSelectionRange(cursorPos, cursorPos);
+    
     updateColorPreview(inputElement, previewElement);
   });
   

@@ -208,7 +208,14 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 .settings .grid.color-grid { display: grid; grid-template-columns: repeat(3, 0.65fr); gap: 12px; justify-content: start; }
 .settings .color-column { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
 .settings .color-input-wrapper { position: relative; display: flex; align-items: center; gap: 8px; min-width: 0; }
-.settings .color-input-wrapper input[type="text"] { flex: 1; min-width: 0; }
+.settings .color-input-wrapper input[type="text"] { 
+  flex: 1; 
+  min-width: 0; 
+  font-size: 14px; 
+  font-weight: 600; 
+  text-transform: uppercase; 
+  letter-spacing: 0.5px; 
+}
 .settings .color-preview { 
   width: 20px; 
   height: 20px; 
