@@ -1,6 +1,6 @@
-# ChallaChat (TypeScript)
+# ChallaChat
 
-Local-first YouTube Live Chat capture + overlay server. Drop the overlay into OBS and stream in seconds. No cloud, no accounts. ⚡🔒
+Capture and display any livestream chat in a custom overlay. You can add this to your streaming software (OBS, Streamlabs) using a Browser source. 
 
 - Ultra‑low latency local SSE stream to your overlay
 - Secure & private: all processing runs on your machine
