@@ -212,6 +212,73 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 .settings button.secondary { background: rgba(255,255,255,0.1); color: #fff; }
 .settings .hint { opacity: 0.8; font-size: 12px; }
 
+/* --- Custom dropdown (replaces native select in OBS/CEF) --- */
+/* Hide only the Preset native select; we mirror its value via a custom control */
+.settings select#preset {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
+.select-custom {
+  position: relative;
+  display: inline-block;
+  min-width: 160px;
+  font-size: 13px;
+}
+.select-custom__button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 10px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 8px;
+  cursor: pointer;
+}
+.select-custom__chevron {
+  opacity: 0.9;
+}
+.select-custom__menu {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  background: rgba(15,15,20,0.98);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.45);
+  list-style: none;
+  margin: 0;
+  padding: 6px;
+  max-height: 220px;
+  overflow: auto;
+  z-index: 9999; /* above panel content */
+  display: none;
+}
+.select-custom__menu.open {
+  display: block;
+}
+.select-custom__option {
+  padding: 8px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  color: #fff;
+}
+.select-custom__option[aria-selected="true"] {
+  background: rgba(0,181,255,0.22);
+}
+.select-custom__option:hover,
+.select-custom__option:focus {
+  background: rgba(255,255,255,0.12);
+  outline: none;
+}
+
 @keyframes slide-in { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
 @media (max-width: 600px) { :root { --base-scale: 0.9; } }

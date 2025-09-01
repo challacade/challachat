@@ -525,7 +525,10 @@ function syncUi() { elements.scale.value = String(state.scale); if (elements.sho
   if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
   if (elements.donationVolume) elements.donationVolume.value = String(state.sounds.donation.volume);
   if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
-  applyTheme(); }
+  applyTheme();
+  // Keep custom dropdown label/selection in sync
+  try { syncCustomPresetDropdown(); } catch {}
+ }
 function updateFromUi() { state.scale = Math.max(0.5, Math.min(3, Number(elements.scale.value) || 1.35)); if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked; if (elements.showBadges) state.showBadges = elements.showBadges.checked; state.preset = 'Custom'; state.theme.text = elements.textColor.value; if (elements.bubbleColor) state.theme.bubbleColor = elements.bubbleColor.value; state.theme.bgOpacity = Math.max(0, Math.min(1, Number(elements.bgOpacity.value))); if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked; if (elements.demoMode) { const newDemoMode = elements.demoMode.checked; if (newDemoMode !== state.demoMode) { state.demoMode = newDemoMode; if (state.demoMode) { startDemoMode(); } else { stopDemoMode(); } } } if (elements.messageGap) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value))); } if (elements.pageBgColor) state.pageBgColor = elements.pageBgColor.value; if (elements.pageBgOpacity) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(elements.pageBgOpacity.value))); }
   // Per-sound volumes only (set to 0 to disable)
   if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
@@ -687,9 +690,139 @@ function setupPollIntervalControls() {
     elements.testDonationBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.donation) { await initializeAudio(); } playSound(audio.donation, state.sounds.donation.volume); showToast('Test: donation'); });
     elements.testMemberBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.member) { await initializeAudio(); } playSound(audio.member, state.sounds.member.volume); showToast('Test: membership'); });
   }
+// ================================
+// Custom Dropdown for Preset (avoid native popup in CEF/OBS)
+// ================================
+function buildCustomPresetDropdown() {
+  const select = document.getElementById('preset');
+  const mount = document.getElementById('presetSelect');
+  if (!select || !mount) return;
+
+  // Clear any prior content (idempotent)
+  mount.innerHTML = '';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'select-custom__button';
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'select-custom__label';
+  labelSpan.textContent = select.options[select.selectedIndex]?.text || select.value || 'Select';
+  const chevron = document.createElement('span');
+  chevron.className = 'select-custom__chevron';
+  chevron.textContent = '▾';
+  button.append(labelSpan, chevron);
+
+  const menu = document.createElement('ul');
+  menu.className = 'select-custom__menu';
+  menu.role = 'listbox';
+  menu.tabIndex = -1;
+
+  const options = Array.from(select.options).map((opt, idx) => {
+    const li = document.createElement('li');
+    li.className = 'select-custom__option';
+    li.role = 'option';
+    li.tabIndex = -1;
+    li.dataset.value = opt.value;
+    li.textContent = opt.text;
+    if (opt.value === select.value) {
+      li.setAttribute('aria-selected', 'true');
+    }
+    li.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      commitSelection(opt.value, opt.text);
+      closeMenu();
+      // Return focus to button
+      button.focus();
+    });
+    return li;
+  });
+  options.forEach((li) => menu.appendChild(li));
+
+  let open = false;
+  let activeIndex = options.findIndex((li) => li.getAttribute('aria-selected') === 'true');
+  if (activeIndex < 0) activeIndex = 0;
+
+  const openMenu = () => {
+    if (open) return;
+    menu.classList.add('open');
+    open = true;
+    // Focus selected or first option
+    const target = options[activeIndex] || options[0];
+    if (target) target.focus();
+    document.addEventListener('pointerdown', onDocDown, { capture: true });
+    document.addEventListener('keydown', onDocKey);
+  };
+  const closeMenu = () => {
+    if (!open) return;
+    menu.classList.remove('open');
+    open = false;
+    document.removeEventListener('pointerdown', onDocDown, { capture: true });
+    document.removeEventListener('keydown', onDocKey);
+  };
+  const onDocDown = (e) => {
+    if (!mount.contains(e.target)) closeMenu();
+  };
+  const onDocKey = (e) => {
+    if (!open) return;
+    if (e.key === 'Escape' || e.key === 'Esc') { e.preventDefault(); closeMenu(); button.focus(); return; }
+    const max = options.length - 1;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(max, activeIndex + 1); options[activeIndex]?.focus(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(0, activeIndex - 1); options[activeIndex]?.focus(); return; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const el = options[activeIndex]; if (el) { const val = el.dataset.value || ''; const text = el.textContent || val; commitSelection(val, text); } closeMenu(); button.focus(); return; }
+  };
+  const commitSelection = (value, text) => {
+    // Update hidden select
+    if (select.value !== value) {
+      select.value = value;
+      select.dispatchEvent(new Event('change'));
+    }
+    // Update label
+    labelSpan.textContent = text || value;
+    // Update aria-selected markers
+    options.forEach((el, i) => {
+      if (el.dataset.value === value) { el.setAttribute('aria-selected', 'true'); activeIndex = i; }
+      else { el.removeAttribute('aria-selected'); }
+    });
+  };
+
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    open ? closeMenu() : openMenu();
+  });
+  button.addEventListener('keydown', (e) => {
+    // Open with keyboard
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      openMenu();
+    }
+  });
+
+  mount.appendChild(button);
+  mount.appendChild(menu);
+}
+
+// Ensure the custom dropdown stays in sync if state changes programmatically
+function syncCustomPresetDropdown() {
+  try {
+    const select = document.getElementById('preset');
+    const label = document.querySelector('#presetSelect .select-custom__label');
+    const options = document.querySelectorAll('#presetSelect .select-custom__option');
+    if (!select || !label || !options.length) return;
+    const currentText = select.options[select.selectedIndex]?.text || select.value;
+    label.textContent = currentText;
+    options.forEach((el, i) => {
+      if (el.dataset.value === select.value) el.setAttribute('aria-selected', 'true');
+      else el.removeAttribute('aria-selected');
+    });
+  } catch {}
+}
 function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); setupMouseDetection(); recomputeAutoScale(); window.addEventListener('resize', () => { recomputeAutoScale(); applyTheme(); elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment); }); loadFromLocal(); loadFromUrl(); const url = new URL(location.href); const hasPresetParam = url.searchParams.has('preset'); const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key)); if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) { state.preset = 'Dark'; } else if (!state.preset) { state.preset = 'Custom'; } if (isDemoSite()) { state.demoMode = true; } applyPreset(state.preset); applyTheme(); syncUi(); bindUi(); if (state.demoMode) { startDemoMode(); } initializeAudio();
   // Fetch current poll interval from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
+  // Build custom preset dropdown (avoids native popup invisibility in CEF/OBS)
+  try { buildCustomPresetDropdown(); syncCustomPresetDropdown(); } catch {}
   startSSE(); }
 start();
 // END mirrored content
