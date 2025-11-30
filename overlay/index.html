@@ -137,6 +137,15 @@
         <input id="demoMode" type="checkbox" />
         <span>Demo Mode</span>
       </label>
+    </div>
+    <div class="censor-row">
+      <label class="checkbox-label">
+        <input id="censorEnabled" type="checkbox" checked />
+        <span>Censor Filter</span>
+      </label>
+      <div id="censorStatus" class="status-message hidden"></div>
+    </div>
+    <div class="grid">
       <label>
         Poll Interval (ms)
   <input id="pollIntervalMs" type="number" min="100" step="100" value="1000" />

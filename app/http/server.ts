@@ -7,7 +7,7 @@ import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
-import { censorMessage, getFilterStatus, reloadFilter } from '../core/censor';
+import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -210,6 +210,13 @@ class App {
   this.app.post('/api/filter/reload', (_req: Request, res: Response) => {
       const success = reloadFilter();
       res.json({ ok: success, ...getFilterStatus() });
+    });
+  this.app.post('/api/filter/toggle', (req: Request, res: Response) => {
+      const active = req.body?.active;
+      if (typeof active === 'boolean') {
+        setFilterActive(active);
+      }
+      res.json({ ok: true, ...getFilterStatus() });
     });
 
   this.app.get('/api/stream', (_req: Request, res: Response) => {

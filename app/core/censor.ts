@@ -7,7 +7,8 @@ import type { ChatEvent, Segment } from '../capture/types';
 // Words are censored by keeping the first letter and replacing the rest with asterisks.
 
 let badWords: Set<string> = new Set();
-let filterEnabled = false;
+let filterLoaded = false;  // Whether a CSV was found and loaded
+let filterActive = true;   // Whether censoring is currently enabled (user toggle)
 let loadedPath: string | null = null;
 
 // Possible locations for the censor CSV file (checked in order)
@@ -68,9 +69,9 @@ export function loadFilter(): boolean {
         badWords = parseCSV(content);
         
         if (badWords.size > 0) {
-          filterEnabled = true;
+          filterLoaded = true;
           loadedPath = filePath;
-          console.log(`[Filter] Loaded ${badWords.size} words from ${filePath}`);
+          console.log(`[Censor] Loaded ${badWords.size} words from ${filePath}`);
           return true;
         }
       }
@@ -79,7 +80,7 @@ export function loadFilter(): boolean {
     }
   }
   
-  filterEnabled = false;
+  filterLoaded = false;
   loadedPath = null;
   return false;
 }
@@ -87,18 +88,29 @@ export function loadFilter(): boolean {
 // Reload the filter (can be called to refresh after file changes)
 export function reloadFilter(): boolean {
   badWords.clear();
-  filterEnabled = false;
+  filterLoaded = false;
   loadedPath = null;
   return loadFilter();
 }
 
 // Get filter status for debugging/UI
-export function getFilterStatus(): { enabled: boolean; wordCount: number; path: string | null } {
+export function getFilterStatus(): { loaded: boolean; active: boolean; wordCount: number; path: string | null } {
   return {
-    enabled: filterEnabled,
+    loaded: filterLoaded,
+    active: filterActive,
     wordCount: badWords.size,
     path: loadedPath
   };
+}
+
+// Enable or disable the censor filter at runtime
+export function setFilterActive(active: boolean): void {
+  filterActive = active;
+}
+
+// Check if censoring is currently effective (loaded AND active)
+function isCensoringEnabled(): boolean {
+  return filterLoaded && filterActive && badWords.size > 0;
 }
 
 // Censor a single word: keep first letter, replace rest with asterisks
@@ -112,7 +124,7 @@ function censorWord(word: string): string {
 
 // Censor text by replacing bad words (case-insensitive, word boundaries)
 export function censorText(text: string): string {
-  if (!filterEnabled || badWords.size === 0 || !text) {
+  if (!isCensoringEnabled() || !text) {
     return text;
   }
   
@@ -144,7 +156,7 @@ function censorSegments(segments: Segment[]): Segment[] {
 
 // Censor an entire chat message (both text and segments)
 export function censorMessage(message: ChatEvent): ChatEvent {
-  if (!filterEnabled) {
+  if (!isCensoringEnabled()) {
     return message;
   }
   

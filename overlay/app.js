@@ -49,7 +49,9 @@ const elements = {
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
-  pollIntervalMs: document.getElementById('pollIntervalMs')
+  pollIntervalMs: document.getElementById('pollIntervalMs'),
+  censorEnabled: document.getElementById('censorEnabled'),
+  censorStatus: document.getElementById('censorStatus')
 };
 
 // ================================
@@ -830,6 +832,77 @@ function setupPollIntervalControls() {
   observer.observe(elements.generalSettings, { attributes: true, attributeFilter: ['class'] });
 }
 
+// ================================
+// Censor Filter Client <-> Server Wiring
+// ================================
+let censorFilterState = { loaded: false, active: true, wordCount: 0, path: null };
+
+function updateCensorStatusUI() {
+  const checkbox = elements.censorEnabled;
+  const statusEl = elements.censorStatus;
+  if (!checkbox || !statusEl) return;
+  
+  checkbox.checked = censorFilterState.active;
+  
+  if (!censorFilterState.loaded) {
+    statusEl.textContent = 'No censor.csv found';
+    statusEl.classList.remove('hidden');
+    statusEl.classList.add('warning');
+  } else {
+    statusEl.textContent = `${censorFilterState.wordCount} words loaded`;
+    statusEl.classList.remove('hidden', 'warning');
+  }
+}
+
+async function fetchCensorFilterStatus() {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/filter', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP error');
+    const data = await resp.json();
+    censorFilterState = {
+      loaded: !!data.loaded,
+      active: !!data.active,
+      wordCount: data.wordCount || 0,
+      path: data.path || null
+    };
+    updateCensorStatusUI();
+  } catch {}
+}
+
+async function toggleCensorFilter(active) {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/filter/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) {
+      censorFilterState = {
+        loaded: !!data.loaded,
+        active: !!data.active,
+        wordCount: data.wordCount || 0,
+        path: data.path || null
+      };
+      updateCensorStatusUI();
+      showToast(active ? 'Censor filter enabled' : 'Censor filter disabled');
+    }
+  } catch {
+    showToast('Failed to toggle censor filter');
+  }
+}
+
+function setupCensorFilterControls() {
+  const checkbox = elements.censorEnabled;
+  if (!checkbox) return;
+  
+  checkbox.addEventListener('change', () => {
+    toggleCensorFilter(checkbox.checked);
+  });
+}
+
 // Removed global Test Sounds wiring; per-sound test buttons are bound in bindUi()
   function shouldIgnoreKeyEvent(event) { const target = event.target; if (!target) return false; const tag = (target.tagName || '').toUpperCase(); if (target.isContentEditable) return true; return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON'; }
   function bindUi() {
@@ -917,6 +990,8 @@ function setupPollIntervalControls() {
     elements.memberVolume?.addEventListener('input', updateFromUi);
     // Poll interval controls
     setupPollIntervalControls();
+    // Censor filter controls
+    setupCensorFilterControls();
     // Per-sound Test buttons
     elements.testMessageBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.message) { await initializeAudio(); } playSound(audio.message, state.sounds.message.volume); showToast('Test: message'); });
     elements.testDonationBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.donation) { await initializeAudio(); } playSound(audio.donation, state.sounds.donation.volume); showToast('Test: donation'); });
@@ -1053,6 +1128,8 @@ function syncCustomPresetDropdown() {
 function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); setupMouseDetection(); recomputeAutoScale(); window.addEventListener('resize', () => { recomputeAutoScale(); applyTheme(); elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment); }); loadFromLocal(); loadFromUrl(); const url = new URL(location.href); const hasPresetParam = url.searchParams.has('preset'); const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key)); if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) { state.preset = 'Dark'; } else if (!state.preset) { state.preset = 'Custom'; } if (isDemoSite()) { state.demoMode = true; } applyPreset(state.preset); applyTheme(); syncUi(); bindUi(); if (state.demoMode) { startDemoMode(); } initializeAudio();
   // Fetch current poll interval from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
+  // Fetch censor filter status from server (non-blocking)
+  try { fetchCensorFilterStatus(); } catch {}
   // Build custom preset dropdown (avoids native popup invisibility in CEF/OBS)
   try { buildCustomPresetDropdown(); syncCustomPresetDropdown(); } catch {}
   startSSE(); }
