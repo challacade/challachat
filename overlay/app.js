@@ -873,6 +873,11 @@ async function fetchCensorFilterStatus() {
 async function toggleCensorFilter(active) {
   if (isDemoSite()) return;
   try {
+    // When enabling, reload the filter first to pick up any CSV changes
+    if (active) {
+      await fetch('/api/filter/reload', { method: 'POST' });
+    }
+    
     const resp = await fetch('/api/filter/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
