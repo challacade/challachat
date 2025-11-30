@@ -34,12 +34,36 @@ Status: http://localhost:5050/api/status
 GET http://localhost:5050/api/poll-interval<br>
 POST http://localhost:5050/api/poll-interval { pollIntervalMs: number }
 
+GET http://localhost:5050/api/filter<br>
+POST http://localhost:5050/api/filter/reload
+
 ## Getting started
 
 #### Windows
 - Run locally: [scripts/windows/start-on-system.ps1](./scripts/windows/start-on-system.ps1)
 - Portable build: [scripts/windows/build-portable.ps1](./scripts/windows/build-portable.ps1)
 - Installer build: [scripts/windows/build-installer.ps1](./scripts/windows/build-installer.ps1)
+
+## Profanity Filter
+
+ChallaChat includes an optional profanity filter that censors bad words in chat messages.
+
+#### Setup
+1. Create a file named `censor.csv` with one bad word per line (or comma-separated)
+2. Place it in one of these locations (checked in order):
+   - Next to the ChallaChat executable (portable builds)
+   - Current working directory
+   - `~/.challachat/censor.csv` (Linux/Mac)
+   - `%LOCALAPPDATA%\ChallaChat\censor.csv` (Windows)
+
+#### Example censor.csv
+```
+badword1
+badword2
+another,phrase,here
+```
+
+The filter loads automatically on startup. Use `POST /api/filter/reload` to reload after editing the file.
 
 ## Releases (GitHub Actions)
 

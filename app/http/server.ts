@@ -7,6 +7,7 @@ import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
+import { censorMessage, getFilterStatus, reloadFilter } from '../core/censor';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -203,6 +204,14 @@ class App {
       res.json({ ok: true, pollIntervalMs: this.capture?.pollInterval || next });
     });
 
+  this.app.get('/api/filter', (_req: Request, res: Response) => {
+      res.json(getFilterStatus());
+    });
+  this.app.post('/api/filter/reload', (_req: Request, res: Response) => {
+      const success = reloadFilter();
+      res.json({ ok: success, ...getFilterStatus() });
+    });
+
   this.app.get('/api/stream', (_req: Request, res: Response) => {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
@@ -321,9 +330,11 @@ class App {
   // Relay messages to SSE clients and overlay
   private onCaptureMessage(message: ChatEvent) {
     this.messageCount++;
+    // Apply profanity filter before broadcasting
+    const filtered = censorMessage(message);
   // No terminal preview or re-rendering of the header during message flow.
-    this.io.emit('chat-message', message);
-    this.sse.send('chat', { events: [this.normalizeForOverlay(message)] });
+    this.io.emit('chat-message', filtered);
+    this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
   }
 
   // Relay delete events (by id) so overlays can remove them immediately
