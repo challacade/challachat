@@ -34,12 +34,63 @@ Status: http://localhost:5050/api/status
 GET http://localhost:5050/api/poll-interval<br>
 POST http://localhost:5050/api/poll-interval { pollIntervalMs: number }
 
+GET http://localhost:5050/api/filter<br>
+POST http://localhost:5050/api/filter/reload
+
 ## Getting started
 
 #### Windows
 - Run locally: [scripts/windows/start-on-system.ps1](./scripts/windows/start-on-system.ps1)
 - Portable build: [scripts/windows/build-portable.ps1](./scripts/windows/build-portable.ps1)
 - Installer build: [scripts/windows/build-installer.ps1](./scripts/windows/build-installer.ps1)
+
+## Profanity Filter
+
+ChallaChat includes an optional profanity filter that censors bad words in chat messages.
+
+#### Setup
+1. Create a file named `censor.csv` with one bad word per line (or comma-separated)
+2. Place it in one of these locations (checked in order):
+   - Next to the ChallaChat executable (portable builds)
+   - Current working directory
+   - `~/.challachat/censor.csv` (Linux/Mac)
+   - `%LOCALAPPDATA%\ChallaChat\censor.csv` (Windows)
+
+#### Example censor.csv
+```
+badword1
+badword2
+another,phrase,here
+```
+
+The filter loads automatically on startup. Use `POST /api/filter/reload` to reload after editing the file.
+
+## Message Logging
+
+ChallaChat can optionally log all chat messages to a JSON Lines file for archival or later review.
+
+#### Enabling Logging
+1. Open the overlay in your browser
+2. Click the ⚙️ (Settings) button
+3. Check the "Log Messages" checkbox
+
+#### Log File Location
+Logs are saved to:
+- **Windows:** `%LOCALAPPDATA%\ChallaChat\logs\`
+- **Linux/Mac:** `~/.challachat/logs/`
+
+Each capture session creates a new file named `chat-{videoId}-{date}_{time}.jsonl`.
+
+#### Log Format
+Each line is a JSON object with the message data:
+```json
+{"ts":1733788800000,"author":"Username","text":"Hello world!","kind":"text","id":"abc123"}
+{"ts":1733788805000,"author":"Donor","text":"Great stream!","kind":"donation","amount":"$5.00","id":"def456"}
+```
+
+#### API Endpoints
+GET /api/logger — Get logger status<br>
+POST /api/logger/toggle { enabled: boolean } — Enable/disable logging
 
 ## Releases (GitHub Actions)
 

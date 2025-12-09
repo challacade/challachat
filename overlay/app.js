@@ -26,13 +26,17 @@ const elements = {
   showAvatars: document.getElementById('showAvatars'),
   showBadges: document.getElementById('showBadges'),
   textColor: document.getElementById('textColor'),
+  textOpacity: document.getElementById('textOpacity'),
+  textColorPreview: document.getElementById('textColorPreview'),
   bubbleColor: document.getElementById('bubbleColor'),
+  bubbleColorPreview: document.getElementById('bubbleColorPreview'),
   bgOpacity: document.getElementById('bgOpacity'),
   showBubbles: document.getElementById('showBubbles'),
   demoMode: document.getElementById('demoMode'),
   messageGap: document.getElementById('messageGap'),
   pageBgOpacity: document.getElementById('pageBgOpacity'),
   pageBgColor: document.getElementById('pageBgColor'),
+  pageBgColorPreview: document.getElementById('pageBgColorPreview'),
   copyUrlBtn: document.getElementById('copyUrlBtn'),
   // Removed global testSoundsBtn; using per-sound test buttons instead
   // per-sound controls are in a separate panel
@@ -45,7 +49,11 @@ const elements = {
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
-  pollIntervalMs: document.getElementById('pollIntervalMs')
+  pollIntervalMs: document.getElementById('pollIntervalMs'),
+  censorEnabled: document.getElementById('censorEnabled'),
+  censorStatus: document.getElementById('censorStatus'),
+  logEnabled: document.getElementById('logEnabled'),
+  logStatus: document.getElementById('logStatus')
 };
 
 // ================================
@@ -62,6 +70,7 @@ const state = {
   showEmojiBadges: false,
   theme: { 
     text: '#ffffff', 
+    textOpacity: 1,
     bubbleColor: '#000000', 
     bgOpacity: 0.14 
   },
@@ -79,7 +88,8 @@ const state = {
   },
   preset: 'Dark',
   startedAt: null,
-  demoMode: false
+  demoMode: false,
+  logEnabled: false
 };
 
 // ================================
@@ -287,11 +297,143 @@ function updateMessageById(updateEvent) { if (!updateEvent.id) return; const mes
 }
 function clearAllMessages() { elements.messages.innerHTML = ''; state.seenIds.clear(); state.byId.clear(); showToast('All messages cleared'); }
 
-const PRESETS = { Dark: { theme: { text: '#ffffff', bubbleColor: '#ffffff', bgOpacity: 0.14 }, page: { color: '#000000', opacity: 1 }, showAvatars: true, showBadges: true, showBubbles: true, messageGapRem: 0.5, scale: 1.35 }, Light: { theme: { text: '#111111', bubbleColor: '#000000', bgOpacity: 0.08 }, page: { color: '#ffffff', opacity: 1 }, showAvatars: true, showBadges: true, showBubbles: true, messageGapRem: 0.5, scale: 1.35 }, Transparent: { theme: { text: '#ffffff', bubbleColor: '#ffffff', bgOpacity: 0.14 }, page: { color: '#000000', opacity: 0 }, showAvatars: true, showBadges: true, showBubbles: false, messageGapRem: 0.4, scale: 1.35 }, Custom: null };
+const PRESETS = { Dark: { theme: { text: '#ffffff', textOpacity: 1, bubbleColor: '#ffffff', bgOpacity: 0.14 }, page: { color: '#000000', opacity: 1 }, showAvatars: true, showBadges: true, showBubbles: true, messageGapRem: 0.5, scale: 1.35 }, Light: { theme: { text: '#111111', textOpacity: 1, bubbleColor: '#000000', bgOpacity: 0.08 }, page: { color: '#ffffff', opacity: 1 }, showAvatars: true, showBadges: true, showBubbles: true, messageGapRem: 0.5, scale: 1.35 }, Transparent: { theme: { text: '#ffffff', textOpacity: 1, bubbleColor: '#ffffff', bgOpacity: 0.14 }, page: { color: '#000000', opacity: 0 }, showAvatars: true, showBadges: true, showBubbles: false, messageGapRem: 0.4, scale: 1.35 }, Custom: null };
 
 const SETTINGS_TOGGLE_KEYS = ['Enter', ' ', 'Spacebar', 'Escape', 'Esc'];
 const SOUND_FRESH_MS = 2000;
+const AVATAR_MAX_RETRIES = 3;
+const AVATAR_RETRY_DELAY_MS = 3000;
 function isDemoSite() { return window.location.hostname.toLowerCase() === 'demo.challachat.com'; }
+
+// ================================
+// Avatar Error Handling
+// ================================
+
+// Generate a solid color fallback avatar as a data URI
+function generateFallbackAvatar(seed = '') {
+  // Generate a consistent color based on the seed (username or URL)
+  const colors = ['#6366f1', '#8b5cf6', '#d946ef', '#ec4899', '#f43f5e', '#f97316', '#eab308', '#22c55e', '#14b8a6', '#06b6d4', '#3b82f6'];
+  let hash = 0;
+  for (let i = 0; i < seed.length; i++) {
+    hash = seed.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const color = colors[Math.abs(hash) % colors.length];
+  
+  // Create a simple SVG circle as data URI
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64"><circle cx="32" cy="32" r="32" fill="${color}"/></svg>`;
+  return 'data:image/svg+xml,' + encodeURIComponent(svg);
+}
+
+// Handle avatar image load errors with retry logic
+function handleAvatarError(event) {
+  const img = event.target;
+  if (!img) return;
+  
+  const retryCount = parseInt(img.dataset.retryCount || '0', 10);
+  const originalSrc = img.dataset.originalSrc || '';
+  
+  if (retryCount < AVATAR_MAX_RETRIES) {
+    // Show fallback immediately while we retry
+    img.src = generateFallbackAvatar(originalSrc);
+    img.dataset.retryCount = String(retryCount + 1);
+    
+    // Schedule a retry
+    setTimeout(() => {
+      // Only retry if the image is still in the DOM
+      if (!img.isConnected) return;
+      
+      // Add cache-busting parameter to force fresh fetch
+      const retryUrl = originalSrc + (originalSrc.includes('?') ? '&' : '?') + '_retry=' + Date.now();
+      
+      // Create a test image to check if the URL works now
+      const testImg = new Image();
+      testImg.onload = () => {
+        // Success! Update the actual image
+        if (img.isConnected) {
+          img.src = originalSrc;
+        }
+      };
+      testImg.onerror = () => {
+        // Still failing, the error handler will be called again if we try to set src
+        // Just leave the fallback in place
+      };
+      testImg.src = retryUrl;
+    }, AVATAR_RETRY_DELAY_MS);
+  } else {
+    // Max retries reached, use permanent fallback
+    img.src = generateFallbackAvatar(originalSrc);
+    // Remove error listener to prevent infinite loops
+    img.removeEventListener('error', handleAvatarError);
+  }
+}
+
+// ================================
+// Color Helper Functions
+// ================================
+
+function isValidHexColor(hex) {
+  if (!hex || typeof hex !== 'string') return false;
+  // Remove # if present
+  const cleanHex = hex.replace('#', '');
+  // Check if it's 3 or 6 character hex
+  return /^[0-9A-Fa-f]{3}$|^[0-9A-Fa-f]{6}$/.test(cleanHex);
+}
+
+function normalizeHexColor(hex) {
+  if (!hex || typeof hex !== 'string') return '#000000';
+  
+  let cleanHex = hex.replace('#', '');
+  
+  // Convert 3-char hex to 6-char
+  if (cleanHex.length === 3) {
+    cleanHex = cleanHex.split('').map(c => c + c).join('');
+  }
+  
+  // Pad to 6 characters if needed
+  cleanHex = cleanHex.padEnd(6, '0');
+  
+  return '#' + cleanHex.toUpperCase();
+}
+
+function updateColorPreview(inputElement, previewElement) {
+  if (!inputElement || !previewElement) return;
+  
+  const hex = inputElement.value;
+  if (isValidHexColor(hex)) {
+    const normalizedHex = normalizeHexColor(hex);
+    previewElement.style.backgroundColor = normalizedHex;
+    inputElement.style.borderColor = 'rgba(255,255,255,0.15)';
+  } else {
+    previewElement.style.backgroundColor = 'transparent';
+    inputElement.style.borderColor = 'rgba(255,100,100,0.5)';
+  }
+}
+
+function setupColorInput(inputElement, previewElement) {
+  if (!inputElement || !previewElement) return;
+  
+  // Initialize preview
+  updateColorPreview(inputElement, previewElement);
+  
+  // Update preview and force uppercase on input
+  inputElement.addEventListener('input', () => {
+    // Force uppercase as user types
+    const cursorPos = inputElement.selectionStart;
+    inputElement.value = inputElement.value.toUpperCase();
+    inputElement.setSelectionRange(cursorPos, cursorPos);
+    
+    updateColorPreview(inputElement, previewElement);
+  });
+  
+  // Normalize and validate on blur
+  inputElement.addEventListener('blur', () => {
+    const hex = inputElement.value;
+    if (isValidHexColor(hex)) {
+      inputElement.value = normalizeHexColor(hex);
+      updateColorPreview(inputElement, previewElement);
+    }
+  });
+}
 
 let audio = { ctx: null, gain: null, message: null, member: null, donation: null };
 let audioUnlockHandlersAttached = false;
@@ -378,10 +520,42 @@ function attachAudioUnlockHandlers() {
   window.addEventListener('keydown', unlockAudio);
 }
 
-function applyPreset(name) { if (!name || name === 'Custom' || !PRESETS[name]) return; const preset = PRESETS[name]; state.theme = { text: preset.theme.text, bubbleColor: preset.theme.bubbleColor, bgOpacity: preset.theme.bgOpacity }; state.pageBgColor = preset.page.color; state.pageBgOpacity = preset.page.opacity; state.showAvatars = !!preset.showAvatars; state.showBadges = !!preset.showBadges; state.showBubbles = !!preset.showBubbles; state.messageGapRem = preset.messageGapRem; state.scale = preset.scale; }
+function applyPreset(name) { if (!name || name === 'Custom' || !PRESETS[name]) return; const preset = PRESETS[name]; state.theme = { text: preset.theme.text, textOpacity: preset.theme.textOpacity, bubbleColor: preset.theme.bubbleColor, bgOpacity: preset.theme.bgOpacity }; state.pageBgColor = preset.page.color; state.pageBgOpacity = preset.page.opacity; state.showAvatars = !!preset.showAvatars; state.showBadges = !!preset.showBadges; state.showBubbles = !!preset.showBubbles; state.messageGapRem = preset.messageGapRem; state.scale = preset.scale; }
 function showToast(message, duration = 1600) { if (!elements.toast) return; elements.toast.textContent = message; elements.toast.classList.add('show'); elements.toast.classList.remove('hidden'); setTimeout(() => { elements.toast.classList.remove('show'); }, duration); }
 function recomputeAutoScale() { const rect = elements.overlay.getBoundingClientRect(); const baseWidth = 420; const baseHeight = 700; const scaleFactor = Math.max(0.6, Math.min(2.2, Math.min(rect.width / baseWidth || 1, rect.height / baseHeight || 1))); state.autoScale = scaleFactor; }
-function applyTheme() { const finalScale = state.scale * state.autoScale; document.documentElement.style.setProperty('--text', state.theme.text); document.documentElement.style.setProperty('--base-scale', String(finalScale)); document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem)); const hex = (state.theme.bubbleColor || '#000000').replace('#', ''); const normalizedHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex.padEnd(6, '0'); const r = parseInt(normalizedHex.slice(0, 2), 16); const g = parseInt(normalizedHex.slice(2, 4), 16); const b = parseInt(normalizedHex.slice(4, 6), 16); const bubbleColor = `rgba(${r}, ${g}, ${b}, ${state.showBubbles ? state.theme.bgOpacity : 0})`; document.documentElement.style.setProperty('--bubble', bubbleColor); const bgHex = (state.pageBgColor || '#000000').replace('#', ''); const normalizedBgHex = bgHex.length === 3 ? bgHex.split('').map(c => c + c).join('') : bgHex.padEnd(6, '0'); const br = parseInt(normalizedBgHex.slice(0, 2), 16); const bg = parseInt(normalizedBgHex.slice(2, 4), 16); const bb = parseInt(normalizedBgHex.slice(4, 6), 16); const bgOpacity = Math.max(0, Math.min(1, state.pageBgOpacity)); document.body.style.background = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`; document.documentElement.classList.toggle('no-bubbles', !state.showBubbles); document.documentElement.classList.toggle('no-badges', !state.showBadges); document.documentElement.classList.toggle('no-avatars', !state.showAvatars); }
+function applyTheme() { 
+  const finalScale = state.scale * state.autoScale; 
+  
+  // Apply text color with opacity
+  const textHex = (state.theme.text || '#ffffff').replace('#', '');
+  const normalizedTextHex = textHex.length === 3 ? textHex.split('').map(c => c + c).join('') : textHex.padEnd(6, '0');
+  const tr = parseInt(normalizedTextHex.slice(0, 2), 16);
+  const tg = parseInt(normalizedTextHex.slice(2, 4), 16);
+  const tb = parseInt(normalizedTextHex.slice(4, 6), 16);
+  const textOpacity = Math.max(0, Math.min(1, state.theme.textOpacity || 1));
+  const textColor = `rgba(${tr}, ${tg}, ${tb}, ${textOpacity})`;
+  document.documentElement.style.setProperty('--text', textColor);
+  
+  document.documentElement.style.setProperty('--base-scale', String(finalScale)); 
+  document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem)); 
+  const hex = (state.theme.bubbleColor || '#000000').replace('#', ''); 
+  const normalizedHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex.padEnd(6, '0'); 
+  const r = parseInt(normalizedHex.slice(0, 2), 16); 
+  const g = parseInt(normalizedHex.slice(2, 4), 16); 
+  const b = parseInt(normalizedHex.slice(4, 6), 16); 
+  const bubbleColor = `rgba(${r}, ${g}, ${b}, ${state.showBubbles ? state.theme.bgOpacity : 0})`; 
+  document.documentElement.style.setProperty('--bubble', bubbleColor); 
+  const bgHex = (state.pageBgColor || '#000000').replace('#', ''); 
+  const normalizedBgHex = bgHex.length === 3 ? bgHex.split('').map(c => c + c).join('') : bgHex.padEnd(6, '0'); 
+  const br = parseInt(normalizedBgHex.slice(0, 2), 16); 
+  const bg = parseInt(normalizedBgHex.slice(2, 4), 16); 
+  const bb = parseInt(normalizedBgHex.slice(4, 6), 16); 
+  const bgOpacity = Math.max(0, Math.min(1, state.pageBgOpacity)); 
+  document.body.style.background = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`; 
+  document.documentElement.classList.toggle('no-bubbles', !state.showBubbles); 
+  document.documentElement.classList.toggle('no-badges', !state.showBadges); 
+  document.documentElement.classList.toggle('no-avatars', !state.showAvatars); 
+}
 
 function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } return { id, snippet, authorDetails, segments, ...extras }; }
 
@@ -408,7 +582,13 @@ function renderMessage(item) {
   if (state.showAvatars && avatarUrl) {
     const avatar = document.createElement('div');
     avatar.className = 'avatar';
-    avatar.innerHTML = `<img alt="avatar" src="${avatarUrl}" />`;
+    const avatarImg = document.createElement('img');
+    avatarImg.alt = 'avatar';
+    avatarImg.src = avatarUrl;
+    avatarImg.dataset.retryCount = '0';
+    avatarImg.dataset.originalSrc = avatarUrl;
+    avatarImg.addEventListener('error', handleAvatarError);
+    avatar.appendChild(avatarImg);
     container.appendChild(avatar);
   }
 
@@ -516,22 +696,76 @@ function adjustMessageAlignment(node) { const body = node.querySelector('.body')
 function shouldPlaySound(publishedAt) { const timestamp = new Date(publishedAt).getTime(); if (!Number.isFinite(timestamp)) return true; const startTimestamp = state.startedAt || 0; return timestamp >= (startTimestamp - SOUND_FRESH_MS); }
 function startSSE() { if (isDemoSite()) { return; } showToast('Connecting…'); const eventSource = new EventSource('/api/stream'); eventSource.addEventListener('open', () => { try { if (audio.ctx && audio.ctx.state === 'suspended') { audio.ctx.resume().catch(() => {}); } } catch {} }); eventSource.addEventListener('chat', (event) => { try { const data = JSON.parse(event.data); const events = data.events || []; events.forEach((chatEvent) => { if (chatEvent.type === 'delete' && chatEvent.id) { removeMessageById(chatEvent.id); return; } if (chatEvent.type === 'update' && chatEvent.id) { updateMessageById(chatEvent); return; } const item = extEventToItem(chatEvent); const messageNode = renderMessage(item); if (messageNode) { pushMessageElement(messageNode, item.snippet.publishedAt); const shouldPlay = shouldPlaySound(item.snippet.publishedAt); if (shouldPlay) { if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') { if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume); } else if (item.snippet.type === 'superChatEvent') { if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume); } else { if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume); } try { if (audio.ctx && audio.ctx.state === 'suspended') { showToast('Click overlay to enable sound'); } } catch {} } } }); } catch {} }); eventSource.addEventListener('end', () => { showToast('Session ended'); }); eventSource.addEventListener('error', () => { showToast('Connection error'); }); }
 
-function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
-function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) state.theme = { ...state.theme, ...data.theme }; if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; } catch {}
+function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds, logEnabled: state.logEnabled }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
+function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled; } catch {}
 }
 function loadFromUrl() { const url = new URL(location.href); if (url.searchParams.has('scale')) { state.scale = Math.max(0.5, Math.min(3, Number(url.searchParams.get('scale')) || state.scale)); } if (url.searchParams.has('preset')) { state.preset = url.searchParams.get('preset') || state.preset; } if (url.searchParams.get('noavatars') === '1') state.showAvatars = false; if (url.searchParams.get('nobadges') === '1') state.showBadges = false; if (url.searchParams.get('showEmojiBadges') === '1') state.showEmojiBadges = true; if (url.searchParams.get('nobubbles') === '1') state.showBubbles = false; if (url.searchParams.has('gap')) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(url.searchParams.get('gap')))); } if (url.searchParams.has('text')) { state.theme.text = `#${url.searchParams.get('text')}`.replace('##', '#'); } if (url.searchParams.has('bubble')) { state.theme.bubbleColor = `#${url.searchParams.get('bubble')}`.replace('##', '#'); } if (url.searchParams.has('bg')) { state.theme.bgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('bg')))); } if (url.searchParams.has('pagebgcol')) { state.pageBgColor = `#${url.searchParams.get('pagebgcol')}`.replace('##', '#'); } if (url.searchParams.has('pagebgop')) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop')))); } }
-function syncUi() { elements.scale.value = String(state.scale); if (elements.showAvatars) elements.showAvatars.checked = state.showAvatars; if (elements.showBadges) elements.showBadges.checked = state.showBadges; const presetElement = document.getElementById('preset'); if (presetElement) presetElement.value = state.preset || 'Custom'; elements.textColor.value = state.theme.text; if (elements.bubbleColor) elements.bubbleColor.value = state.theme.bubbleColor || '#000000'; elements.bgOpacity.value = String(state.theme.bgOpacity); if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles; if (elements.demoMode) elements.demoMode.checked = state.demoMode; if (elements.messageGap) elements.messageGap.value = String(state.messageGapRem); if (elements.pageBgColor) elements.pageBgColor.value = state.pageBgColor || '#000000'; if (elements.pageBgOpacity) elements.pageBgOpacity.value = String(state.pageBgOpacity);
+function syncUi() { 
+  elements.scale.value = String(state.scale); 
+  if (elements.showAvatars) elements.showAvatars.checked = state.showAvatars; 
+  if (elements.showBadges) elements.showBadges.checked = state.showBadges; 
+  const presetElement = document.getElementById('preset'); 
+  if (presetElement) presetElement.value = state.preset || 'Custom'; 
+  
+  // Set hex color values and update previews
+  elements.textColor.value = normalizeHexColor(state.theme.text);
+  if (elements.textOpacity) elements.textOpacity.value = String(state.theme.textOpacity || 1);
+  updateColorPreview(elements.textColor, elements.textColorPreview);
+  
+  if (elements.bubbleColor) {
+    elements.bubbleColor.value = normalizeHexColor(state.theme.bubbleColor || '#000000');
+    updateColorPreview(elements.bubbleColor, elements.bubbleColorPreview);
+  }
+  
+  if (elements.pageBgColor) {
+    elements.pageBgColor.value = normalizeHexColor(state.pageBgColor || '#000000');
+    updateColorPreview(elements.pageBgColor, elements.pageBgColorPreview);
+  }
+  
+  elements.bgOpacity.value = String(state.theme.bgOpacity); 
+  if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles; 
+  if (elements.demoMode) elements.demoMode.checked = state.demoMode; 
+  if (elements.messageGap) elements.messageGap.value = String(state.messageGapRem); 
+  if (elements.pageBgOpacity) elements.pageBgOpacity.value = String(state.pageBgOpacity);
   // Sound panel
   if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
   if (elements.donationVolume) elements.donationVolume.value = String(state.sounds.donation.volume);
   if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
-  applyTheme(); }
-function updateFromUi() { state.scale = Math.max(0.5, Math.min(3, Number(elements.scale.value) || 1.35)); if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked; if (elements.showBadges) state.showBadges = elements.showBadges.checked; state.preset = 'Custom'; state.theme.text = elements.textColor.value; if (elements.bubbleColor) state.theme.bubbleColor = elements.bubbleColor.value; state.theme.bgOpacity = Math.max(0, Math.min(1, Number(elements.bgOpacity.value))); if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked; if (elements.demoMode) { const newDemoMode = elements.demoMode.checked; if (newDemoMode !== state.demoMode) { state.demoMode = newDemoMode; if (state.demoMode) { startDemoMode(); } else { stopDemoMode(); } } } if (elements.messageGap) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value))); } if (elements.pageBgColor) state.pageBgColor = elements.pageBgColor.value; if (elements.pageBgOpacity) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(elements.pageBgOpacity.value))); }
+  applyTheme();
+  // Keep custom dropdown label/selection in sync
+  try { syncCustomPresetDropdown(); } catch {}
+}
+function updateFromUi() { 
+  state.scale = Math.max(0.5, Math.min(3, Number(elements.scale.value) || 1.35)); 
+  if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked; 
+  if (elements.showBadges) state.showBadges = elements.showBadges.checked; 
+  state.preset = 'Custom'; 
+  
+  // Update colors from hex inputs
+  if (isValidHexColor(elements.textColor.value)) {
+    state.theme.text = normalizeHexColor(elements.textColor.value);
+  }
+  if (elements.textOpacity) state.theme.textOpacity = Math.max(0, Math.min(1, Number(elements.textOpacity.value) || 1));
+  
+  if (elements.bubbleColor && isValidHexColor(elements.bubbleColor.value)) {
+    state.theme.bubbleColor = normalizeHexColor(elements.bubbleColor.value);
+  }
+  
+  if (elements.pageBgColor && isValidHexColor(elements.pageBgColor.value)) {
+    state.pageBgColor = normalizeHexColor(elements.pageBgColor.value);
+  }
+  
+  state.theme.bgOpacity = Math.max(0, Math.min(1, Number(elements.bgOpacity.value))); 
+  if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked; 
+  if (elements.demoMode) { const newDemoMode = elements.demoMode.checked; if (newDemoMode !== state.demoMode) { state.demoMode = newDemoMode; if (state.demoMode) { startDemoMode(); } else { stopDemoMode(); } } } 
+  if (elements.messageGap) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value))); } 
+  if (elements.pageBgOpacity) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(elements.pageBgOpacity.value))); }
   // Per-sound volumes only (set to 0 to disable)
   if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
   if (elements.donationVolume) state.sounds.donation.volume = Math.max(0, Math.min(2, Number(elements.donationVolume.value)));
   if (elements.memberVolume) state.sounds.member.volume = Math.max(0, Math.min(2, Number(elements.memberVolume.value)));
-  applyTheme(); saveToLocal(); }
+  applyTheme(); saveToLocal(); 
+}
 function copyUrlWithSettings() { const baseUrl = new URL('/', location.origin); const params = baseUrl.searchParams; params.set('scale', String(state.scale)); if (state.preset && state.preset !== 'Custom') { params.set('preset', state.preset); } if (!state.showAvatars) params.set('noavatars', '1'); if (!state.showBadges) params.set('nobadges', '1'); if (!state.showBubbles) params.set('nobubbles', '1'); if (state.messageGapRem !== 0.4) { params.set('gap', String(state.messageGapRem)); } if (state.pageBgColor) { params.set('pagebgcol', state.pageBgColor.replace('#', '')); } if (typeof state.pageBgOpacity === 'number') { params.set('pagebgop', String(state.pageBgOpacity)); } params.set('text', state.theme.text.replace('#', '')); params.set('bubble', state.theme.bubbleColor.replace('#', '')); params.set('bg', String(state.theme.bgOpacity)); try { navigator.clipboard.writeText(baseUrl.toString()).then(() => showToast('URL copied')).catch(() => showToast('Copy failed')); } catch { showToast('Copy failed'); } }
 
 // ================================
@@ -601,6 +835,162 @@ function setupPollIntervalControls() {
   observer.observe(elements.generalSettings, { attributes: true, attributeFilter: ['class'] });
 }
 
+// ================================
+// Censor Filter Client <-> Server Wiring
+// ================================
+let censorFilterState = { loaded: false, active: true, wordCount: 0, path: null };
+
+function updateCensorStatusUI() {
+  const checkbox = elements.censorEnabled;
+  const statusEl = elements.censorStatus;
+  if (!checkbox || !statusEl) return;
+  
+  checkbox.checked = censorFilterState.active;
+  
+  if (!censorFilterState.loaded) {
+    statusEl.textContent = 'No censor.csv found';
+    statusEl.classList.remove('hidden');
+    statusEl.classList.add('warning');
+  } else {
+    statusEl.textContent = `${censorFilterState.wordCount} words loaded`;
+    statusEl.classList.remove('hidden', 'warning');
+  }
+}
+
+async function fetchCensorFilterStatus() {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/filter', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP error');
+    const data = await resp.json();
+    censorFilterState = {
+      loaded: !!data.loaded,
+      active: !!data.active,
+      wordCount: data.wordCount || 0,
+      path: data.path || null
+    };
+    updateCensorStatusUI();
+  } catch {}
+}
+
+async function toggleCensorFilter(active) {
+  if (isDemoSite()) return;
+  try {
+    // When enabling, reload the filter first to pick up any CSV changes
+    if (active) {
+      await fetch('/api/filter/reload', { method: 'POST' });
+    }
+    
+    const resp = await fetch('/api/filter/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ active })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) {
+      censorFilterState = {
+        loaded: !!data.loaded,
+        active: !!data.active,
+        wordCount: data.wordCount || 0,
+        path: data.path || null
+      };
+      updateCensorStatusUI();
+      showToast(active ? 'Censor filter enabled' : 'Censor filter disabled');
+    }
+  } catch {
+    showToast('Failed to toggle censor filter');
+  }
+}
+
+function setupCensorFilterControls() {
+  const checkbox = elements.censorEnabled;
+  if (!checkbox) return;
+  
+  checkbox.addEventListener('change', () => {
+    toggleCensorFilter(checkbox.checked);
+  });
+}
+
+// ================================
+// Message Logger Client <-> Server Wiring
+// ================================
+let loggerState = { enabled: false, logging: false, messageCount: 0, path: null, logsDir: null };
+
+function updateLogStatusUI() {
+  const checkbox = elements.logEnabled;
+  const statusEl = elements.logStatus;
+  if (!checkbox || !statusEl) return;
+  
+  checkbox.checked = loggerState.enabled;
+  
+  if (loggerState.enabled) {
+    if (loggerState.logging) {
+      statusEl.textContent = `Logging (${loggerState.messageCount} msgs)`;
+      statusEl.classList.remove('hidden', 'warning');
+    } else {
+      statusEl.textContent = 'Waiting for capture...';
+      statusEl.classList.remove('hidden');
+      statusEl.classList.add('warning');
+    }
+  } else {
+    statusEl.textContent = '';
+    statusEl.classList.add('hidden');
+  }
+}
+
+async function fetchLoggerStatus() {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/logger', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP error');
+    const data = await resp.json();
+    loggerState = {
+      enabled: !!data.enabled,
+      logging: !!data.logging,
+      messageCount: data.messageCount || 0,
+      path: data.path || null,
+      logsDir: data.logsDir || null
+    };
+    updateLogStatusUI();
+  } catch {}
+}
+
+async function toggleLogger(enabled) {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/logger/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) {
+      loggerState = {
+        enabled: !!data.enabled,
+        logging: !!data.logging,
+        messageCount: data.messageCount || 0,
+        path: data.path || null,
+        logsDir: data.logsDir || null
+      };
+      state.logEnabled = !!data.enabled;
+      saveToLocal();
+      updateLogStatusUI();
+      showToast(enabled ? 'Message logging enabled' : 'Message logging disabled');
+    }
+  } catch {
+    showToast('Failed to toggle logger');
+  }
+}
+
+function setupLoggerControls() {
+  const checkbox = elements.logEnabled;
+  if (!checkbox) return;
+  
+  checkbox.addEventListener('change', () => {
+    toggleLogger(checkbox.checked);
+  });
+}
+
 // Removed global Test Sounds wiring; per-sound test buttons are bound in bindUi()
   function shouldIgnoreKeyEvent(event) { const target = event.target; if (!target) return false; const tag = (target.tagName || '').toUpperCase(); if (target.isContentEditable) return true; return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON'; }
   function bindUi() {
@@ -653,6 +1043,11 @@ function setupPollIntervalControls() {
       }
     });
     // Basic controls
+    // Setup color inputs with previews
+    setupColorInput(elements.textColor, elements.textColorPreview);
+    setupColorInput(elements.bubbleColor, elements.bubbleColorPreview);
+    setupColorInput(elements.pageBgColor, elements.pageBgColorPreview);
+    
     elements.copyUrlBtn?.addEventListener('click', () => copyUrlWithSettings());
     elements.showBubbles?.addEventListener('change', updateFromUi);
     elements.demoMode?.addEventListener('change', updateFromUi);
@@ -662,6 +1057,7 @@ function setupPollIntervalControls() {
     elements.pageBgColor?.addEventListener('input', updateFromUi);
     elements.pageBgOpacity?.addEventListener('input', updateFromUi);
     elements.textColor?.addEventListener('input', updateFromUi);
+    elements.textOpacity?.addEventListener('input', updateFromUi);
     elements.bubbleColor?.addEventListener('input', updateFromUi);
     elements.bgOpacity?.addEventListener('input', updateFromUi);
     elements.scale?.addEventListener('input', updateFromUi);
@@ -682,14 +1078,160 @@ function setupPollIntervalControls() {
     elements.memberVolume?.addEventListener('input', updateFromUi);
     // Poll interval controls
     setupPollIntervalControls();
+    // Censor filter controls
+    setupCensorFilterControls();
+    // Logger controls
+    setupLoggerControls();
     // Per-sound Test buttons
     elements.testMessageBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.message) { await initializeAudio(); } playSound(audio.message, state.sounds.message.volume); showToast('Test: message'); });
     elements.testDonationBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.donation) { await initializeAudio(); } playSound(audio.donation, state.sounds.donation.volume); showToast('Test: donation'); });
     elements.testMemberBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.member) { await initializeAudio(); } playSound(audio.member, state.sounds.member.volume); showToast('Test: membership'); });
   }
+// ================================
+// Custom Dropdown for Preset (avoid native popup in CEF/OBS)
+// ================================
+function buildCustomPresetDropdown() {
+  const select = document.getElementById('preset');
+  const mount = document.getElementById('presetSelect');
+  if (!select || !mount) return;
+
+  // Clear any prior content (idempotent)
+  mount.innerHTML = '';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'select-custom__button';
+  const labelSpan = document.createElement('span');
+  labelSpan.className = 'select-custom__label';
+  labelSpan.textContent = select.options[select.selectedIndex]?.text || select.value || 'Select';
+  const chevron = document.createElement('span');
+  chevron.className = 'select-custom__chevron';
+  chevron.textContent = '▾';
+  button.append(labelSpan, chevron);
+
+  const menu = document.createElement('ul');
+  menu.className = 'select-custom__menu';
+  menu.role = 'listbox';
+  menu.tabIndex = -1;
+
+  const options = Array.from(select.options).map((opt, idx) => {
+    const li = document.createElement('li');
+    li.className = 'select-custom__option';
+    li.role = 'option';
+    li.tabIndex = -1;
+    li.dataset.value = opt.value;
+    li.textContent = opt.text;
+    if (opt.value === select.value) {
+      li.setAttribute('aria-selected', 'true');
+    }
+    li.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      commitSelection(opt.value, opt.text);
+      closeMenu();
+      // Return focus to button
+      button.focus();
+    });
+    return li;
+  });
+  options.forEach((li) => menu.appendChild(li));
+
+  let open = false;
+  let activeIndex = options.findIndex((li) => li.getAttribute('aria-selected') === 'true');
+  if (activeIndex < 0) activeIndex = 0;
+
+  const openMenu = () => {
+    if (open) return;
+    menu.classList.add('open');
+    open = true;
+    // Focus selected or first option
+    const target = options[activeIndex] || options[0];
+    if (target) target.focus();
+    document.addEventListener('pointerdown', onDocDown, { capture: true });
+    document.addEventListener('keydown', onDocKey);
+  };
+  const closeMenu = () => {
+    if (!open) return;
+    menu.classList.remove('open');
+    open = false;
+    document.removeEventListener('pointerdown', onDocDown, { capture: true });
+    document.removeEventListener('keydown', onDocKey);
+  };
+  const onDocDown = (e) => {
+    if (!mount.contains(e.target)) closeMenu();
+  };
+  const onDocKey = (e) => {
+    if (!open) return;
+    if (e.key === 'Escape' || e.key === 'Esc') { e.preventDefault(); closeMenu(); button.focus(); return; }
+    const max = options.length - 1;
+    if (e.key === 'ArrowDown') { e.preventDefault(); activeIndex = Math.min(max, activeIndex + 1); options[activeIndex]?.focus(); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); activeIndex = Math.max(0, activeIndex - 1); options[activeIndex]?.focus(); return; }
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); const el = options[activeIndex]; if (el) { const val = el.dataset.value || ''; const text = el.textContent || val; commitSelection(val, text); } closeMenu(); button.focus(); return; }
+  };
+  const commitSelection = (value, text) => {
+    // Update hidden select
+    if (select.value !== value) {
+      select.value = value;
+      select.dispatchEvent(new Event('change'));
+    }
+    // Update label
+    labelSpan.textContent = text || value;
+    // Update aria-selected markers
+    options.forEach((el, i) => {
+      if (el.dataset.value === value) { el.setAttribute('aria-selected', 'true'); activeIndex = i; }
+      else { el.removeAttribute('aria-selected'); }
+    });
+  };
+
+  button.addEventListener('click', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    open ? closeMenu() : openMenu();
+  });
+  button.addEventListener('keydown', (e) => {
+    // Open with keyboard
+    if (e.key === 'Enter' || e.key === ' ' || e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      openMenu();
+    }
+  });
+
+  mount.appendChild(button);
+  mount.appendChild(menu);
+}
+
+// Ensure the custom dropdown stays in sync if state changes programmatically
+function syncCustomPresetDropdown() {
+  try {
+    const select = document.getElementById('preset');
+    const label = document.querySelector('#presetSelect .select-custom__label');
+    const options = document.querySelectorAll('#presetSelect .select-custom__option');
+    if (!select || !label || !options.length) return;
+    const currentText = select.options[select.selectedIndex]?.text || select.value;
+    label.textContent = currentText;
+    options.forEach((el, i) => {
+      if (el.dataset.value === select.value) el.setAttribute('aria-selected', 'true');
+      else el.removeAttribute('aria-selected');
+    });
+  } catch {}
+}
 function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); setupMouseDetection(); recomputeAutoScale(); window.addEventListener('resize', () => { recomputeAutoScale(); applyTheme(); elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment); }); loadFromLocal(); loadFromUrl(); const url = new URL(location.href); const hasPresetParam = url.searchParams.has('preset'); const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key)); if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) { state.preset = 'Dark'; } else if (!state.preset) { state.preset = 'Custom'; } if (isDemoSite()) { state.demoMode = true; } applyPreset(state.preset); applyTheme(); syncUi(); bindUi(); if (state.demoMode) { startDemoMode(); } initializeAudio();
   // Fetch current poll interval from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
+  // Fetch censor filter status from server (non-blocking)
+  try { fetchCensorFilterStatus(); } catch {}
+  // Restore logger state from localStorage (if user had it enabled, re-enable on server)
+  try { 
+    if (state.logEnabled) {
+      // User had logging enabled - restore it on server
+      toggleLogger(true);
+    } else {
+      // Just fetch current status
+      fetchLoggerStatus();
+    }
+  } catch {}
+  // Build custom preset dropdown (avoids native popup invisibility in CEF/OBS)
+  try { buildCustomPresetDropdown(); syncCustomPresetDropdown(); } catch {}
   startSSE(); }
 start();
 // END mirrored content

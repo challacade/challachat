@@ -25,27 +25,56 @@
     <div class="grid">
       <label>
         Preset
-        <select id="preset">
+  <select id="preset">
           <option value="Dark">Dark</option>
           <option value="Light">Light</option>
           <option value="Transparent">Transparent</option>
           <option value="Custom">Custom</option>
         </select>
+  <!-- Custom dropdown rendered here (progressive enhancement) -->
+  <div id="presetSelect" class="select-custom" aria-hidden="true"></div>
       </label>
     </div>
-    <div class="grid">
-      <label>
-        Text color
-        <input id="textColor" type="color" value="#ffffff" />
-      </label>
-      <label>
-        Bubble color
-        <input id="bubbleColor" type="color" value="#000000" />
-      </label>
-      <label>
-        Page background color
-        <input id="pageBgColor" type="color" value="#000000" />
-      </label>
+    <div class="grid color-grid">
+      <div class="color-column">
+        <label>
+          Text color
+          <div class="color-input-wrapper">
+            <input id="textColor" type="text" value="#FFFFFF" maxlength="7" placeholder="#FFFFFF" />
+            <div id="textColorPreview" class="color-preview"></div>
+          </div>
+        </label>
+        <label>
+          Text opacity
+          <input id="textOpacity" type="range" min="0" max="1" step="0.05" value="1" />
+        </label>
+      </div>
+      <div class="color-column">
+        <label>
+          Bubble color
+          <div class="color-input-wrapper">
+            <input id="bubbleColor" type="text" value="#000000" maxlength="7" placeholder="#000000" />
+            <div id="bubbleColorPreview" class="color-preview"></div>
+          </div>
+        </label>
+        <label>
+          Bubble opacity
+          <input id="bgOpacity" type="range" min="0" max="1" step="0.05" value="0.0" />
+        </label>
+      </div>
+      <div class="color-column">
+        <label>
+          Background color
+          <div class="color-input-wrapper">
+            <input id="pageBgColor" type="text" value="#000000" maxlength="7" placeholder="#000000" />
+            <div id="pageBgColorPreview" class="color-preview"></div>
+          </div>
+        </label>
+        <label>
+          Background opacity
+          <input id="pageBgOpacity" type="range" min="0" max="1" step="0.05" value="1" />
+        </label>
+      </div>
     </div>
     <div class="grid">
       <label>
@@ -53,32 +82,23 @@
         <input id="scale" type="range" min="0.5" max="3" step="0.01" value="1.8" />
       </label>
       <label>
-        Bubble opacity
-        <input id="bgOpacity" type="range" min="0" max="1" step="0.05" value="0.0" />
-      </label>
-      <label>
-        Page background opacity
-        <input id="pageBgOpacity" type="range" min="0" max="1" step="0.05" value="1" />
-      </label>
-    </div>
-    <div class="grid">
-      <label>
         Vertical gap (rem)
         <input id="messageGap" type="range" min="0" max="1.5" step="0.05" value="0.4" />
       </label>
     </div>
+
     <div class="grid">
-      <label>
-        Show message bubble
+      <label class="checkbox-label">
         <input id="showBubbles" type="checkbox" checked />
+        <span>Message bubble</span>
       </label>
-      <label>
-        Show Avatars
+      <label class="checkbox-label">
         <input id="showAvatars" type="checkbox" checked />
+        <span>Avatars</span>
       </label>
-      <label>
-        Show Badges
+      <label class="checkbox-label">
         <input id="showBadges" type="checkbox" checked />
+        <span>Badges</span>
       </label>
     </div>
   </div>
@@ -112,11 +132,27 @@
   <!-- General Settings Panel -->
   <div id="generalSettings" class="settings hidden">
     <h2>Settings</h2>
-    <div class="grid">
-      <label>
-        Demo Mode
+    <div class="censor-row">
+      <label class="checkbox-label">
         <input id="demoMode" type="checkbox" />
+        <span>Demo Mode</span>
       </label>
+    </div>
+    <div class="censor-row">
+      <label class="checkbox-label">
+        <input id="censorEnabled" type="checkbox" checked />
+        <span>Censor Filter</span>
+      </label>
+      <div id="censorStatus" class="status-message hidden"></div>
+    </div>
+    <div class="censor-row">
+      <label class="checkbox-label">
+        <input id="logEnabled" type="checkbox" />
+        <span>Log Messages</span>
+      </label>
+      <div id="logStatus" class="status-message hidden"></div>
+    </div>
+    <div class="grid">
       <label>
         Poll Interval (ms)
   <input id="pollIntervalMs" type="number" min="100" step="100" value="1000" />

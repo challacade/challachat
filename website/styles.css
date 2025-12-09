@@ -7,7 +7,7 @@
 
 /* Site-wide variables */
 :root {
-    --site-card-max-width: 760px; /* Adjust once to change all card widths */
+    --site-card-max-width: 700px; /* Adjust once to change all card widths */
 }
 
 body {
@@ -37,13 +37,13 @@ html, body { height: 100%; }
 }
 
 .hero h1 {
-    font-size: 2.2rem;
+    font-size: 2rem;
     font-weight: 700;
     margin-bottom: -0.25rem;
 }
 
 .tagline {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
     margin-bottom: 0rem;
     font-weight: 300;
 }
@@ -107,7 +107,7 @@ section {
 
 section h2 {
     text-align: center;
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     margin-bottom: 3rem;
     color: #f7fafc;
 }
@@ -120,7 +120,7 @@ section h2 {
 
 .products h2 {
     text-align: center;
-    font-size: 2rem;
+    font-size: 1.8rem;
     margin-bottom: 0.75rem;
     color: #f7fafc;
 }
@@ -131,21 +131,21 @@ section h2 {
 }
 
 .cc-card-title {
-    font-size: 2.1rem; /* larger title */
+    font-size: 1.9rem; /* larger title */
     margin-bottom: 0.3rem;
     color: #f7fafc;
     font-weight: 700;
 }
 
 .cc-card-desc {
-    font-size: 1.25rem; /* larger paragraph */
+    font-size: 1.1rem; /* larger paragraph */
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 0.35rem;
 }
 
 .cc-card-subdesc {
-    font-size: 1.1rem;
+    font-size: 1rem;
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 0.5rem;
@@ -153,7 +153,7 @@ section h2 {
 
 /* Ensure larger download button text inside product card */
 .product-card .download-link {
-    font-size: 1.2rem;
+    font-size: 1.05rem;
 }
 
 /* Lighter, high-contrast links inside the ChallaChat card */
@@ -198,7 +198,7 @@ section h2 {
 }
 
 .product-icon {
-    width: 190px; /* standard icon width for main product */
+    width: 140px; /* standard icon width for main product */
     height: auto;
     margin: 0 auto 1rem;
     display: flex;
@@ -232,7 +232,7 @@ section h2 {
 }
 
 .product-card h3 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     margin-bottom: 0rem;
     color: #f7fafc;
     font-weight: 600;
@@ -241,7 +241,7 @@ section h2 {
 .product-card p {
     color: #cbd5e0;
     margin-bottom: 0rem;
-    font-size: 1.1rem;
+    font-size: 1rem;
     line-height: 1.6;
 }
 
@@ -300,7 +300,7 @@ section h2 {
     gap: 10px;
     transition: all 0.3s ease;
     margin-top: 1rem;
-    font-size: 1.15rem; /* larger text */
+    font-size: 1rem; /* larger text */
     line-height: 1;
 }
 
@@ -425,7 +425,7 @@ section h2 {
 }
 
 .streaming-content h3 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-bottom: 0.25rem;
     color: #f7fafc;
     font-weight: 600;
@@ -433,7 +433,7 @@ section h2 {
 
 .streaming-content p {
     color: #cbd5e0;
-    font-size: 1.05rem;
+    font-size: 0.95rem;
     line-height: 1.5;
 }
 
@@ -481,7 +481,7 @@ section h2 {
 }
 
 .github-content h3 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-bottom: 0.5rem;
     color: #f7fafc;
     font-weight: 600;
@@ -584,7 +584,7 @@ section h2 {
 .opensource h2 {
     text-align: center;
     margin-bottom: 60px;
-    font-size: 2.5rem;
+    font-size: 2.2rem;
     color: #ffffff;
     text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
 }
@@ -646,7 +646,7 @@ section h2 {
 }
 
 .opensource-card h3 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     margin-bottom: 10px;
     color: #ffffff;
     font-weight: 600;
@@ -656,7 +656,7 @@ section h2 {
     color: #cbd5e0;
     line-height: 1.6;
     margin-bottom: 15px;
-    font-size: 1.1rem;
+    font-size: 1rem;
     text-align: left;
 }
 
@@ -703,7 +703,7 @@ section h2 {
 }
 
 .feature-card h3 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-bottom: 0.5rem;
     color: #f7fafc;
 }
@@ -730,7 +730,7 @@ section h2 {
 }
 
 .step h3 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-bottom: 1rem;
     color: #f7fafc;
 }
@@ -746,7 +746,7 @@ section h2 {
 
 .demo h2 {
     text-align: center;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     margin-bottom: 1.5rem;
     color: #f7fafc;
 }
@@ -777,7 +777,7 @@ section h2 {
 }
 
 .demo-placeholder p:first-child {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     margin-bottom: 1rem;
 }
 
@@ -819,7 +819,7 @@ section h2 {
 
 .setup h2 {
     text-align: center;
-    font-size: 1.8rem;
+    font-size: 1.6rem;
     margin-bottom: 1.5rem;
     color: #f7fafc;
 }
@@ -861,13 +861,13 @@ section h2 {
     align-items: center;
     justify-content: center;
     font-weight: bold;
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     flex-shrink: 0;
 }
 
 .setup-step h3 {
     color: #f7fafc;
-    font-size: 1.4rem;
+    font-size: 1.25rem;
     margin: 0;
     flex: 1;
     line-height: 32px;
@@ -912,7 +912,7 @@ section h2 {
     color: #cbd5e0;
     line-height: 1.6;
     padding-left: 1.5rem;
-    font-size: 1.15rem;
+    font-size: 1rem;
 }
 
 .setup-list li {
@@ -941,7 +941,7 @@ section h2 {
 }
 
 .download-card h3 {
-    font-size: 1.5rem;
+    font-size: 1.35rem;
     margin-bottom: 1rem;
     color: #f7fafc;
 }
@@ -1001,7 +1001,7 @@ section h2 {
 }
 
 .use-case h3 {
-    font-size: 1.3rem;
+    font-size: 1.15rem;
     margin-bottom: 1rem;
     color: #f7fafc;
 }
@@ -1032,11 +1032,11 @@ section h2 {
 /* Responsive Design */
 @media (max-width: 768px) {
     .hero h1 {
-        font-size: 2.5rem;
+        font-size: 2.2rem;
     }
     
     .tagline {
-        font-size: 1.2rem;
+        font-size: 1.05rem;
     }
     
     .cta-buttons {
@@ -1049,7 +1049,7 @@ section h2 {
     }
     
     section h2 {
-        font-size: 2rem;
+        font-size: 1.8rem;
     }
     
     .container {
@@ -1064,15 +1064,15 @@ html {
 
 /* App card typography overrides (ensure larger sizes apply) */
 .products .product-card .cc-card-title {
-    font-size: 2.3rem; /* visibly larger title */
+    font-size: 1.6rem;
     line-height: 1.15;
     margin-bottom: 0.3rem;
 }
 
 .products .product-card .cc-card-desc {
-    font-size: 1.25rem; /* larger paragraph */
+    font-size: 1.1rem; /* larger paragraph */
 }
 
 .products .product-card .cc-card-subdesc {
-    font-size: 1.2rem; /* larger supporting text */
+    font-size: 1.05rem; /* larger supporting text */
 }
