@@ -108,11 +108,6 @@ export function logMessage(message: ChatEvent): void {
       entry.amount = message.amountDisplay;
     }
     
-    // Include message ID for reference
-    if (message.id) {
-      entry.id = message.id;
-    }
-    
     // Write as a single JSON line
     logStream.write(JSON.stringify(entry) + '\n');
     messageCount++;
