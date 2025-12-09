@@ -72,9 +72,9 @@ export function startLogging(platform: string = 'yt'): boolean {
     });
     
     if (fileExists) {
-      console.log(`[Logger] Appending to existing log: ${currentLogPath}`);
+      console.log(`[Logger] Appending to: ${currentLogPath}`);
     } else {
-      console.log(`[Logger] Started new log: ${currentLogPath}`);
+      console.log(`[Logger] Writing to: ${currentLogPath}`);
     }
     return true;
   } catch (err) {

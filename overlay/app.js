@@ -88,7 +88,8 @@ const state = {
   },
   preset: 'Dark',
   startedAt: null,
-  demoMode: false
+  demoMode: false,
+  logEnabled: false
 };
 
 // ================================
@@ -695,8 +696,8 @@ function adjustMessageAlignment(node) { const body = node.querySelector('.body')
 function shouldPlaySound(publishedAt) { const timestamp = new Date(publishedAt).getTime(); if (!Number.isFinite(timestamp)) return true; const startTimestamp = state.startedAt || 0; return timestamp >= (startTimestamp - SOUND_FRESH_MS); }
 function startSSE() { if (isDemoSite()) { return; } showToast('Connecting…'); const eventSource = new EventSource('/api/stream'); eventSource.addEventListener('open', () => { try { if (audio.ctx && audio.ctx.state === 'suspended') { audio.ctx.resume().catch(() => {}); } } catch {} }); eventSource.addEventListener('chat', (event) => { try { const data = JSON.parse(event.data); const events = data.events || []; events.forEach((chatEvent) => { if (chatEvent.type === 'delete' && chatEvent.id) { removeMessageById(chatEvent.id); return; } if (chatEvent.type === 'update' && chatEvent.id) { updateMessageById(chatEvent); return; } const item = extEventToItem(chatEvent); const messageNode = renderMessage(item); if (messageNode) { pushMessageElement(messageNode, item.snippet.publishedAt); const shouldPlay = shouldPlaySound(item.snippet.publishedAt); if (shouldPlay) { if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') { if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume); } else if (item.snippet.type === 'superChatEvent') { if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume); } else { if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume); } try { if (audio.ctx && audio.ctx.state === 'suspended') { showToast('Click overlay to enable sound'); } } catch {} } } }); } catch {} }); eventSource.addEventListener('end', () => { showToast('Session ended'); }); eventSource.addEventListener('error', () => { showToast('Connection error'); }); }
 
-function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
-function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; } catch {}
+function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds, logEnabled: state.logEnabled }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
+function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled; } catch {}
 }
 function loadFromUrl() { const url = new URL(location.href); if (url.searchParams.has('scale')) { state.scale = Math.max(0.5, Math.min(3, Number(url.searchParams.get('scale')) || state.scale)); } if (url.searchParams.has('preset')) { state.preset = url.searchParams.get('preset') || state.preset; } if (url.searchParams.get('noavatars') === '1') state.showAvatars = false; if (url.searchParams.get('nobadges') === '1') state.showBadges = false; if (url.searchParams.get('showEmojiBadges') === '1') state.showEmojiBadges = true; if (url.searchParams.get('nobubbles') === '1') state.showBubbles = false; if (url.searchParams.has('gap')) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(url.searchParams.get('gap')))); } if (url.searchParams.has('text')) { state.theme.text = `#${url.searchParams.get('text')}`.replace('##', '#'); } if (url.searchParams.has('bubble')) { state.theme.bubbleColor = `#${url.searchParams.get('bubble')}`.replace('##', '#'); } if (url.searchParams.has('bg')) { state.theme.bgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('bg')))); } if (url.searchParams.has('pagebgcol')) { state.pageBgColor = `#${url.searchParams.get('pagebgcol')}`.replace('##', '#'); } if (url.searchParams.has('pagebgop')) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop')))); } }
 function syncUi() { 
@@ -971,6 +972,8 @@ async function toggleLogger(enabled) {
         path: data.path || null,
         logsDir: data.logsDir || null
       };
+      state.logEnabled = !!data.enabled;
+      saveToLocal();
       updateLogStatusUI();
       showToast(enabled ? 'Message logging enabled' : 'Message logging disabled');
     }
@@ -1217,8 +1220,16 @@ function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); se
   try { fetchPollIntervalFromServer(); } catch {}
   // Fetch censor filter status from server (non-blocking)
   try { fetchCensorFilterStatus(); } catch {}
-  // Fetch logger status from server (non-blocking)
-  try { fetchLoggerStatus(); } catch {}
+  // Restore logger state from localStorage (if user had it enabled, re-enable on server)
+  try { 
+    if (state.logEnabled) {
+      // User had logging enabled - restore it on server
+      toggleLogger(true);
+    } else {
+      // Just fetch current status
+      fetchLoggerStatus();
+    }
+  } catch {}
   // Build custom preset dropdown (avoids native popup invisibility in CEF/OBS)
   try { buildCustomPresetDropdown(); syncCustomPresetDropdown(); } catch {}
   startSSE(); }
