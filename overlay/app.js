@@ -51,7 +51,9 @@ const elements = {
   generalSettings: document.getElementById('generalSettings'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
-  censorStatus: document.getElementById('censorStatus')
+  censorStatus: document.getElementById('censorStatus'),
+  logEnabled: document.getElementById('logEnabled'),
+  logStatus: document.getElementById('logStatus')
 };
 
 // ================================
@@ -908,6 +910,84 @@ function setupCensorFilterControls() {
   });
 }
 
+// ================================
+// Message Logger Client <-> Server Wiring
+// ================================
+let loggerState = { enabled: false, logging: false, messageCount: 0, path: null, logsDir: null };
+
+function updateLogStatusUI() {
+  const checkbox = elements.logEnabled;
+  const statusEl = elements.logStatus;
+  if (!checkbox || !statusEl) return;
+  
+  checkbox.checked = loggerState.enabled;
+  
+  if (loggerState.enabled) {
+    if (loggerState.logging) {
+      statusEl.textContent = `Logging (${loggerState.messageCount} msgs)`;
+      statusEl.classList.remove('hidden', 'warning');
+    } else {
+      statusEl.textContent = 'Waiting for capture...';
+      statusEl.classList.remove('hidden');
+      statusEl.classList.add('warning');
+    }
+  } else {
+    statusEl.textContent = '';
+    statusEl.classList.add('hidden');
+  }
+}
+
+async function fetchLoggerStatus() {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/logger', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP error');
+    const data = await resp.json();
+    loggerState = {
+      enabled: !!data.enabled,
+      logging: !!data.logging,
+      messageCount: data.messageCount || 0,
+      path: data.path || null,
+      logsDir: data.logsDir || null
+    };
+    updateLogStatusUI();
+  } catch {}
+}
+
+async function toggleLogger(enabled) {
+  if (isDemoSite()) return;
+  try {
+    const resp = await fetch('/api/logger/toggle', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enabled })
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (resp.ok) {
+      loggerState = {
+        enabled: !!data.enabled,
+        logging: !!data.logging,
+        messageCount: data.messageCount || 0,
+        path: data.path || null,
+        logsDir: data.logsDir || null
+      };
+      updateLogStatusUI();
+      showToast(enabled ? 'Message logging enabled' : 'Message logging disabled');
+    }
+  } catch {
+    showToast('Failed to toggle logger');
+  }
+}
+
+function setupLoggerControls() {
+  const checkbox = elements.logEnabled;
+  if (!checkbox) return;
+  
+  checkbox.addEventListener('change', () => {
+    toggleLogger(checkbox.checked);
+  });
+}
+
 // Removed global Test Sounds wiring; per-sound test buttons are bound in bindUi()
   function shouldIgnoreKeyEvent(event) { const target = event.target; if (!target) return false; const tag = (target.tagName || '').toUpperCase(); if (target.isContentEditable) return true; return tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'BUTTON'; }
   function bindUi() {
@@ -997,6 +1077,8 @@ function setupCensorFilterControls() {
     setupPollIntervalControls();
     // Censor filter controls
     setupCensorFilterControls();
+    // Logger controls
+    setupLoggerControls();
     // Per-sound Test buttons
     elements.testMessageBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.message) { await initializeAudio(); } playSound(audio.message, state.sounds.message.volume); showToast('Test: message'); });
     elements.testDonationBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.donation) { await initializeAudio(); } playSound(audio.donation, state.sounds.donation.volume); showToast('Test: donation'); });
@@ -1135,6 +1217,8 @@ function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); se
   try { fetchPollIntervalFromServer(); } catch {}
   // Fetch censor filter status from server (non-blocking)
   try { fetchCensorFilterStatus(); } catch {}
+  // Fetch logger status from server (non-blocking)
+  try { fetchLoggerStatus(); } catch {}
   // Build custom preset dropdown (avoids native popup invisibility in CEF/OBS)
   try { buildCustomPresetDropdown(); syncCustomPresetDropdown(); } catch {}
   startSSE(); }

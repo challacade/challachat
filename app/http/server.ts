@@ -8,6 +8,7 @@ import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
+import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -219,6 +220,21 @@ class App {
       res.json({ ok: true, ...getFilterStatus() });
     });
 
+  this.app.get('/api/logger', (_req: Request, res: Response) => {
+      res.json(getLoggerStatus());
+    });
+  this.app.post('/api/logger/toggle', (req: Request, res: Response) => {
+      const enabled = req.body?.enabled;
+      if (typeof enabled === 'boolean') {
+        setLogEnabled(enabled);
+        // If enabling and currently capturing, start logging immediately
+        if (enabled && this.isRunning && this.currentVideoId) {
+          startLogging(this.currentVideoId);
+        }
+      }
+      res.json({ ok: true, ...getLoggerStatus() });
+    });
+
   this.app.get('/api/stream', (_req: Request, res: Response) => {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
@@ -330,6 +346,8 @@ class App {
     this.messageCount = 0;
     this.startTime = Date.now();
     this.tui.setUrl(url);
+    // Start logging if enabled
+    startLogging(videoId);
   this.tui.render();
     this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
   }
@@ -339,6 +357,8 @@ class App {
     this.messageCount++;
     // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
+    // Log message to file (if logging is enabled)
+    logMessage(filtered);
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
@@ -386,6 +406,8 @@ class App {
   private async shutdownCapture() {
     if (!this.isRunning) return;
     try { await this.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture: ${e?.message || e}`); }
+    // Stop logging when capture ends
+    stopLogging();
     const duration = Math.round(((Date.now() - (this.startTime || Date.now())) / 1000));
     console.log('Chat capture stopped');
     console.log(`Session duration: ${duration} seconds`);

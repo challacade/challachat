@@ -65,6 +65,33 @@ another,phrase,here
 
 The filter loads automatically on startup. Use `POST /api/filter/reload` to reload after editing the file.
 
+## Message Logging
+
+ChallaChat can optionally log all chat messages to a JSON Lines file for archival or later review.
+
+#### Enabling Logging
+1. Open the overlay in your browser
+2. Click the ⚙️ (Settings) button
+3. Check the "Log Messages" checkbox
+
+#### Log File Location
+Logs are saved to:
+- **Windows:** `%LOCALAPPDATA%\ChallaChat\logs\`
+- **Linux/Mac:** `~/.challachat/logs/`
+
+Each capture session creates a new file named `chat-{videoId}-{date}_{time}.jsonl`.
+
+#### Log Format
+Each line is a JSON object with the message data:
+```json
+{"ts":1733788800000,"author":"Username","text":"Hello world!","kind":"text","id":"abc123"}
+{"ts":1733788805000,"author":"Donor","text":"Great stream!","kind":"donation","amount":"$5.00","id":"def456"}
+```
+
+#### API Endpoints
+GET /api/logger — Get logger status<br>
+POST /api/logger/toggle { enabled: boolean } — Enable/disable logging
+
 ## Releases (GitHub Actions)
 
 The "Build Full Release" workflow (manual) prompts for a version (e.g., `1.2.3` or `v1.2.3`), creates tag `vX.Y.Z`, builds both artifacts, and publishes a GitHub Release with:
