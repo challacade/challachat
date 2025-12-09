@@ -4,12 +4,12 @@ import os from 'os';
 import type { ChatEvent } from '../capture/types';
 
 // Chat message logger that writes messages to JSON Lines files.
-// Each session creates a new log file named: chat-{videoId}-{date}.jsonl
+// Uses a daily log file named: chat-{date}-{platform}.jsonl
+// Appends to existing file if it exists for the same day.
 
 let logEnabled = false;
 let logStream: fs.WriteStream | null = null;
 let currentLogPath: string | null = null;
-let currentVideoId: string | null = null;
 let messageCount = 0;
 
 // Get the logs directory path
@@ -35,29 +35,34 @@ function ensureLogsDir(): string {
   return logsDir;
 }
 
-// Generate a log filename for the current session
-function generateLogFilename(videoId: string): string {
+// Generate a log filename for today (platform-based, daily file)
+function generateLogFilename(platform: string = 'yt'): string {
   const date = new Date();
   const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
-  const timeStr = date.toTimeString().split(' ')[0].replace(/:/g, '-'); // HH-MM-SS
-  // Sanitize videoId to be filesystem-safe
-  const safeVideoId = videoId.replace(/[^a-zA-Z0-9_-]/g, '_');
-  return `chat-${safeVideoId}-${dateStr}_${timeStr}.jsonl`;
+  return `chat-${dateStr}-${platform}.jsonl`;
 }
 
 // Start logging for a new capture session
-export function startLogging(videoId: string): boolean {
+export function startLogging(platform: string = 'yt'): boolean {
   if (!logEnabled) return false;
   
   try {
-    // Close any existing stream
+    const logsDir = ensureLogsDir();
+    const filename = generateLogFilename(platform);
+    const newLogPath = path.join(logsDir, filename);
+    
+    // If already logging to the same file, just continue
+    if (logStream && currentLogPath === newLogPath) {
+      return true;
+    }
+    
+    // Close any existing stream to a different file
     stopLogging();
     
-    const logsDir = ensureLogsDir();
-    const filename = generateLogFilename(videoId);
-    currentLogPath = path.join(logsDir, filename);
-    currentVideoId = videoId;
-    messageCount = 0;
+    currentLogPath = newLogPath;
+    
+    // Check if file already exists (we'll append to it)
+    const fileExists = fs.existsSync(currentLogPath);
     
     // Open write stream in append mode
     logStream = fs.createWriteStream(currentLogPath, { flags: 'a', encoding: 'utf-8' });
@@ -66,7 +71,11 @@ export function startLogging(videoId: string): boolean {
       console.error(`[Logger] Write error: ${err.message}`);
     });
     
-    console.log(`[Logger] Started logging to ${currentLogPath}`);
+    if (fileExists) {
+      console.log(`[Logger] Appending to existing log: ${currentLogPath}`);
+    } else {
+      console.log(`[Logger] Started new log: ${currentLogPath}`);
+    }
     return true;
   } catch (err) {
     console.error(`[Logger] Failed to start logging: ${err}`);
@@ -86,7 +95,6 @@ export function stopLogging(): void {
     console.log(`[Logger] Stopped logging. ${messageCount} messages written to ${path.basename(currentLogPath)}`);
   }
   currentLogPath = null;
-  currentVideoId = null;
   messageCount = 0;
 }
 

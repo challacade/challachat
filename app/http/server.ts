@@ -229,7 +229,7 @@ class App {
         setLogEnabled(enabled);
         // If enabling and currently capturing, start logging immediately
         if (enabled && this.isRunning && this.currentVideoId) {
-          startLogging(this.currentVideoId);
+          startLogging('yt');
         }
       }
       res.json({ ok: true, ...getLoggerStatus() });
@@ -346,8 +346,8 @@ class App {
     this.messageCount = 0;
     this.startTime = Date.now();
     this.tui.setUrl(url);
-    // Start logging if enabled
-    startLogging(videoId);
+    // Start logging if enabled (uses 'yt' platform identifier)
+    startLogging('yt');
   this.tui.render();
     this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
   }
