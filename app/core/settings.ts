@@ -13,21 +13,40 @@ function getSettingsDir(): string {
   return path.join(os.homedir(), '.challachat');
 }
 
-export function getSettingsPath(): string {
-  return path.join(getSettingsDir(), 'settings.json');
-}
-
-function ensureSettingsFileExists(): void {
-  const settingsPath = getSettingsPath();
-  const settingsDir = path.dirname(settingsPath);
-
+function ensureSettingsDirExists(): string {
+  const settingsDir = getSettingsDir();
   try {
     if (!fs.existsSync(settingsDir)) {
       fs.mkdirSync(settingsDir, { recursive: true });
     }
   } catch {
-    return;
+    // ignore
   }
+  return settingsDir;
+}
+
+export function getSettingsPath(): string {
+  return path.join(getSettingsDir(), 'settings.json');
+}
+
+export function getSongTxtPath(): string {
+  return path.join(getSettingsDir(), 'song.txt');
+}
+
+export function writeSongTxt(line: string): { ok: boolean; path: string } {
+  const settingsDir = ensureSettingsDirExists();
+  const songPath = path.join(settingsDir, 'song.txt');
+  try {
+    fs.writeFileSync(songPath, String(line ?? ''), { encoding: 'utf-8' });
+    return { ok: true, path: songPath };
+  } catch {
+    return { ok: false, path: songPath };
+  }
+}
+
+function ensureSettingsFileExists(): void {
+  const settingsPath = getSettingsPath();
+  ensureSettingsDirExists();
 
   try {
     if (!fs.existsSync(settingsPath)) {

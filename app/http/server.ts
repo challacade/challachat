@@ -9,7 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getMusicSettingsStatus } from '../core/settings';
+import { getMusicSettingsStatus, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
@@ -274,6 +274,45 @@ class App {
       } catch {
         res.status(500).json({ error: 'Failed to read track metadata' });
       }
+    });
+
+  this.app.post('/api/music/songfile', async (req: Request, res: Response) => {
+      const idx = Number(req.body?.index);
+      if (!Number.isInteger(idx) || idx < 0) {
+        res.status(400).json({ error: 'Invalid index' });
+        return;
+      }
+
+      const filePath = getTrackByIndex(idx);
+      if (!filePath) {
+        res.status(404).json({ error: 'Track not found' });
+        return;
+      }
+
+      let title: string | null = null;
+      let artist: string | null = null;
+
+      try {
+        const meta = await getTrackMetaByIndex(idx);
+        title = meta?.title ?? null;
+        artist = meta?.artist ?? null;
+      } catch {
+        // ignore and fallback to filename
+      }
+
+      const fallbackTitle = path.basename(filePath, path.extname(filePath));
+      const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
+      const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
+      const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
+      const line = `\u266b  ${details}  \u266b`;
+
+      const writeResult = writeSongTxt(line);
+      if (!writeResult.ok) {
+        res.status(500).json({ error: 'Failed to write song file', path: writeResult.path });
+        return;
+      }
+
+      res.json({ ok: true, path: writeResult.path, line });
     });
 
   this.app.get('/api/music/track/:index', (req: Request, res: Response) => {

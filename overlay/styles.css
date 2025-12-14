@@ -203,7 +203,11 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 .settings { position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 6; background: rgba(15,15,20,0.9); color: #fff; border: 1px solid rgba(255,255,255,0.12); border-radius: 12px; padding: 12px; min-width: min(420px, 95vw); max-height: 90vh; overflow: auto; backdrop-filter: blur(8px); box-shadow: 0 0 0 2px rgba(255,255,255,0.28); }
 .settings h2 { margin: 0 0 8px 0; font-size: 16px; }
 .settings label { display: grid; gap: 6px; margin: 8px 0; font-size: 13px; }
-.settings label.checkbox-label { display: flex; align-items: center; gap: 8px; }
+.settings label.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 .settings label.checkbox-label input[type="checkbox"] { 
   width: 18px; 
   height: 18px; 
@@ -219,6 +223,9 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   align-items: center;
   gap: 12px;
   margin: 8px 0;
+}
+.settings .music-write-row {
+  margin-top: 20px;
 }
 .settings .censor-row .checkbox-label {
   margin: 0;

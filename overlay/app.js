@@ -58,6 +58,7 @@ const elements = {
   musicPlayBtn: document.getElementById('musicPlayBtn'),
   musicNextBtn: document.getElementById('musicNextBtn'),
   musicShuffleBtn: document.getElementById('musicShuffleBtn'),
+  musicWriteSongFile: document.getElementById('musicWriteSongFile'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -73,7 +74,8 @@ const musicPlayer = {
   meta: [],
   order: [],
   index: 0,
-  audio: null
+  audio: null,
+  lastWrittenServerIndex: null
 };
 
 function clamp01(n) {
@@ -190,6 +192,30 @@ function syncMusicUi() {
     const isPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
     playBtn.textContent = isPlaying ? 'Pause' : 'Play';
   }
+
+  requestSongFileWrite();
+}
+
+function requestSongFileWrite({ force = false } = {}) {
+  if (!state?.music?.writeSongFile) return;
+  if (isDemoSite()) return;
+
+  if (!musicPlayer.playlist.length) {
+    void ensureMusicPlaylistLoaded().then(() => requestSongFileWrite({ force })).catch(() => {});
+    return;
+  }
+
+  const serverIndex = getServerIndexAtPos(musicPlayer.index);
+  if (!Number.isFinite(serverIndex)) return;
+
+  if (!force && musicPlayer.lastWrittenServerIndex === serverIndex) return;
+  musicPlayer.lastWrittenServerIndex = serverIndex;
+
+  void fetch('/api/music/songfile', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ index: serverIndex })
+  }).catch(() => {});
 }
 
 function setMusicIndex(i, { save = true } = {}) {
@@ -299,7 +325,8 @@ const state = {
   },
   music: {
     volume: 1,
-    index: 0
+    index: 0,
+    writeSongFile: false
   },
   preset: 'Dark',
   startedAt: null,
@@ -991,6 +1018,7 @@ function syncUi() {
   if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
   // Music panel
   if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
+  if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
   applyTheme();
   // Keep custom dropdown label/selection in sync
   try { syncCustomPresetDropdown(); } catch {}
@@ -1026,6 +1054,13 @@ function updateFromUi() {
   if (elements.memberVolume) state.sounds.member.volume = Math.max(0, Math.min(2, Number(elements.memberVolume.value)));
   // Music volume (HTMLAudioElement: 0..1)
   if (elements.musicVolume) state.music.volume = clamp01(Number(elements.musicVolume.value));
+
+  const prevWriteSongFile = !!state.music.writeSongFile;
+  if (elements.musicWriteSongFile) state.music.writeSongFile = !!elements.musicWriteSongFile.checked;
+  if (!prevWriteSongFile && state.music.writeSongFile) {
+    requestSongFileWrite({ force: true });
+  }
+
   applyMusicVolume();
   applyTheme(); saveToLocal(); 
 }
@@ -1348,6 +1383,7 @@ function setupLoggerControls() {
     elements.memberVolume?.addEventListener('input', updateFromUi);
     // Music volume
     elements.musicVolume?.addEventListener('input', updateFromUi);
+    elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
     // Poll interval controls
     setupPollIntervalControls();
     // Censor filter controls
