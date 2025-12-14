@@ -35,6 +35,11 @@ export interface ChatEvent {
   hasCard?: boolean;
   // Optional rendering hint for overlays (primarily for system messages)
   showUsername?: boolean;
+  // Optional visual effects flags for overlays
+  effects?: {
+    jam?: boolean;
+    jamFinale?: boolean;
+  };
 }
 
 export interface CaptureOptions {

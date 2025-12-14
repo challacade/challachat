@@ -89,14 +89,15 @@ class App {
   private currentUrl: string | null = null;
   private tui = new TerminalUI(this.port);
 
-  private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean }) {
+  private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }) {
     const msg: ChatEvent = {
       id: `sys_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       author: { name: 'ChallaChat', avatar: '', flags: { mod: true } },
       text: String(text || ''),
       kind: 'text',
       ts: Date.now(),
-      showUsername: opts?.showUsername !== false
+      showUsername: opts?.showUsername !== false,
+      effects: opts?.effects
     };
     try { this.io.emit('chat-message', msg); } catch {}
     try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
@@ -273,7 +274,7 @@ class App {
       const finale = onNowPlayingUpdated(now);
       if (finale) {
         const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
-        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
+        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     });
@@ -338,7 +339,7 @@ class App {
       const finale = onNowPlayingUpdated(now);
       if (finale) {
         const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
-        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
+        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
 
       const filePath = getTrackByIndex(idx);
@@ -574,6 +575,7 @@ class App {
       kind: message.kind || 'text',
       ts: message.ts || Date.now(),
       showUsername: message.showUsername,
+      effects: message.effects,
       amountDisplay: message.amountDisplay,
       color: message.color
     };

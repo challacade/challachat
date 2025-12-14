@@ -895,7 +895,7 @@ function applyTheme() {
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars); 
 }
 
-function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } const showUsername = event?.showUsername !== false; return { id, snippet, authorDetails, segments, showUsername, ...extras }; }
+function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } const showUsername = event?.showUsername !== false; const effects = (event && typeof event === 'object') ? (event.effects || null) : null; return { id, snippet, authorDetails, segments, showUsername, effects, ...extras }; }
 
 function renderMessage(item) {
   const { id, snippet, authorDetails } = item;
@@ -906,6 +906,13 @@ function renderMessage(item) {
   const container = document.createElement('div');
   container.className = `message${isSuper ? ' super' : ''}`;
   container.dataset.id = id;
+
+  // Optional effects (e.g. !jam)
+  if (item?.effects && item.effects.jam) {
+    container.classList.add('fx-jam');
+  } else if (item?.effects && item.effects.jamFinale) {
+    container.classList.add('fx-jam-finale');
+  }
 
   const isOwner = !!authorDetails?.isChatOwner;
   const isMod = !!authorDetails?.isChatModerator;
@@ -966,7 +973,25 @@ function renderMessage(item) {
   } else {
     const text = snippet?.displayMessage || snippet?.textMessageDetails?.messageText || '';
     contentElement.textContent = '';
-    contentElement.append(text);
+
+    // Jam finale system message: only color the trailing "got N jams!" part.
+    if (item?.effects?.jamFinale && typeof text === 'string') {
+      const idx = text.lastIndexOf("' got ");
+      if (idx > 0 && idx + 2 < text.length) {
+        const prefix = text.slice(0, idx + 1);
+        const suffix = text.slice(idx + 2);
+        const accent = document.createElement('span');
+        accent.className = 'jam-accent';
+        accent.textContent = suffix;
+        contentElement.append(prefix);
+        contentElement.append(' ');
+        contentElement.appendChild(accent);
+      } else {
+        contentElement.append(text);
+      }
+    } else {
+      contentElement.append(text);
+    }
   }
 
   // Render header with optional badges; system messages can hide the username entirely.

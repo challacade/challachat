@@ -12,7 +12,7 @@ export type JamFinale = {
   jamCount: number;
 };
 
-const DEFAULT_THRESHOLD = 2;
+const DEFAULT_THRESHOLD = 3;
 
 let jamEnabled = false;
 let threshold = DEFAULT_THRESHOLD;
@@ -93,9 +93,9 @@ export function onNowPlayingUpdated(next: NowPlaying | null): JamFinale | null {
   return null;
 }
 
-export function tryJam(userName: string, now: NowPlaying | null): { jamCount: number; songId: string | null } {
+export function tryJam(userName: string, now: NowPlaying | null): { jamCount: number; songId: string | null; accepted: boolean } {
   if (!jamEnabled || !now) {
-    return { jamCount: jammers.size, songId: currentSongId };
+    return { jamCount: jammers.size, songId: currentSongId, accepted: false };
   }
 
   // Ensure we're tracking the current song; never announce here.
@@ -103,13 +103,14 @@ export function tryJam(userName: string, now: NowPlaying | null): { jamCount: nu
 
   const userKey = normalizeUser(userName);
   if (!userKey) {
-    return { jamCount: jammers.size, songId: currentSongId };
+    return { jamCount: jammers.size, songId: currentSongId, accepted: false };
   }
 
+  const had = jammers.has(userKey);
   jammers.add(userKey);
 
   const count = jammers.size;
-  return { jamCount: count, songId: currentSongId };
+  return { jamCount: count, songId: currentSongId, accepted: !had };
 }
 
 export function getJamStatus(now: NowPlaying | null): JamStatus {

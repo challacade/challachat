@@ -15,6 +15,13 @@ export function runChatCommands(message: ChatEvent, ctx: CommandContext): void {
   // Command: !jam
   if (text === '!jam' && isJamEnabled()) {
     const authorName = message.author?.name || '';
-    tryJam(authorName, ctx.nowPlaying);
+    const result = tryJam(authorName, ctx.nowPlaying);
+    if (result.accepted) {
+      // Rewrite the chat text so it reads: "<username> is jamming!"
+      // (the overlay renders the username separately in the header)
+      message.text = 'is jamming!';
+      message.segments = undefined;
+      message.effects = { ...(message.effects || {}), jam: true };
+    }
   }
 }
