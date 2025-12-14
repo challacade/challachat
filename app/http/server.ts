@@ -9,6 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
+import { getMusicSettingsStatus } from '../core/settings';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -233,6 +234,10 @@ class App {
         }
       }
       res.json({ ok: true, ...getLoggerStatus() });
+    });
+
+  this.app.get('/api/music', (_req: Request, res: Response) => {
+      res.json(getMusicSettingsStatus());
     });
 
   this.app.get('/api/stream', (_req: Request, res: Response) => {
