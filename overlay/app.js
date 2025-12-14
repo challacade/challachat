@@ -59,12 +59,45 @@ const elements = {
   musicNextBtn: document.getElementById('musicNextBtn'),
   musicShuffleBtn: document.getElementById('musicShuffleBtn'),
   musicWriteSongFile: document.getElementById('musicWriteSongFile'),
+  musicEnableJam: document.getElementById('musicEnableJam'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
   logEnabled: document.getElementById('logEnabled'),
   logStatus: document.getElementById('logStatus')
 };
+
+// ================================
+// Now Playing + Jam (client <-> server)
+// ================================
+
+async function postJson(url, body) {
+  return fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
+  });
+}
+
+async function notifyNowPlaying(serverIndex) {
+  if (isDemoSite()) return;
+  const idx = Number(serverIndex);
+  if (!Number.isInteger(idx) || idx < 0) return;
+  try {
+    await postJson('/api/music/nowplaying', { index: idx });
+  } catch {
+    // ignore
+  }
+}
+
+async function toggleJam(enabled) {
+  if (isDemoSite()) return;
+  try {
+    await postJson('/api/jam/toggle', { enabled: !!enabled });
+  } catch {
+    // ignore
+  }
+}
 
 // ================================
 // Music Player (minimal)
@@ -211,11 +244,7 @@ function requestSongFileWrite({ force = false } = {}) {
   if (!force && musicPlayer.lastWrittenServerIndex === serverIndex) return;
   musicPlayer.lastWrittenServerIndex = serverIndex;
 
-  void fetch('/api/music/songfile', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ index: serverIndex })
-  }).catch(() => {});
+  void postJson('/api/music/songfile', { index: serverIndex }).catch(() => {});
 }
 
 function setMusicIndex(i, { save = true } = {}) {
@@ -289,6 +318,8 @@ async function playMusicIndex(i) {
   // Fire-and-forget metadata load so the UI can show ID3 title quickly.
   void ensureTrackMetaLoaded(serverIndex).then(() => { syncMusicUi(); });
   applyMusicVolume();
+  // Let the server know which track is now playing (used for !jam tracking)
+  void notifyNowPlaying(serverIndex);
   musicPlayer.audio.src = `/api/music/track/${serverIndex}`;
   await musicPlayer.audio.play();
 }
@@ -326,7 +357,8 @@ const state = {
   music: {
     volume: 1,
     index: 0,
-    writeSongFile: false
+    writeSongFile: false,
+    enableJam: false
   },
   preset: 'Dark',
   startedAt: null,
@@ -1019,6 +1051,7 @@ function syncUi() {
   // Music panel
   if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
   if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
+  if (elements.musicEnableJam) elements.musicEnableJam.checked = !!state.music.enableJam;
   applyTheme();
   // Keep custom dropdown label/selection in sync
   try { syncCustomPresetDropdown(); } catch {}
@@ -1059,6 +1092,16 @@ function updateFromUi() {
   if (elements.musicWriteSongFile) state.music.writeSongFile = !!elements.musicWriteSongFile.checked;
   if (!prevWriteSongFile && state.music.writeSongFile) {
     requestSongFileWrite({ force: true });
+  }
+
+  const prevEnableJam = !!state.music.enableJam;
+  if (elements.musicEnableJam) state.music.enableJam = !!elements.musicEnableJam.checked;
+  if (prevEnableJam !== !!state.music.enableJam) {
+    void toggleJam(!!state.music.enableJam);
+    // If enabling while music is already playing, push current track to server.
+    if (state.music.enableJam) {
+      try { void notifyNowPlaying(getServerIndexAtPos(musicPlayer.index)); } catch {}
+    }
   }
 
   applyMusicVolume();
@@ -1384,6 +1427,7 @@ function setupLoggerControls() {
     // Music volume
     elements.musicVolume?.addEventListener('input', updateFromUi);
     elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
+    elements.musicEnableJam?.addEventListener('change', updateFromUi);
     // Poll interval controls
     setupPollIntervalControls();
     // Censor filter controls
@@ -1625,7 +1669,7 @@ function syncCustomPresetDropdown() {
     });
   } catch {}
 }
-function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); setupMouseDetection(); recomputeAutoScale(); window.addEventListener('resize', () => { recomputeAutoScale(); applyTheme(); elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment); }); loadFromLocal(); loadFromUrl(); const url = new URL(location.href); const hasPresetParam = url.searchParams.has('preset'); const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key)); if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) { state.preset = 'Dark'; } else if (!state.preset) { state.preset = 'Custom'; } if (isDemoSite()) { state.demoMode = true; } applyPreset(state.preset); applyTheme(); syncUi(); bindUi(); if (state.demoMode) { startDemoMode(); } initializeAudio();
+function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); setupMouseDetection(); recomputeAutoScale(); window.addEventListener('resize', () => { recomputeAutoScale(); applyTheme(); elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment); }); loadFromLocal(); loadFromUrl(); const url = new URL(location.href); const hasPresetParam = url.searchParams.has('preset'); const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key)); if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) { state.preset = 'Dark'; } else if (!state.preset) { state.preset = 'Custom'; } if (isDemoSite()) { state.demoMode = true; } applyPreset(state.preset); applyTheme(); syncUi(); bindUi(); if (state.music.enableJam) { try { toggleJam(true); } catch {} } if (state.demoMode) { startDemoMode(); } initializeAudio();
   // Fetch current poll interval from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
   // Fetch censor filter status from server (non-blocking)

@@ -11,6 +11,9 @@ import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '.
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
 import { getMusicSettingsStatus, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
+import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
+import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
+import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -85,6 +88,18 @@ class App {
   private currentVideoId: string | null = null;
   private currentUrl: string | null = null;
   private tui = new TerminalUI(this.port);
+
+  private broadcastSystemMessage(text: string) {
+    const msg: ChatEvent = {
+      id: `sys_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+      author: { name: 'ChallaChat', avatar: '', flags: { mod: true } },
+      text: String(text || ''),
+      kind: 'text',
+      ts: Date.now()
+    };
+    try { this.io.emit('chat-message', msg); } catch {}
+    try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
+  }
 
   constructor() {
   this.setupServer();
@@ -241,6 +256,34 @@ class App {
       res.json(getMusicSettingsStatus());
     });
 
+  this.app.get('/api/music/nowplaying', (_req: Request, res: Response) => {
+      const now = getNowPlaying();
+      res.json({ nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
+    });
+
+  this.app.post('/api/music/nowplaying', (req: Request, res: Response) => {
+      const idx = Number(req.body?.index);
+      if (!Number.isInteger(idx) || idx < 0) {
+        res.status(400).json({ error: 'Invalid index' });
+        return;
+      }
+      const now = setNowPlayingByIndex(idx);
+      onNowPlayingUpdated(now);
+      res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
+    });
+
+  this.app.get('/api/jam', (_req: Request, res: Response) => {
+      res.json(getJamStatus(getNowPlaying()));
+    });
+
+  this.app.post('/api/jam/toggle', (req: Request, res: Response) => {
+      const enabled = req.body?.enabled;
+      if (typeof enabled === 'boolean') {
+        setJamEnabled(enabled);
+      }
+      res.json({ ok: true, ...getJamStatus(getNowPlaying()) });
+    });
+
   this.app.get('/api/music/playlist', (_req: Request, res: Response) => {
       // Build playlist on demand (and refresh when path changes)
       const current = refreshPlaylist();
@@ -282,6 +325,10 @@ class App {
         res.status(400).json({ error: 'Invalid index' });
         return;
       }
+
+      // Treat songfile writes as a signal for the current track (used by !jam tracking)
+      const now = setNowPlayingByIndex(idx);
+      onNowPlayingUpdated(now);
 
       const filePath = getTrackByIndex(idx);
       if (!filePath) {
@@ -477,6 +524,15 @@ class App {
   // Relay messages to SSE clients and overlay
   private onCaptureMessage(message: ChatEvent) {
     this.messageCount++;
+
+    // Run chat commands (e.g. !jam) before censoring/broadcasting.
+    try {
+      runChatCommands(message, {
+        nowPlaying: getNowPlaying(),
+        broadcastSystemMessage: (text) => this.broadcastSystemMessage(text)
+      });
+    } catch {}
+
     // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
     // Log message to file (if logging is enabled)
