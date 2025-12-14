@@ -268,10 +268,12 @@ class App {
         res.status(400).json({ error: 'Invalid index' });
         return;
       }
-      const now = setNowPlayingByIndex(idx);
+      const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
+      const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`, { showUsername: false });
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '’')}'`;
+        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     });
@@ -331,10 +333,12 @@ class App {
       }
 
       // Treat songfile writes as a signal for the current track (used by !jam tracking)
-      const now = setNowPlayingByIndex(idx);
+      const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
+      const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`, { showUsername: false });
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '’')}'`;
+        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
 
       const filePath = getTrackByIndex(idx);

@@ -19,17 +19,19 @@ export function getNowPlaying(): NowPlaying | null {
   return current;
 }
 
-export function setNowPlayingByIndex(index: number): NowPlaying | null {
+export function setNowPlayingByIndex(index: number, songIdOverride?: string | null): NowPlaying | null {
   const filePath = getTrackByIndex(index);
   if (!filePath) {
     current = null;
     return null;
   }
 
+  const override = typeof songIdOverride === 'string' ? songIdOverride.trim() : '';
+
   const next: NowPlaying = {
     index,
     filePath,
-    songId: computeSongIdFromPath(filePath),
+    songId: override ? override : computeSongIdFromPath(filePath),
     updatedAt: Date.now()
   };
 

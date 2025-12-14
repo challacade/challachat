@@ -79,12 +79,13 @@ async function postJson(url, body) {
   });
 }
 
-async function notifyNowPlaying(serverIndex) {
+async function notifyNowPlaying(serverIndex, songId) {
   if (isDemoSite()) return;
   const idx = Number(serverIndex);
   if (!Number.isInteger(idx) || idx < 0) return;
+  const sid = typeof songId === 'string' ? songId.trim() : '';
   try {
-    await postJson('/api/music/nowplaying', { index: idx });
+    await postJson('/api/music/nowplaying', { index: idx, songId: sid || undefined });
   } catch {
     // ignore
   }
@@ -244,7 +245,9 @@ function requestSongFileWrite({ force = false } = {}) {
   if (!force && musicPlayer.lastWrittenServerIndex === serverIndex) return;
   musicPlayer.lastWrittenServerIndex = serverIndex;
 
-  void postJson('/api/music/songfile', { index: serverIndex }).catch(() => {});
+  let songId = '';
+  try { songId = getDisplayTitleAtPos(musicPlayer.index) || ''; } catch {}
+  void postJson('/api/music/songfile', { index: serverIndex, songId: songId || undefined }).catch(() => {});
 }
 
 function setMusicIndex(i, { save = true } = {}) {
@@ -291,35 +294,53 @@ async function fetchMusicPlaylist() {
 }
 
 async function playMusicIndex(i) {
+  const serverIndex = getServerIndexAtPos(i);
+  const mappedPath = musicPlayer.playlist[serverIndex];
+  if (!mappedPath) throw new Error('Missing track');
+
+  setMusicIndex(i);
+
   if (!musicPlayer.audio) {
     musicPlayer.audio = new Audio();
     musicPlayer.audio.preload = 'auto';
     musicPlayer.audio.addEventListener('play', () => { syncMusicUi(); });
     musicPlayer.audio.addEventListener('pause', () => { syncMusicUi(); });
     musicPlayer.audio.addEventListener('ended', async () => {
-      const next = musicPlayer.index + 1;
-      if (next >= musicPlayer.playlist.length) {
+      const nextPos = musicPlayer.index + 1;
+      if (nextPos >= musicPlayer.playlist.length) {
         syncMusicUi();
         return;
       }
-      setMusicIndex(next);
-      try {
-        await playMusicIndex(next);
-      } catch {
-        // ignore
-      }
+
+      setMusicIndex(nextPos);
+      const nextServerIndex = getServerIndexAtPos(nextPos);
+
+      // Fire-and-forget metadata load so the UI can show ID3 title quickly.
+      void ensureTrackMetaLoaded(nextServerIndex).then(() => {
+        // Update title without waiting for the next poll/interaction.
+        try { syncMusicUi(); } catch {}
+        // Update server with the nicer "title - artist" once available.
+        try { void notifyNowPlaying(nextServerIndex, getDisplayTitleAtPos(nextPos)); } catch {}
+      });
+
+      // Let the server know which track is now playing (used for !jam tracking)
+      // This may initially be filename-based; the call above updates once meta loads.
+      try { void notifyNowPlaying(nextServerIndex, getDisplayTitleAtPos(nextPos)); } catch { void notifyNowPlaying(nextServerIndex); }
     });
   }
 
-  const serverIndex = getServerIndexAtPos(i);
-  const mappedPath = musicPlayer.playlist[serverIndex];
-  if (!mappedPath) throw new Error('Missing track');
-  setMusicIndex(i);
   // Fire-and-forget metadata load so the UI can show ID3 title quickly.
-  void ensureTrackMetaLoaded(serverIndex).then(() => { syncMusicUi(); });
+  void ensureTrackMetaLoaded(serverIndex).then(() => {
+    try { syncMusicUi(); } catch {}
+    try { void notifyNowPlaying(serverIndex, getDisplayTitleAtPos(i)); } catch {}
+  });
+
   applyMusicVolume();
+
   // Let the server know which track is now playing (used for !jam tracking)
-  void notifyNowPlaying(serverIndex);
+  // This may initially be filename-based; we update once meta loads.
+  try { void notifyNowPlaying(serverIndex, getDisplayTitleAtPos(i)); } catch { void notifyNowPlaying(serverIndex); }
+
   musicPlayer.audio.src = `/api/music/track/${serverIndex}`;
   await musicPlayer.audio.play();
 }
