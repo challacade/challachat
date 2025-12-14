@@ -92,6 +92,25 @@ Each line is a JSON object with the message data:
 GET /api/logger — Get logger status<br>
 POST /api/logger/toggle { enabled: boolean } — Enable/disable logging
 
+## Music + song.txt
+
+ChallaChat can serve a local music playlist and optionally write the current song to a text file for OBS overlays.
+
+- Settings file: `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows)
+- Song file: `%LOCALAPPDATA%\ChallaChat\song.txt` (Windows)
+
+### settings.json options
+
+```json
+{
+   "musicPath": "D:/Music/MyPlaylist",
+   "maxSongIdLength": 80
+}
+```
+
+- `musicPath` — Folder to scan for music files.
+- `maxSongIdLength` — Optional maximum length for the song id string ("Title - Artist"). If the song id exceeds this length, it’s truncated and suffixed with `...`. This applies to both `song.txt` output (still wrapped in musical notes) and system messages like the `!jam` finale.
+
 ## Releases (GitHub Actions)
 
 The "Build Full Release" workflow (manual) prompts for a version (e.g., `1.2.3` or `v1.2.3`), creates tag `vX.Y.Z`, builds both artifacts, and publishes a GitHub Release with:

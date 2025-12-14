@@ -9,7 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getMusicSettingsStatus, writeSongTxt } from '../core/settings';
+import { getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -272,7 +272,7 @@ class App {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${String(finale.songId).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
@@ -337,7 +337,7 @@ class App {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${String(finale.songId).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
 
@@ -362,7 +362,8 @@ class App {
       const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
       const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
       const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
-      const line = `\u266b  ${details}  \u266b`;
+      const capped = truncateSongId(details);
+      const line = `\u266b  ${capped}  \u266b`;
 
       const writeResult = writeSongTxt(line);
       if (!writeResult.ok) {

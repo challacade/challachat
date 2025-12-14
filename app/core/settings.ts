@@ -4,7 +4,27 @@ import os from 'os';
 
 export type AppSettings = {
   musicPath?: string;
+  /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
+  maxSongIdLength?: number;
 };
+
+export function getMaxSongIdLength(): number | null {
+  const { settings } = readSettings();
+  const raw = (settings as any)?.maxSongIdLength;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  return i > 0 ? i : null;
+}
+
+export function truncateSongId(songId: string): string {
+  const s = String(songId ?? '');
+  const max = getMaxSongIdLength();
+  if (!max) return s;
+  if (s.length <= max) return s;
+  if (max <= 3) return '...'.slice(0, max);
+  return s.slice(0, Math.max(0, max - 3)).trimEnd() + '...';
+}
 
 function getSettingsDir(): string {
   if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
