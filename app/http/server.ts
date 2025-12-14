@@ -10,7 +10,7 @@ import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
 import { getMusicSettingsStatus } from '../core/settings';
-import { getTrackByIndex, getTrackTitleByIndex, refreshPlaylist } from '../core/music';
+import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -266,8 +266,11 @@ class App {
       }
 
       try {
-        const title = await getTrackTitleByIndex(idx);
-        res.json({ title });
+        const meta = await getTrackMetaByIndex(idx);
+        res.json({
+          title: meta?.title ?? null,
+          artist: meta?.artist ?? null
+        });
       } catch {
         res.status(500).json({ error: 'Failed to read track metadata' });
       }
