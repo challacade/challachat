@@ -57,6 +57,7 @@ const elements = {
   musicPrevBtn: document.getElementById('musicPrevBtn'),
   musicPlayBtn: document.getElementById('musicPlayBtn'),
   musicNextBtn: document.getElementById('musicNextBtn'),
+  musicShuffleBtn: document.getElementById('musicShuffleBtn'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -69,6 +70,7 @@ const elements = {
 // ================================
 const musicPlayer = {
   playlist: [],
+  order: [],
   index: 0,
   audio: null
 };
@@ -81,6 +83,28 @@ function clamp01(n) {
 function applyMusicVolume() {
   if (!musicPlayer.audio) return;
   musicPlayer.audio.volume = clamp01(state?.music?.volume ?? 1);
+}
+
+function getServerIndexAtPos(pos) {
+  const p = Number(pos) || 0;
+  if (Array.isArray(musicPlayer.order) && musicPlayer.order.length) {
+    const serverIndex = musicPlayer.order[p];
+    if (Number.isFinite(serverIndex)) return serverIndex;
+  }
+  return p;
+}
+
+function resetMusicOrderToDefault() {
+  musicPlayer.order = Array.from({ length: musicPlayer.playlist.length }, (_, i) => i);
+}
+
+function shuffleInPlace(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const tmp = arr[i];
+    arr[i] = arr[j];
+    arr[j] = tmp;
+  }
 }
 
 function getTrackTitle(trackPath) {
@@ -97,7 +121,7 @@ function syncMusicUi() {
     if (!musicPlayer.playlist.length) {
       titleEl.textContent = '(no tracks)';
     } else {
-      const trackPath = musicPlayer.playlist[musicPlayer.index];
+      const trackPath = musicPlayer.playlist[getServerIndexAtPos(musicPlayer.index)];
       const title = getTrackTitle(trackPath);
       titleEl.textContent = title || '(unknown)';
     }
@@ -131,6 +155,9 @@ async function ensureMusicPlaylistLoaded() {
   const data = await fetchMusicPlaylist();
   const list = Array.isArray(data?.playlist) ? data.playlist : [];
   musicPlayer.playlist = list;
+  if (!musicPlayer.order || musicPlayer.order.length !== musicPlayer.playlist.length) {
+    resetMusicOrderToDefault();
+  }
   // Restore last-known index (clamped)
   const requestedIndex = Number(state?.music?.index) || 0;
   if (!musicPlayer.playlist.length) {
@@ -171,11 +198,12 @@ async function playMusicIndex(i) {
     });
   }
 
-  const trackPath = musicPlayer.playlist[i];
-  if (!trackPath) throw new Error('Missing track');
+  const serverIndex = getServerIndexAtPos(i);
+  const mappedPath = musicPlayer.playlist[serverIndex];
+  if (!mappedPath) throw new Error('Missing track');
   setMusicIndex(i);
   applyMusicVolume();
-  musicPlayer.audio.src = `/api/music/track/${i}`;
+  musicPlayer.audio.src = `/api/music/track/${serverIndex}`;
   await musicPlayer.audio.play();
 }
 
@@ -851,7 +879,7 @@ function renderMessage(item) {
   if (snippet?.type === 'superChatEvent' && typeof item.amountDisplay === 'string' && item.amountDisplay) {
     const amountEl = document.createElement('span');
     amountEl.className = 'primary';
-    amountEl.textContent = ` ${item.amountDisplay}`;
+    amountEl.textContent = `\u00A0${item.amountDisplay}`;
     header.appendChild(amountEl);
   }
   // No colon
@@ -1289,7 +1317,7 @@ function setupLoggerControls() {
         }
 
         if (musicPlayer.audio && musicPlayer.audio.paused) {
-          const wants = `/api/music/track/${musicPlayer.index}`;
+          const wants = `/api/music/track/${getServerIndexAtPos(musicPlayer.index)}`;
           const isSameTrack = typeof musicPlayer.audio.src === 'string' && musicPlayer.audio.src.includes(wants);
           applyMusicVolume();
           if (isSameTrack) {
@@ -1345,6 +1373,31 @@ function setupLoggerControls() {
         }
       } catch {
         showToast('Failed to play next');
+      }
+    });
+
+    elements.musicShuffleBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await ensureMusicPlaylistLoaded();
+        if (!musicPlayer.playlist.length) {
+          showToast('No music found');
+          return;
+        }
+
+        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+        resetMusicOrderToDefault();
+        shuffleInPlace(musicPlayer.order);
+        setMusicIndex(0);
+
+        if (wasPlaying) {
+          await playMusicIndex(0);
+        } else {
+          syncMusicUi();
+        }
+      } catch {
+        showToast('Failed to shuffle');
       }
     });
   }
