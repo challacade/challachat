@@ -22,6 +22,7 @@ const elements = {
   settings: document.getElementById('settings'),
   settingsBtn: document.getElementById('settingsBtn'),
   soundSettingsBtn: document.getElementById('soundSettingsBtn'),
+  musicSettingsBtn: document.getElementById('musicSettingsBtn'),
   scale: document.getElementById('scale'),
   showAvatars: document.getElementById('showAvatars'),
   showBadges: document.getElementById('showBadges'),
@@ -49,6 +50,8 @@ const elements = {
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
+  musicSettings: document.getElementById('musicSettings'),
+  musicPathDisplay: document.getElementById('musicPathDisplay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -207,12 +210,13 @@ let clickShowTimeout = null;
 const PROXIMITY_DISTANCE = 60;
 function isMouseNearSettingsButton(mouseX, mouseY) {
   const buttonTop = 12; const buttonSize = 48;
-  const generalRight = 12; const soundRight = 68; const appearanceRight = 124;
+  const generalRight = 12; const soundRight = 68; const musicRight = 124; const appearanceRight = 180;
   const generalLeft = window.innerWidth - generalRight - buttonSize;
   const soundLeft = window.innerWidth - soundRight - buttonSize;
+  const musicLeft = window.innerWidth - musicRight - buttonSize;
   const appearanceLeft = window.innerWidth - appearanceRight - buttonSize;
-  const extendedLeft = Math.min(generalLeft, soundLeft, appearanceLeft) - PROXIMITY_DISTANCE;
-  const extendedRight = window.innerWidth - Math.min(generalRight, soundRight, appearanceRight) + PROXIMITY_DISTANCE;
+  const extendedLeft = Math.min(generalLeft, musicLeft, soundLeft, appearanceLeft) - PROXIMITY_DISTANCE;
+  const extendedRight = window.innerWidth - Math.min(generalRight, musicRight, soundRight, appearanceRight) + PROXIMITY_DISTANCE;
   const buttonBottom = buttonTop + buttonSize;
   const proximityZone = { left: extendedLeft, right: extendedRight, top: buttonTop - PROXIMITY_DISTANCE, bottom: buttonBottom + PROXIMITY_DISTANCE };
   return mouseX >= proximityZone.left && mouseX <= proximityZone.right && mouseY >= proximityZone.top && mouseY <= proximityZone.bottom;
@@ -224,6 +228,8 @@ function showSettingsButton() {
     elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden');
     elements.soundSettingsBtn?.classList.add('show');
+    elements.musicSettingsBtn?.classList.remove('hidden');
+    elements.musicSettingsBtn?.classList.add('show');
     elements.generalSettingsBtn?.classList.remove('hidden');
     elements.generalSettingsBtn?.classList.add('show');
   }
@@ -233,11 +239,13 @@ function hideSettingsButton() {
     isMouseDetected = false;
     elements.settingsBtn?.classList.remove('show');
     elements.soundSettingsBtn?.classList.remove('show');
+    elements.musicSettingsBtn?.classList.remove('show');
     elements.generalSettingsBtn?.classList.remove('show');
     setTimeout(() => {
       if (!isMouseDetected) {
         elements.settingsBtn?.classList.add('hidden');
         elements.soundSettingsBtn?.classList.add('hidden');
+        elements.musicSettingsBtn?.classList.add('hidden');
         elements.generalSettingsBtn?.classList.add('hidden');
       }
     }, 160);
@@ -250,6 +258,8 @@ function showSettingsButtonInitially() {
   elements.settingsBtn?.classList.add('show');
   elements.soundSettingsBtn?.classList.remove('hidden');
   elements.soundSettingsBtn?.classList.add('show');
+  elements.musicSettingsBtn?.classList.remove('hidden');
+  elements.musicSettingsBtn?.classList.add('show');
   elements.generalSettingsBtn?.classList.remove('hidden');
   elements.generalSettingsBtn?.classList.add('show');
   initialShowTimeout = setTimeout(() => {
@@ -262,12 +272,14 @@ function showSettingsButtonInitially() {
 function showSettingsButtonOnClick(event) {
   if (event.target === elements.settingsBtn || elements.settings?.contains(event.target)) { return; }
   if (event.target === elements.soundSettingsBtn || document.getElementById('soundSettings')?.contains(event.target)) { return; }
+  if (event.target === elements.musicSettingsBtn || elements.musicSettings?.contains(event.target)) { return; }
   if (event.target === elements.generalSettingsBtn || elements.generalSettings?.contains(event.target)) { return; }
   if (clickShowTimeout) { clearTimeout(clickShowTimeout); clickShowTimeout = null; }
   if (!isMouseDetected) {
     isMouseDetected = true;
     elements.settingsBtn?.classList.remove('hidden'); elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden'); elements.soundSettingsBtn?.classList.add('show');
+    elements.musicSettingsBtn?.classList.remove('hidden'); elements.musicSettingsBtn?.classList.add('show');
     elements.generalSettingsBtn?.classList.remove('hidden'); elements.generalSettingsBtn?.classList.add('show');
   }
   clickShowTimeout = setTimeout(() => {
@@ -283,8 +295,32 @@ function setupMouseDetection() {
   window.addEventListener('mouseleave', () => { if (mouseDetectionTimeout) { clearTimeout(mouseDetectionTimeout); mouseDetectionTimeout = null; } hideSettingsButton(); });
   elements.settingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.settings?.classList.toggle('hidden'); });
   elements.soundSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); const panel = document.getElementById('soundSettings'); panel?.classList.toggle('hidden'); });
+  elements.musicSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.musicSettings?.classList.toggle('hidden'); });
   elements.generalSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.generalSettings?.classList.toggle('hidden'); });
   window.addEventListener('click', (event) => { showSettingsButtonOnClick(event); });
+}
+
+// ================================
+// Music Settings (read-only)
+// ================================
+async function fetchMusicSettings() {
+  const el = elements.musicPathDisplay;
+  if (!el) return;
+
+  if (isDemoSite()) {
+    el.textContent = 'Not available on demo site';
+    return;
+  }
+
+  try {
+    const resp = await fetch('/api/music', { cache: 'no-store' });
+    if (!resp.ok) throw new Error('HTTP error');
+    const data = await resp.json();
+    const pathValue = typeof data?.musicPath === 'string' ? data.musicPath : null;
+    el.textContent = pathValue && pathValue.trim().length ? pathValue : '(not set)';
+  } catch {
+    el.textContent = '(unavailable)';
+  }
 }
 
 let demoMessageCount = 0;
@@ -1034,6 +1070,13 @@ function setupLoggerControls() {
           soundPanel.classList.add('hidden');
         }
       }
+      // Music
+      const musicPanel = elements.musicSettings;
+      if (musicPanel && !musicPanel.classList.contains('hidden')) {
+        if (!musicPanel.contains(target) && target !== elements.musicSettingsBtn) {
+          musicPanel.classList.add('hidden');
+        }
+      }
       // General
       const generalPanel = elements.generalSettings;
       if (generalPanel && !generalPanel.classList.contains('hidden')) {
@@ -1220,6 +1263,8 @@ function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); se
   try { fetchPollIntervalFromServer(); } catch {}
   // Fetch censor filter status from server (non-blocking)
   try { fetchCensorFilterStatus(); } catch {}
+  // Fetch music settings from server (non-blocking)
+  try { fetchMusicSettings(); } catch {}
   // Restore logger state from localStorage (if user had it enabled, re-enable on server)
   try { 
     if (state.logEnabled) {

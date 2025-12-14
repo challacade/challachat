@@ -16,8 +16,9 @@
   <div id="overlay" class="overlay">
     <div id="messages" class="messages" aria-live="polite"></div>
     <div id="toast" class="toast hidden"></div>
-    <button id="settingsBtn" class="settings-btn hidden" aria-label="Appearance">🎨</button>
+    <button id="settingsBtn" class="settings-btn appearance hidden" aria-label="Appearance">🎨</button>
   <button id="soundSettingsBtn" class="settings-btn sound hidden" aria-label="Sound Settings">🔊</button>
+  <button id="musicSettingsBtn" class="settings-btn music hidden" aria-label="Music">🎵</button>
   <button id="generalSettingsBtn" class="settings-btn general hidden" aria-label="Settings">⚙️</button>
   </div>
   <div id="settings" class="settings hidden">
@@ -161,6 +162,15 @@
     <div class="row">
       <button id="clearMessagesBtn" class="secondary" title="Clear all messages from the overlay">Clear All Messages</button>
       <button id="copyUrlBtn" class="secondary">Copy URL With Settings</button>
+    </div>
+  </div>
+
+  <!-- Music Settings Panel -->
+  <div id="musicSettings" class="settings hidden">
+    <h2>Music</h2>
+    <div class="censor-row">
+      <div>Music Path</div>
+      <div id="musicPathDisplay" class="status-message"></div>
     </div>
   </div>
 
