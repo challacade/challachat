@@ -70,6 +70,7 @@ const elements = {
 // ================================
 const musicPlayer = {
   playlist: [],
+  titles: [],
   order: [],
   index: 0,
   audio: null
@@ -114,16 +115,60 @@ function getTrackTitle(trackPath) {
   return fileName.replace(/\.[^.]+$/, '');
 }
 
+async function fetchTrackMeta(serverIndex) {
+  if (isDemoSite()) return { title: null };
+  const resp = await fetch(`/api/music/track/${serverIndex}/meta`, { cache: 'no-store' });
+  if (!resp.ok) throw new Error('HTTP error');
+  return resp.json();
+}
+
+async function ensureTrackTitleLoaded(serverIndex) {
+  if (!musicPlayer.playlist.length) return;
+  if (!Array.isArray(musicPlayer.titles) || musicPlayer.titles.length !== musicPlayer.playlist.length) {
+    musicPlayer.titles = Array.from({ length: musicPlayer.playlist.length });
+  }
+
+  // `undefined` = not fetched yet; `null` = fetched but no title/failed.
+  if (musicPlayer.titles[serverIndex] !== undefined) return;
+  musicPlayer.titles[serverIndex] = null;
+
+  try {
+    const data = await fetchTrackMeta(serverIndex);
+    const title = typeof data?.title === 'string' ? data.title.trim() : '';
+    musicPlayer.titles[serverIndex] = title || null;
+  } catch {
+    musicPlayer.titles[serverIndex] = null;
+  }
+}
+
+function getDisplayTitleAtPos(pos) {
+  if (!musicPlayer.playlist.length) return '(no tracks)';
+  const serverIndex = getServerIndexAtPos(pos);
+  const cached = Array.isArray(musicPlayer.titles) ? musicPlayer.titles[serverIndex] : undefined;
+  if (typeof cached === 'string' && cached.trim()) return cached;
+
+  const trackPath = musicPlayer.playlist[serverIndex];
+  const fallback = getTrackTitle(trackPath);
+  return fallback || '(unknown)';
+}
+
 function syncMusicUi() {
   // Current title
   const titleEl = elements.musicCurrentTitle;
   if (titleEl) {
-    if (!musicPlayer.playlist.length) {
-      titleEl.textContent = '(no tracks)';
-    } else {
-      const trackPath = musicPlayer.playlist[getServerIndexAtPos(musicPlayer.index)];
-      const title = getTrackTitle(trackPath);
-      titleEl.textContent = title || '(unknown)';
+    titleEl.textContent = getDisplayTitleAtPos(musicPlayer.index);
+
+    // Attempt to replace filename fallback with ID3 title when available.
+    if (musicPlayer.playlist.length) {
+      const serverIndexSnapshot = getServerIndexAtPos(musicPlayer.index);
+      void ensureTrackTitleLoaded(serverIndexSnapshot).then(() => {
+        // Only update if user hasn't changed tracks since we started.
+        if (getServerIndexAtPos(musicPlayer.index) !== serverIndexSnapshot) return;
+        const cached = musicPlayer.titles?.[serverIndexSnapshot];
+        if (typeof cached === 'string' && cached.trim()) {
+          titleEl.textContent = cached;
+        }
+      });
     }
   }
 
@@ -155,6 +200,7 @@ async function ensureMusicPlaylistLoaded() {
   const data = await fetchMusicPlaylist();
   const list = Array.isArray(data?.playlist) ? data.playlist : [];
   musicPlayer.playlist = list;
+  musicPlayer.titles = Array.from({ length: musicPlayer.playlist.length });
   if (!musicPlayer.order || musicPlayer.order.length !== musicPlayer.playlist.length) {
     resetMusicOrderToDefault();
   }
@@ -202,6 +248,8 @@ async function playMusicIndex(i) {
   const mappedPath = musicPlayer.playlist[serverIndex];
   if (!mappedPath) throw new Error('Missing track');
   setMusicIndex(i);
+  // Fire-and-forget metadata load so the UI can show ID3 title quickly.
+  void ensureTrackTitleLoaded(serverIndex).then(() => { syncMusicUi(); });
   applyMusicVolume();
   musicPlayer.audio.src = `/api/music/track/${serverIndex}`;
   await musicPlayer.audio.play();

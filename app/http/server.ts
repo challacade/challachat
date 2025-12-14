@@ -10,7 +10,7 @@ import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
 import { getMusicSettingsStatus } from '../core/settings';
-import { getTrackByIndex, refreshPlaylist } from '../core/music';
+import { getTrackByIndex, getTrackTitleByIndex, refreshPlaylist } from '../core/music';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -250,6 +250,27 @@ class App {
         count: current.playlist.length,
         scannedAt: current.scannedAt
       });
+    });
+
+  this.app.get('/api/music/track/:index/meta', async (req: Request, res: Response) => {
+      const idx = Number(req.params.index);
+      if (!Number.isInteger(idx) || idx < 0) {
+        res.status(400).json({ error: 'Invalid index' });
+        return;
+      }
+
+      const filePath = getTrackByIndex(idx);
+      if (!filePath) {
+        res.status(404).json({ error: 'Track not found' });
+        return;
+      }
+
+      try {
+        const title = await getTrackTitleByIndex(idx);
+        res.json({ title });
+      } catch {
+        res.status(500).json({ error: 'Failed to read track metadata' });
+      }
     });
 
   this.app.get('/api/music/track/:index', (req: Request, res: Response) => {
