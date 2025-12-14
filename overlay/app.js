@@ -874,7 +874,7 @@ function applyTheme() {
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars); 
 }
 
-function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } return { id, snippet, authorDetails, segments, ...extras }; }
+function extEventToItem(event) { const id = event.id || `ext_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`; const nowIso = new Date(event.ts || Date.now()).toISOString(); const authorDetails = { displayName: event?.author?.name || 'User', profileImageUrl: event?.author?.avatar || '', isChatOwner: !!event?.author?.flags?.owner, isChatModerator: !!event?.author?.flags?.mod, isVerified: !!event?.author?.flags?.verified, isChatSponsor: !!event?.author?.flags?.member, badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined }; let type = 'textMessageEvent'; const kind = event.kind || 'text'; if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') { type = 'newSponsorEvent'; } else if (kind === 'member-milestone') { type = 'memberMilestoneChatEvent'; } else if (kind === 'cheer' || kind === 'donation' || kind === 'tip') { type = 'superChatEvent'; } const snippet = { type, publishedAt: nowIso, displayMessage: event.text || '', textMessageDetails: { messageText: event.text || '' } }; const segments = Array.isArray(event.segments) ? event.segments : undefined; const extras = {}; if (kind === 'donation' && typeof event.amountDisplay === 'string') { extras.amountDisplay = event.amountDisplay; extras.color = event.color || ''; } const showUsername = event?.showUsername !== false; return { id, snippet, authorDetails, segments, showUsername, ...extras }; }
 
 function renderMessage(item) {
   const { id, snippet, authorDetails } = item;
@@ -911,6 +911,7 @@ function renderMessage(item) {
 
   const body = document.createElement('div');
   body.className = 'body';
+  const showUsername = item?.showUsername !== false;
   const nameElement = document.createElement('span');
   nameElement.className = 'name';
   const baseName = (authorDetails?.displayName || authorDetails?.name || 'Unknown');
@@ -947,13 +948,15 @@ function renderMessage(item) {
     contentElement.append(text);
   }
 
-  // Render header with optional badges; add a class when there are no visible badges
+  // Render header with optional badges; system messages can hide the username entirely.
   const header = document.createElement('span');
   header.className = 'header';
-  header.appendChild(nameElement);
+  if (showUsername) {
+    header.appendChild(nameElement);
+  }
 
   const badges = Array.isArray(item?.authorDetails?.badges) ? item.authorDetails.badges : [];
-  if (state.showBadges && badges.length) {
+  if (showUsername && state.showBadges && badges.length) {
     const badgesWrap = document.createElement('span');
     badgesWrap.className = 'badges badges-inline';
     // Match the name's font-size and line-height so badges scale like emotes
@@ -995,14 +998,14 @@ function renderMessage(item) {
   }
 
   // If super chat, show amount next to name (after badges)
-  if (snippet?.type === 'superChatEvent' && typeof item.amountDisplay === 'string' && item.amountDisplay) {
+  if (showUsername && snippet?.type === 'superChatEvent' && typeof item.amountDisplay === 'string' && item.amountDisplay) {
     const amountEl = document.createElement('span');
     amountEl.className = 'primary';
     amountEl.textContent = `\u00A0${item.amountDisplay}`;
     header.appendChild(amountEl);
   }
   // No colon
-  body.appendChild(header);
+  if (showUsername) body.appendChild(header);
   body.appendChild(contentElement);
   container.appendChild(body);
   return container;

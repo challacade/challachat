@@ -89,13 +89,14 @@ class App {
   private currentUrl: string | null = null;
   private tui = new TerminalUI(this.port);
 
-  private broadcastSystemMessage(text: string) {
+  private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean }) {
     const msg: ChatEvent = {
       id: `sys_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       author: { name: 'ChallaChat', avatar: '', flags: { mod: true } },
       text: String(text || ''),
       kind: 'text',
-      ts: Date.now()
+      ts: Date.now(),
+      showUsername: opts?.showUsername !== false
     };
     try { this.io.emit('chat-message', msg); } catch {}
     try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
@@ -270,7 +271,7 @@ class App {
       const now = setNowPlayingByIndex(idx);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`);
+        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     });
@@ -333,7 +334,7 @@ class App {
       const now = setNowPlayingByIndex(idx);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`);
+        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`, { showUsername: false });
       }
 
       const filePath = getTrackByIndex(idx);
@@ -565,6 +566,7 @@ class App {
       segments: message.segments,
       kind: message.kind || 'text',
       ts: message.ts || Date.now(),
+      showUsername: message.showUsername,
       amountDisplay: message.amountDisplay,
       color: message.color
     };

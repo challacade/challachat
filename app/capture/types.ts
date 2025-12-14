@@ -33,6 +33,8 @@ export interface ChatEvent {
   amountDisplay?: string;
   color?: string;
   hasCard?: boolean;
+  // Optional rendering hint for overlays (primarily for system messages)
+  showUsername?: boolean;
 }
 
 export interface CaptureOptions {
