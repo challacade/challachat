@@ -510,6 +510,7 @@ class App {
   // Start capture for the provided livestream URL
   private async startScraping(url: string) {
     if (this.isRunning) { console.log('Already capturing. Use "stop" first to change streams.'); return; }
+    const isStudioUrl = /^https?:\/\/studio\.youtube\.com\//i.test(String(url || ''));
     const videoId = this.extractVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
     this.capture = new YouTubeChatCapture(videoId, {
@@ -523,10 +524,11 @@ class App {
     await this.capture.start();
     this.isRunning = true;
     this.currentVideoId = videoId;
-    this.currentUrl = url;
+    // For creator/admin URLs, store a public-style URL so status display matches what viewers use.
+    this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
     this.messageCount = 0;
     this.startTime = Date.now();
-    this.tui.setUrl(url);
+    this.tui.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'yt' platform identifier)
     startLogging('yt');
   this.tui.render();
@@ -581,16 +583,29 @@ class App {
   private extractVideoId(url: string): string | null {
     try {
       const u = new URL(url);
+      // Creator/admin URLs (YouTube Studio)
+      if (u.hostname === 'studio.youtube.com') {
+        if (u.pathname === '/live_chat') return u.searchParams.get('v');
+        // e.g. https://studio.youtube.com/video/<videoId>/livestreaming
+        const parts = u.pathname.split('/').filter(Boolean);
+        if (parts.length >= 2 && parts[0] === 'video') return parts[1];
+      }
+
       if (u.pathname === '/watch') return u.searchParams.get('v');
       if (u.pathname.startsWith('/live/')) return u.pathname.replace('/live/', '');
       if (u.pathname === '/live_chat') return u.searchParams.get('v');
+      if (u.pathname === '/live_dashboard') return u.searchParams.get('v');
       if (u.hostname === 'youtu.be') return u.pathname.slice(1);
     } catch {
-      const regex = /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/live_chat\?v=)([^&\n?#]+)/;
+      const regex = /(?:studio\.youtube\.com\/video\/|studio\.youtube\.com\/live_chat\?[^\n]*v=|youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/live_chat\?v=|youtube\.com\/live_dashboard\?v=)([^&\n?#/]+)/;
       const match = url.match(regex);
       return match ? match[1] : null;
     }
     return null;
+  }
+
+  private toPublicLiveUrl(videoId: string): string {
+    return `https://www.youtube.com/live/${videoId}`;
   }
 
   // Gracefully stop the capture and summarize the session
