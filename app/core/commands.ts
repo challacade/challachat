@@ -15,9 +15,6 @@ export function runChatCommands(message: ChatEvent, ctx: CommandContext): void {
   // Command: !jam
   if (text === '!jam' && isJamEnabled()) {
     const authorName = message.author?.name || '';
-    const result = tryJam(authorName, ctx.nowPlaying);
-    if (result.shouldAnnounce && result.songId) {
-      ctx.broadcastSystemMessage(`${result.songId} got ${result.jamCount} jams!`);
-    }
+    tryJam(authorName, ctx.nowPlaying);
   }
 }

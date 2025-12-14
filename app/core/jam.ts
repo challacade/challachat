@@ -7,6 +7,11 @@ export type JamStatus = {
   jamCount: number;
 };
 
+export type JamFinale = {
+  songId: string;
+  jamCount: number;
+};
+
 const DEFAULT_THRESHOLD = 2;
 
 let jamEnabled = false;
@@ -15,7 +20,6 @@ let threshold = DEFAULT_THRESHOLD;
 let currentSongKey: string | null = null;
 let currentSongId: string | null = null;
 let jammers = new Set<string>();
-let announced = false;
 
 function normalizeUser(name: string): string {
   return String(name || '').trim().toLowerCase();
@@ -43,47 +47,69 @@ export function setJamThreshold(next: number): void {
   threshold = Number.isFinite(n) ? n : DEFAULT_THRESHOLD;
 }
 
-export function onNowPlayingUpdated(now: NowPlaying | null): void {
-  if (!now) {
-    currentSongKey = null;
-    currentSongId = null;
-    jammers = new Set();
-    announced = false;
-    return;
-  }
-
-  const nextKey = makeSongKey(now);
-  if (currentSongKey !== nextKey) {
-    currentSongKey = nextKey;
+function ensureTrackingForSong(now: NowPlaying): void {
+  const key = makeSongKey(now);
+  if (currentSongKey !== key) {
+    currentSongKey = key;
     currentSongId = now.songId;
     jammers = new Set();
-    announced = false;
   }
 }
 
-export function tryJam(userName: string, now: NowPlaying | null): { jamCount: number; shouldAnnounce: boolean; songId: string | null } {
-  if (!jamEnabled || !now) {
-    return { jamCount: jammers.size, shouldAnnounce: false, songId: currentSongId };
+export function onNowPlayingUpdated(next: NowPlaying | null): JamFinale | null {
+  const prevSongId = currentSongId;
+  const prevCount = jammers.size;
+
+  const shouldAnnouncePrev = !!(jamEnabled && prevSongId && prevCount >= threshold);
+  const finale: JamFinale | null = shouldAnnouncePrev ? { songId: prevSongId as string, jamCount: prevCount } : null;
+
+  if (!next) {
+    currentSongKey = null;
+    currentSongId = null;
+    jammers = new Set();
+    return finale;
   }
 
-  // Ensure state is aligned with current song
-  onNowPlayingUpdated(now);
+  const nextKey = makeSongKey(next);
+
+  // First ever update: start tracking without finalizing anything.
+  if (currentSongKey === null) {
+    currentSongKey = nextKey;
+    currentSongId = next.songId;
+    jammers = new Set();
+    return null;
+  }
+
+  // Song changed: finalize previous song (if applicable), then reset for new.
+  if (currentSongKey !== nextKey) {
+    currentSongKey = nextKey;
+    currentSongId = next.songId;
+    jammers = new Set();
+    return finale;
+  }
+
+  // Same song: keep tracking (but refresh songId in case it changes).
+  currentSongId = next.songId;
+  return null;
+}
+
+export function tryJam(userName: string, now: NowPlaying | null): { jamCount: number; songId: string | null } {
+  if (!jamEnabled || !now) {
+    return { jamCount: jammers.size, songId: currentSongId };
+  }
+
+  // Ensure we're tracking the current song; never announce here.
+  ensureTrackingForSong(now);
 
   const userKey = normalizeUser(userName);
   if (!userKey) {
-    return { jamCount: jammers.size, shouldAnnounce: false, songId: currentSongId };
+    return { jamCount: jammers.size, songId: currentSongId };
   }
 
   jammers.add(userKey);
 
   const count = jammers.size;
-  const reached = count >= threshold;
-  const shouldAnnounce = reached && !announced;
-  if (shouldAnnounce) {
-    announced = true;
-  }
-
-  return { jamCount: count, shouldAnnounce, songId: currentSongId };
+  return { jamCount: count, songId: currentSongId };
 }
 
 export function getJamStatus(now: NowPlaying | null): JamStatus {

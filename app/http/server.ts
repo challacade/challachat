@@ -268,7 +268,10 @@ class App {
         return;
       }
       const now = setNowPlayingByIndex(idx);
-      onNowPlayingUpdated(now);
+      const finale = onNowPlayingUpdated(now);
+      if (finale) {
+        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`);
+      }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     });
 
@@ -328,7 +331,10 @@ class App {
 
       // Treat songfile writes as a signal for the current track (used by !jam tracking)
       const now = setNowPlayingByIndex(idx);
-      onNowPlayingUpdated(now);
+      const finale = onNowPlayingUpdated(now);
+      if (finale) {
+        this.broadcastSystemMessage(`${finale.songId} got ${finale.jamCount} jams!`);
+      }
 
       const filePath = getTrackByIndex(idx);
       if (!filePath) {
