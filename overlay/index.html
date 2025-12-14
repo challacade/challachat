@@ -168,18 +168,10 @@
   <!-- Music Settings Panel -->
   <div id="musicSettings" class="settings hidden">
     <h2>Music</h2>
-    <div class="censor-row">
-      <div>Music Path</div>
-      <div id="musicPathDisplay" class="status-message"></div>
-    </div>
-    <div class="censor-row">
-      <div>Current Song</div>
-      <div id="musicCurrentTitle" class="status-message"></div>
-    </div>
+    <div id="musicCurrentTitle" class="music-current-title"></div>
     <div class="grid sound-grid">
       <label class="span-2">
-        Music Volume
-        <input id="musicVolume" type="range" min="0" max="1" step="0.05" value="1" />
+        <input id="musicVolume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Music volume" />
       </label>
     </div>
     <div class="row">
@@ -188,6 +180,10 @@
       <button id="musicNextBtn" class="secondary">Next</button>
       <button id="musicShuffleBtn" class="secondary">Shuffle</button>
     </div>
+    <!--<div class="censor-row">
+      <div>Music Path</div>
+      <div id="musicPathDisplay" class="status-message"></div>
+    </div>-->
   </div>
 
   <script type="module" src="/app.js"></script>

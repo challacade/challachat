@@ -227,6 +227,12 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   font-size: 11px;
   opacity: 0.7;
 }
+.settings .music-current-title {
+  font-size: 13px;
+  opacity: 1;
+  margin: 10px 0px 2px 0px;
+  word-break: break-word;
+}
 .settings .status-message.warning {
   color: #ffb347;
   opacity: 1;
