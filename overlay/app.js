@@ -52,7 +52,10 @@ const elements = {
   generalSettings: document.getElementById('generalSettings'),
   musicSettings: document.getElementById('musicSettings'),
   musicPathDisplay: document.getElementById('musicPathDisplay'),
+  musicVolume: document.getElementById('musicVolume'),
+  musicPrevBtn: document.getElementById('musicPrevBtn'),
   musicPlayBtn: document.getElementById('musicPlayBtn'),
+  musicNextBtn: document.getElementById('musicNextBtn'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -68,6 +71,24 @@ const musicPlayer = {
   index: 0,
   audio: null
 };
+
+function clamp01(n) {
+  if (!Number.isFinite(n)) return 1;
+  return Math.max(0, Math.min(1, n));
+}
+
+function applyMusicVolume() {
+  if (!musicPlayer.audio) return;
+  musicPlayer.audio.volume = clamp01(state?.music?.volume ?? 1);
+}
+
+async function ensureMusicPlaylistLoaded() {
+  if (musicPlayer.playlist.length) return;
+  const data = await fetchMusicPlaylist();
+  const list = Array.isArray(data?.playlist) ? data.playlist : [];
+  musicPlayer.playlist = list;
+  if (musicPlayer.index >= musicPlayer.playlist.length) musicPlayer.index = 0;
+}
 
 async function fetchMusicPlaylist() {
   if (isDemoSite()) return { playlist: [], count: 0, musicPath: null };
@@ -94,6 +115,7 @@ async function playMusicIndex(i) {
 
   const trackPath = musicPlayer.playlist[i];
   if (!trackPath) throw new Error('Missing track');
+  applyMusicVolume();
   musicPlayer.audio.src = `/api/music/track/${i}`;
   await musicPlayer.audio.play();
 }
@@ -127,6 +149,9 @@ const state = {
     message: { volume: 1 },
     donation: { volume: 1 },
     member: { volume: 1 },
+  },
+  music: {
+    volume: 1
   },
   preset: 'Dark',
   startedAt: null,
@@ -771,8 +796,8 @@ function adjustMessageAlignment(node) { const body = node.querySelector('.body')
 function shouldPlaySound(publishedAt) { const timestamp = new Date(publishedAt).getTime(); if (!Number.isFinite(timestamp)) return true; const startTimestamp = state.startedAt || 0; return timestamp >= (startTimestamp - SOUND_FRESH_MS); }
 function startSSE() { if (isDemoSite()) { return; } showToast('Connecting…'); const eventSource = new EventSource('/api/stream'); eventSource.addEventListener('open', () => { try { if (audio.ctx && audio.ctx.state === 'suspended') { audio.ctx.resume().catch(() => {}); } } catch {} }); eventSource.addEventListener('chat', (event) => { try { const data = JSON.parse(event.data); const events = data.events || []; events.forEach((chatEvent) => { if (chatEvent.type === 'delete' && chatEvent.id) { removeMessageById(chatEvent.id); return; } if (chatEvent.type === 'update' && chatEvent.id) { updateMessageById(chatEvent); return; } const item = extEventToItem(chatEvent); const messageNode = renderMessage(item); if (messageNode) { pushMessageElement(messageNode, item.snippet.publishedAt); const shouldPlay = shouldPlaySound(item.snippet.publishedAt); if (shouldPlay) { if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') { if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume); } else if (item.snippet.type === 'superChatEvent') { if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume); } else { if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume); } try { if (audio.ctx && audio.ctx.state === 'suspended') { showToast('Click overlay to enable sound'); } } catch {} } } }); } catch {} }); eventSource.addEventListener('end', () => { showToast('Session ended'); }); eventSource.addEventListener('error', () => { showToast('Connection error'); }); }
 
-function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds, logEnabled: state.logEnabled }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
-function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled; } catch {}
+function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds, music: state.music, logEnabled: state.logEnabled }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
+function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (data.music && typeof data.music === 'object') { state.music = { ...state.music, ...data.music }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled; } catch {}
 }
 function loadFromUrl() { const url = new URL(location.href); if (url.searchParams.has('scale')) { state.scale = Math.max(0.5, Math.min(3, Number(url.searchParams.get('scale')) || state.scale)); } if (url.searchParams.has('preset')) { state.preset = url.searchParams.get('preset') || state.preset; } if (url.searchParams.get('noavatars') === '1') state.showAvatars = false; if (url.searchParams.get('nobadges') === '1') state.showBadges = false; if (url.searchParams.get('showEmojiBadges') === '1') state.showEmojiBadges = true; if (url.searchParams.get('nobubbles') === '1') state.showBubbles = false; if (url.searchParams.has('gap')) { state.messageGapRem = Math.max(0, Math.min(1.5, Number(url.searchParams.get('gap')))); } if (url.searchParams.has('text')) { state.theme.text = `#${url.searchParams.get('text')}`.replace('##', '#'); } if (url.searchParams.has('bubble')) { state.theme.bubbleColor = `#${url.searchParams.get('bubble')}`.replace('##', '#'); } if (url.searchParams.has('bg')) { state.theme.bgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('bg')))); } if (url.searchParams.has('pagebgcol')) { state.pageBgColor = `#${url.searchParams.get('pagebgcol')}`.replace('##', '#'); } if (url.searchParams.has('pagebgop')) { state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop')))); } }
 function syncUi() { 
@@ -806,6 +831,8 @@ function syncUi() {
   if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
   if (elements.donationVolume) elements.donationVolume.value = String(state.sounds.donation.volume);
   if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
+  // Music panel
+  if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
   applyTheme();
   // Keep custom dropdown label/selection in sync
   try { syncCustomPresetDropdown(); } catch {}
@@ -839,6 +866,9 @@ function updateFromUi() {
   if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
   if (elements.donationVolume) state.sounds.donation.volume = Math.max(0, Math.min(2, Number(elements.donationVolume.value)));
   if (elements.memberVolume) state.sounds.member.volume = Math.max(0, Math.min(2, Number(elements.memberVolume.value)));
+  // Music volume (HTMLAudioElement: 0..1)
+  if (elements.musicVolume) state.music.volume = clamp01(Number(elements.musicVolume.value));
+  applyMusicVolume();
   applyTheme(); saveToLocal(); 
 }
 function copyUrlWithSettings() { const baseUrl = new URL('/', location.origin); const params = baseUrl.searchParams; params.set('scale', String(state.scale)); if (state.preset && state.preset !== 'Custom') { params.set('preset', state.preset); } if (!state.showAvatars) params.set('noavatars', '1'); if (!state.showBadges) params.set('nobadges', '1'); if (!state.showBubbles) params.set('nobubbles', '1'); if (state.messageGapRem !== 0.4) { params.set('gap', String(state.messageGapRem)); } if (state.pageBgColor) { params.set('pagebgcol', state.pageBgColor.replace('#', '')); } if (typeof state.pageBgOpacity === 'number') { params.set('pagebgop', String(state.pageBgOpacity)); } params.set('text', state.theme.text.replace('#', '')); params.set('bubble', state.theme.bubbleColor.replace('#', '')); params.set('bg', String(state.theme.bgOpacity)); try { navigator.clipboard.writeText(baseUrl.toString()).then(() => showToast('URL copied')).catch(() => showToast('Copy failed')); } catch { showToast('Copy failed'); } }
@@ -1158,6 +1188,8 @@ function setupLoggerControls() {
     elements.msgVolume?.addEventListener('input', updateFromUi);
     elements.donationVolume?.addEventListener('input', updateFromUi);
     elements.memberVolume?.addEventListener('input', updateFromUi);
+    // Music volume
+    elements.musicVolume?.addEventListener('input', updateFromUi);
     // Poll interval controls
     setupPollIntervalControls();
     // Censor filter controls
@@ -1173,9 +1205,7 @@ function setupLoggerControls() {
       e.preventDefault();
       e.stopPropagation();
       try {
-        const data = await fetchMusicPlaylist();
-        const list = Array.isArray(data?.playlist) ? data.playlist : [];
-        musicPlayer.playlist = list;
+        await ensureMusicPlaylistLoaded();
         musicPlayer.index = 0;
         if (!musicPlayer.playlist.length) {
           showToast('No music found');
@@ -1184,6 +1214,42 @@ function setupLoggerControls() {
         await playMusicIndex(0);
       } catch {
         showToast('Failed to play music');
+      }
+    });
+
+    elements.musicPrevBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await ensureMusicPlaylistLoaded();
+        if (!musicPlayer.playlist.length) {
+          showToast('No music found');
+          return;
+        }
+        const prev = musicPlayer.index - 1;
+        if (prev < 0) return;
+        musicPlayer.index = prev;
+        await playMusicIndex(prev);
+      } catch {
+        showToast('Failed to play previous');
+      }
+    });
+
+    elements.musicNextBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        await ensureMusicPlaylistLoaded();
+        if (!musicPlayer.playlist.length) {
+          showToast('No music found');
+          return;
+        }
+        const next = musicPlayer.index + 1;
+        if (next >= musicPlayer.playlist.length) return;
+        musicPlayer.index = next;
+        await playMusicIndex(next);
+      } catch {
+        showToast('Failed to play next');
       }
     });
   }
