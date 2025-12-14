@@ -10,6 +10,7 @@ import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
 import { getMusicSettingsStatus } from '../core/settings';
+import { getTrackByIndex, refreshPlaylist } from '../core/music';
 import YouTubeChatCapture from '../capture/youtube';
 import type { ChatEvent } from '../capture/types';
 
@@ -238,6 +239,59 @@ class App {
 
   this.app.get('/api/music', (_req: Request, res: Response) => {
       res.json(getMusicSettingsStatus());
+    });
+
+  this.app.get('/api/music/playlist', (_req: Request, res: Response) => {
+      // Build playlist on demand (and refresh when path changes)
+      const current = refreshPlaylist();
+      res.json({
+        musicPath: current.musicPath,
+        playlist: current.playlist,
+        count: current.playlist.length,
+        scannedAt: current.scannedAt
+      });
+    });
+
+  this.app.get('/api/music/track/:index', (req: Request, res: Response) => {
+      const idx = Number(req.params.index);
+      const filePath = getTrackByIndex(idx);
+      if (!filePath) {
+        res.status(404).json({ error: 'Track not found' });
+        return;
+      }
+
+      try {
+        const stat = fs.statSync(filePath);
+        const total = stat.size;
+        const range = req.headers.range;
+
+        res.setHeader('Content-Type', 'audio/mpeg');
+        res.setHeader('Accept-Ranges', 'bytes');
+
+        if (range) {
+          const m = /^bytes=(\d+)-(\d*)$/i.exec(range);
+          if (!m) {
+            res.status(416).end();
+            return;
+          }
+          const start = Number(m[1]);
+          const end = m[2] ? Number(m[2]) : total - 1;
+          const clampedStart = Math.max(0, Math.min(total - 1, start));
+          const clampedEnd = Math.max(clampedStart, Math.min(total - 1, end));
+          const chunkSize = clampedEnd - clampedStart + 1;
+
+          res.status(206);
+          res.setHeader('Content-Range', `bytes ${clampedStart}-${clampedEnd}/${total}`);
+          res.setHeader('Content-Length', String(chunkSize));
+          fs.createReadStream(filePath, { start: clampedStart, end: clampedEnd }).pipe(res);
+          return;
+        }
+
+        res.setHeader('Content-Length', String(total));
+        fs.createReadStream(filePath).pipe(res);
+      } catch {
+        res.status(500).json({ error: 'Failed to read track' });
+      }
     });
 
   this.app.get('/api/stream', (_req: Request, res: Response) => {

@@ -52,12 +52,51 @@ const elements = {
   generalSettings: document.getElementById('generalSettings'),
   musicSettings: document.getElementById('musicSettings'),
   musicPathDisplay: document.getElementById('musicPathDisplay'),
+  musicPlayBtn: document.getElementById('musicPlayBtn'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
   logEnabled: document.getElementById('logEnabled'),
   logStatus: document.getElementById('logStatus')
 };
+
+// ================================
+// Music Player (minimal)
+// ================================
+const musicPlayer = {
+  playlist: [],
+  index: 0,
+  audio: null
+};
+
+async function fetchMusicPlaylist() {
+  if (isDemoSite()) return { playlist: [], count: 0, musicPath: null };
+  const resp = await fetch('/api/music/playlist', { cache: 'no-store' });
+  if (!resp.ok) throw new Error('HTTP error');
+  return resp.json();
+}
+
+async function playMusicIndex(i) {
+  if (!musicPlayer.audio) {
+    musicPlayer.audio = new Audio();
+    musicPlayer.audio.preload = 'auto';
+    musicPlayer.audio.addEventListener('ended', async () => {
+      const next = musicPlayer.index + 1;
+      if (next >= musicPlayer.playlist.length) return;
+      musicPlayer.index = next;
+      try {
+        await playMusicIndex(next);
+      } catch {
+        // ignore
+      }
+    });
+  }
+
+  const trackPath = musicPlayer.playlist[i];
+  if (!trackPath) throw new Error('Missing track');
+  musicPlayer.audio.src = `/api/music/track/${i}`;
+  await musicPlayer.audio.play();
+}
 
 // ================================
 // Application State
@@ -1129,6 +1168,24 @@ function setupLoggerControls() {
     elements.testMessageBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.message) { await initializeAudio(); } playSound(audio.message, state.sounds.message.volume); showToast('Test: message'); });
     elements.testDonationBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.donation) { await initializeAudio(); } playSound(audio.donation, state.sounds.donation.volume); showToast('Test: donation'); });
     elements.testMemberBtn?.addEventListener('click', async (e) => { e.preventDefault(); e.stopPropagation(); ensureAudioContext(); if (!audio.member) { await initializeAudio(); } playSound(audio.member, state.sounds.member.volume); showToast('Test: membership'); });
+
+    elements.musicPlayBtn?.addEventListener('click', async (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      try {
+        const data = await fetchMusicPlaylist();
+        const list = Array.isArray(data?.playlist) ? data.playlist : [];
+        musicPlayer.playlist = list;
+        musicPlayer.index = 0;
+        if (!musicPlayer.playlist.length) {
+          showToast('No music found');
+          return;
+        }
+        await playMusicIndex(0);
+      } catch {
+        showToast('Failed to play music');
+      }
+    });
   }
 // ================================
 // Custom Dropdown for Preset (avoid native popup in CEF/OBS)
