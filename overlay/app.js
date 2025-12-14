@@ -52,6 +52,7 @@ const elements = {
   generalSettings: document.getElementById('generalSettings'),
   musicSettings: document.getElementById('musicSettings'),
   musicPathDisplay: document.getElementById('musicPathDisplay'),
+  musicCurrentTitle: document.getElementById('musicCurrentTitle'),
   musicVolume: document.getElementById('musicVolume'),
   musicPrevBtn: document.getElementById('musicPrevBtn'),
   musicPlayBtn: document.getElementById('musicPlayBtn'),
@@ -82,12 +83,64 @@ function applyMusicVolume() {
   musicPlayer.audio.volume = clamp01(state?.music?.volume ?? 1);
 }
 
+function getTrackTitle(trackPath) {
+  if (!trackPath || typeof trackPath !== 'string') return '';
+  const parts = trackPath.split(/[/\\]+/);
+  const fileName = parts[parts.length - 1] || '';
+  return fileName.replace(/\.[^.]+$/, '');
+}
+
+function syncMusicUi() {
+  // Current title
+  const titleEl = elements.musicCurrentTitle;
+  if (titleEl) {
+    if (!musicPlayer.playlist.length) {
+      titleEl.textContent = '(no tracks)';
+    } else {
+      const trackPath = musicPlayer.playlist[musicPlayer.index];
+      const title = getTrackTitle(trackPath);
+      titleEl.textContent = title || '(unknown)';
+    }
+  }
+
+  // Play button label (toggle)
+  const playBtn = elements.musicPlayBtn;
+  if (playBtn) {
+    const isPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+    playBtn.textContent = isPlaying ? 'Pause' : 'Play';
+  }
+}
+
+function setMusicIndex(i, { save = true } = {}) {
+  if (!musicPlayer.playlist.length) {
+    musicPlayer.index = 0;
+    state.music.index = 0;
+    syncMusicUi();
+    if (save) saveToLocal();
+    return;
+  }
+  const nextIndex = Math.max(0, Math.min(musicPlayer.playlist.length - 1, Number(i) || 0));
+  musicPlayer.index = nextIndex;
+  state.music.index = nextIndex;
+  syncMusicUi();
+  if (save) saveToLocal();
+}
+
 async function ensureMusicPlaylistLoaded() {
   if (musicPlayer.playlist.length) return;
   const data = await fetchMusicPlaylist();
   const list = Array.isArray(data?.playlist) ? data.playlist : [];
   musicPlayer.playlist = list;
-  if (musicPlayer.index >= musicPlayer.playlist.length) musicPlayer.index = 0;
+  // Restore last-known index (clamped)
+  const requestedIndex = Number(state?.music?.index) || 0;
+  if (!musicPlayer.playlist.length) {
+    musicPlayer.index = 0;
+    state.music.index = 0;
+  } else {
+    musicPlayer.index = Math.max(0, Math.min(musicPlayer.playlist.length - 1, requestedIndex));
+    state.music.index = musicPlayer.index;
+  }
+  syncMusicUi();
 }
 
 async function fetchMusicPlaylist() {
@@ -101,10 +154,15 @@ async function playMusicIndex(i) {
   if (!musicPlayer.audio) {
     musicPlayer.audio = new Audio();
     musicPlayer.audio.preload = 'auto';
+    musicPlayer.audio.addEventListener('play', () => { syncMusicUi(); });
+    musicPlayer.audio.addEventListener('pause', () => { syncMusicUi(); });
     musicPlayer.audio.addEventListener('ended', async () => {
       const next = musicPlayer.index + 1;
-      if (next >= musicPlayer.playlist.length) return;
-      musicPlayer.index = next;
+      if (next >= musicPlayer.playlist.length) {
+        syncMusicUi();
+        return;
+      }
+      setMusicIndex(next);
       try {
         await playMusicIndex(next);
       } catch {
@@ -115,6 +173,7 @@ async function playMusicIndex(i) {
 
   const trackPath = musicPlayer.playlist[i];
   if (!trackPath) throw new Error('Missing track');
+  setMusicIndex(i);
   applyMusicVolume();
   musicPlayer.audio.src = `/api/music/track/${i}`;
   await musicPlayer.audio.play();
@@ -151,7 +210,8 @@ const state = {
     member: { volume: 1 },
   },
   music: {
-    volume: 1
+    volume: 1,
+    index: 0
   },
   preset: 'Dark',
   startedAt: null,
@@ -359,7 +419,17 @@ function setupMouseDetection() {
   window.addEventListener('mouseleave', () => { if (mouseDetectionTimeout) { clearTimeout(mouseDetectionTimeout); mouseDetectionTimeout = null; } hideSettingsButton(); });
   elements.settingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.settings?.classList.toggle('hidden'); });
   elements.soundSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); const panel = document.getElementById('soundSettings'); panel?.classList.toggle('hidden'); });
-  elements.musicSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.musicSettings?.classList.toggle('hidden'); });
+  elements.musicSettingsBtn?.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    elements.musicSettings?.classList.toggle('hidden');
+    const isHidden = elements.musicSettings?.classList.contains('hidden');
+    if (!isHidden) {
+      // Non-blocking: ensures Current Song is populated when opening the panel.
+      ensureMusicPlaylistLoaded().catch(() => {});
+      syncMusicUi();
+    }
+  });
   elements.generalSettingsBtn?.addEventListener('click', (event) => { event.preventDefault(); event.stopPropagation(); elements.generalSettings?.classList.toggle('hidden'); });
   window.addEventListener('click', (event) => { showSettingsButtonOnClick(event); });
 }
@@ -1206,12 +1276,29 @@ function setupLoggerControls() {
       e.stopPropagation();
       try {
         await ensureMusicPlaylistLoaded();
-        musicPlayer.index = 0;
         if (!musicPlayer.playlist.length) {
           showToast('No music found');
           return;
         }
-        await playMusicIndex(0);
+
+        // Toggle play/pause for the *current* tracked index.
+        if (musicPlayer.audio && !musicPlayer.audio.paused) {
+          musicPlayer.audio.pause();
+          syncMusicUi();
+          return;
+        }
+
+        if (musicPlayer.audio && musicPlayer.audio.paused) {
+          const wants = `/api/music/track/${musicPlayer.index}`;
+          const isSameTrack = typeof musicPlayer.audio.src === 'string' && musicPlayer.audio.src.includes(wants);
+          applyMusicVolume();
+          if (isSameTrack) {
+            await musicPlayer.audio.play();
+            return;
+          }
+        }
+
+        await playMusicIndex(musicPlayer.index);
       } catch {
         showToast('Failed to play music');
       }
@@ -1228,8 +1315,12 @@ function setupLoggerControls() {
         }
         const prev = musicPlayer.index - 1;
         if (prev < 0) return;
-        musicPlayer.index = prev;
-        await playMusicIndex(prev);
+
+        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+        setMusicIndex(prev);
+        if (wasPlaying) {
+          await playMusicIndex(prev);
+        }
       } catch {
         showToast('Failed to play previous');
       }
@@ -1246,8 +1337,12 @@ function setupLoggerControls() {
         }
         const next = musicPlayer.index + 1;
         if (next >= musicPlayer.playlist.length) return;
-        musicPlayer.index = next;
-        await playMusicIndex(next);
+
+        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+        setMusicIndex(next);
+        if (wasPlaying) {
+          await playMusicIndex(next);
+        }
       } catch {
         showToast('Failed to play next');
       }
@@ -1388,6 +1483,8 @@ function start() { state.startedAt = Date.now(); attachAudioUnlockHandlers(); se
   try { fetchCensorFilterStatus(); } catch {}
   // Fetch music settings from server (non-blocking)
   try { fetchMusicSettings(); } catch {}
+  // Preload music playlist so Current Song can show immediately (non-blocking)
+  try { ensureMusicPlaylistLoaded(); } catch {}
   // Restore logger state from localStorage (if user had it enabled, re-enable on server)
   try { 
     if (state.logEnabled) {
