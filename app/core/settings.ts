@@ -8,6 +8,8 @@ export type AppSettings = {
   maxSongIdLength?: number;
   /** Enable terminal-driven music hotkeys (m, <, >, ?) for controlling the overlay music player. */
   enableMusicHotkeys?: boolean;
+  /** Minimum jam count required before the jam finale system message is sent when the song changes. */
+  jamCountMinimum?: number;
 };
 
 export function getEnableMusicHotkeys(): boolean {
@@ -18,6 +20,15 @@ export function getEnableMusicHotkeys(): boolean {
 export function getMaxSongIdLength(): number | null {
   const { settings } = readSettings();
   const raw = (settings as any)?.maxSongIdLength;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  return i > 0 ? i : null;
+}
+
+export function getJamCountMinimum(): number | null {
+  const { settings } = readSettings();
+  const raw = (settings as any)?.jamCountMinimum;
   const n = Number(raw);
   if (!Number.isFinite(n)) return null;
   const i = Math.floor(n);

@@ -114,12 +114,15 @@ When a stream is connected and a non-empty playlist is available, you can contro
 {
    "musicPath": "D:/Music/MyPlaylist",
    "maxSongIdLength": 80,
-   "enableMusicHotkeys": true
+   "enableMusicHotkeys": true,
+   "jamCountMinimum": 3
 }
 ```
 
 - `musicPath` — Folder to scan for music files.
 - `maxSongIdLength` — Optional maximum length for the song id string ("Title - Artist"). If the song id exceeds this length, it’s truncated and suffixed with `...`. This applies to both `song.txt` output (still wrapped in musical notes) and system messages like the `!jam` finale.
+- `enableMusicHotkeys` — Optional; when `true`, enables terminal hotkeys (`m`, `<`, `>`, `?`) to control overlay music.
+- `jamCountMinimum` — Optional minimum number of jams required before the jam finale message is sent when the song changes.
 
 ## Releases (GitHub Actions)
 

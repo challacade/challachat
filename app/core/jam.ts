@@ -1,4 +1,5 @@
 import type { NowPlaying } from './nowPlaying';
+import { getJamCountMinimum } from './settings';
 
 export type JamStatus = {
   enabled: boolean;
@@ -15,7 +16,7 @@ export type JamFinale = {
 const DEFAULT_THRESHOLD = 3;
 
 let jamEnabled = false;
-let threshold = DEFAULT_THRESHOLD;
+let threshold = getJamCountMinimum() ?? DEFAULT_THRESHOLD;
 
 let currentSongKey: string | null = null;
 let currentSongId: string | null = null;
