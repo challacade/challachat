@@ -17,7 +17,8 @@ export const musicPlayer = {
   index: 0,
   audio: null,
   lastWrittenServerIndex: null,
-  hasAutoShuffled: false
+  hasAutoShuffled: false,
+  playlistLoop: true  // Default to true, updated from server settings
 };
 
 // ================================
@@ -207,15 +208,18 @@ async function fetchMusicPlaylist() {
   return resp.json();
 }
 
-async function fetchAutoShuffleSetting() {
-  if (isDemoSite()) return false;
+async function fetchMusicServerSettings() {
+  if (isDemoSite()) return { autoShuffle: false, playlistLoop: true };
   try {
     const resp = await fetch('/api/music', { cache: 'no-store' });
-    if (!resp.ok) return false;
+    if (!resp.ok) return { autoShuffle: false, playlistLoop: true };
     const data = await resp.json();
-    return data?.autoShuffle === true;
+    return {
+      autoShuffle: data?.autoShuffle === true,
+      playlistLoop: data?.playlistLoop !== false  // Default to true
+    };
   } catch {
-    return false;
+    return { autoShuffle: false, playlistLoop: true };
   }
 }
 
@@ -229,10 +233,11 @@ export async function ensureMusicPlaylistLoaded() {
     resetMusicOrderToDefault();
   }
 
-  // Auto-shuffle on first load if enabled in settings
-  if (!musicPlayer.hasAutoShuffled && musicPlayer.playlist.length > 1) {
-    const shouldAutoShuffle = await fetchAutoShuffleSetting();
-    if (shouldAutoShuffle) {
+  // Fetch server settings and apply auto-shuffle + playlist loop
+  if (!musicPlayer.hasAutoShuffled && musicPlayer.playlist.length > 0) {
+    const serverSettings = await fetchMusicServerSettings();
+    musicPlayer.playlistLoop = serverSettings.playlistLoop;
+    if (serverSettings.autoShuffle && musicPlayer.playlist.length > 1) {
       shuffleInPlace(musicPlayer.order);
       musicPlayer.hasAutoShuffled = true;
     }
@@ -267,10 +272,15 @@ export async function playMusicIndex(i) {
     musicPlayer.audio.addEventListener('play', () => { syncMusicUi(); });
     musicPlayer.audio.addEventListener('pause', () => { syncMusicUi(); });
     musicPlayer.audio.addEventListener('ended', async () => {
-      const nextPos = musicPlayer.index + 1;
+      let nextPos = musicPlayer.index + 1;
       if (nextPos >= musicPlayer.playlist.length) {
-        syncMusicUi();
-        return;
+        if (musicPlayer.playlistLoop && musicPlayer.playlist.length > 0) {
+          // Loop back to the beginning
+          nextPos = 0;
+        } else {
+          syncMusicUi();
+          return;
+        }
       }
 
       // Continue playback seamlessly by loading the next track.

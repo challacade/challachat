@@ -12,6 +12,8 @@ export type AppSettings = {
   jamCountMinimum?: number;
   /** Automatically shuffle the playlist when it first loads. */
   autoShuffle?: boolean;
+  /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
+  playlistLoop?: boolean;
 };
 
 export function getEnableMusicHotkeys(): boolean {
@@ -40,6 +42,12 @@ export function getJamCountMinimum(): number | null {
 export function getAutoShuffle(): boolean {
   const { settings } = readSettings();
   return (settings as any)?.autoShuffle === true;
+}
+
+export function getPlaylistLoop(): boolean {
+  const { settings } = readSettings();
+  // Default to true if not explicitly set to false
+  return (settings as any)?.playlistLoop !== false;
 }
 
 export function truncateSongId(songId: string): string {
@@ -122,10 +130,11 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean } {
   return {
     musicPath: getMusicPath(),
     settingsPath: getSettingsPath(),
-    autoShuffle: getAutoShuffle()
+    autoShuffle: getAutoShuffle(),
+    playlistLoop: getPlaylistLoop()
   };
 }

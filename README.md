@@ -116,7 +116,8 @@ When a stream is connected and a non-empty playlist is available, you can contro
    "maxSongIdLength": 80,
    "enableMusicHotkeys": true,
    "jamCountMinimum": 3,
-   "autoShuffle": true
+   "autoShuffle": true,
+   "playlistLoop": true
 }
 ```
 
@@ -125,6 +126,7 @@ When a stream is connected and a non-empty playlist is available, you can contro
 - `enableMusicHotkeys` — Optional; when `true`, enables terminal hotkeys (`m`, `<`, `>`, `?`) to control overlay music.
 - `jamCountMinimum` — Optional minimum number of jams required before the jam finale message is sent when the song changes.
 - `autoShuffle` — Optional; when `true`, automatically shuffles the playlist when it first loads in the overlay.
+- `playlistLoop` — Optional; when `true` (the default), the playlist loops back to the first song after the last song ends. Set to `false` to stop playback at the end.
 
 ## Releases (GitHub Actions)
 
