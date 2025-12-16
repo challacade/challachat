@@ -99,6 +99,15 @@ ChallaChat can serve a local music playlist and optionally write the current son
 - Settings file: `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows)
 - Song file: `%LOCALAPPDATA%\ChallaChat\song.txt` (Windows)
 
+### Terminal music hotkeys
+
+When a stream is connected and a non-empty playlist is available, you can control the overlay music player from the terminal:
+
+- `m` — play/pause
+- `<` — previous track
+- `>` — next track
+- `?` — shuffle
+
 ### settings.json options
 
 ```json

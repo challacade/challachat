@@ -80,7 +80,7 @@ class App {
   private io = new SocketIOServer(this.server, { cors: { origin: '*', methods: ['GET','POST'] } });
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
-  private sse = new SSEHub<{ events: ChatEvent[] }>();
+  private sse = new SSEHub<any>();
   private capture: YouTubeChatCapture | null = null;
   private isRunning = false;
   private messageCount = 0;
@@ -88,6 +88,31 @@ class App {
   private currentVideoId: string | null = null;
   private currentUrl: string | null = null;
   private tui = new TerminalUI(this.port);
+  private musicHotkeysEnabled = false;
+
+  private broadcastMusicControl(action: 'playPause' | 'prev' | 'next' | 'shuffle') {
+    try {
+      this.sse.send('music-control', { action, ts: Date.now() });
+    } catch {
+      // ignore
+    }
+  }
+
+  private tryEnableMusicHotkeys() {
+    if (this.musicHotkeysEnabled) return;
+    if (!this.isRunning) return;
+
+    // Only enable after a real playlist exists.
+    const current = refreshPlaylist();
+    if (!current.playlist.length) return;
+
+    const ok = this.tui.enableMusicHotkeys((action) => {
+      if (!this.isRunning) return;
+      this.broadcastMusicControl(action);
+    });
+
+    this.musicHotkeysEnabled = ok;
+  }
 
   private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }) {
     const msg: ChatEvent = {
@@ -534,6 +559,9 @@ class App {
     startLogging('yt');
   this.tui.render();
     this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
+
+    // Enable terminal music hotkeys only after capture is active and music playlist exists.
+    try { this.tryEnableMusicHotkeys(); } catch {}
   }
 
   // Relay messages to SSE clients and overlay
@@ -621,6 +649,8 @@ class App {
     console.log(`Session duration: ${duration} seconds`);
     console.log(`Messages captured: ${this.messageCount}`);
     this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null;
+    try { this.tui.disableMusicHotkeys(); } catch {}
+    this.musicHotkeysEnabled = false;
     this.io.emit('capture-status', { status: 'stopped' });
   }
 

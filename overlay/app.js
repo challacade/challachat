@@ -1060,7 +1060,59 @@ function pushMessageElement(node, timestamp) { node.dataset.ts = String(timestam
 function adjustMessageAlignment(node) { const body = node.querySelector('.body'); const content = node.querySelector('.content'); if (!body || !content) return; const computedStyle = getComputedStyle(content); let lineHeight = parseFloat(computedStyle.lineHeight); if (isNaN(lineHeight) || computedStyle.lineHeight === 'normal') { const fontSize = parseFloat(computedStyle.fontSize) || 14; lineHeight = fontSize * 1.35; } const bodyHeight = body.getBoundingClientRect().height; const isSingleLine = bodyHeight <= (lineHeight * 1.5); node.classList.toggle('single-line', isSingleLine); }
 
 function shouldPlaySound(publishedAt) { const timestamp = new Date(publishedAt).getTime(); if (!Number.isFinite(timestamp)) return true; const startTimestamp = state.startedAt || 0; return timestamp >= (startTimestamp - SOUND_FRESH_MS); }
-function startSSE() { if (isDemoSite()) { return; } showToast('Connecting…'); const eventSource = new EventSource('/api/stream'); eventSource.addEventListener('open', () => { try { if (audio.ctx && audio.ctx.state === 'suspended') { audio.ctx.resume().catch(() => {}); } } catch {} }); eventSource.addEventListener('chat', (event) => { try { const data = JSON.parse(event.data); const events = data.events || []; events.forEach((chatEvent) => { if (chatEvent.type === 'delete' && chatEvent.id) { removeMessageById(chatEvent.id); return; } if (chatEvent.type === 'update' && chatEvent.id) { updateMessageById(chatEvent); return; } const item = extEventToItem(chatEvent); const messageNode = renderMessage(item); if (messageNode) { pushMessageElement(messageNode, item.snippet.publishedAt); const shouldPlay = shouldPlaySound(item.snippet.publishedAt); if (shouldPlay) { if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') { if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume); } else if (item.snippet.type === 'superChatEvent') { if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume); } else { if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume); } try { if (audio.ctx && audio.ctx.state === 'suspended') { showToast('Click overlay to enable sound'); } } catch {} } } }); } catch {} }); eventSource.addEventListener('end', () => { showToast('Session ended'); }); eventSource.addEventListener('error', () => { showToast('Connection error'); }); }
+function startSSE() {
+  if (isDemoSite()) return;
+  showToast('Connecting…');
+  const eventSource = new EventSource('/api/stream');
+
+  eventSource.addEventListener('open', () => {
+    try { if (audio.ctx && audio.ctx.state === 'suspended') { audio.ctx.resume().catch(() => {}); } } catch {}
+  });
+
+  eventSource.addEventListener('chat', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      const events = data.events || [];
+      events.forEach((chatEvent) => {
+        if (chatEvent.type === 'delete' && chatEvent.id) { removeMessageById(chatEvent.id); return; }
+        if (chatEvent.type === 'update' && chatEvent.id) { updateMessageById(chatEvent); return; }
+        const item = extEventToItem(chatEvent);
+        const messageNode = renderMessage(item);
+        if (messageNode) {
+          pushMessageElement(messageNode, item.snippet.publishedAt);
+          const shouldPlay = shouldPlaySound(item.snippet.publishedAt);
+          if (shouldPlay) {
+            if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') {
+              if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume);
+            } else if (item.snippet.type === 'superChatEvent') {
+              if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume);
+            } else {
+              if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume);
+            }
+            try { if (audio.ctx && audio.ctx.state === 'suspended') { showToast('Click overlay to enable sound'); } } catch {}
+          }
+        }
+      });
+    } catch {}
+  });
+
+  // Remote music control (from terminal hotkeys)
+  eventSource.addEventListener('music-control', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      const action = data?.action;
+      if (action === 'playPause') { void musicTogglePlayPause(); return; }
+      if (action === 'prev') { void musicPrev(); return; }
+      if (action === 'next') { void musicNext(); return; }
+      if (action === 'shuffle') { void musicShuffle(); return; }
+    } catch {
+      // ignore
+    }
+  });
+
+  eventSource.addEventListener('end', () => { showToast('Session ended'); });
+  eventSource.addEventListener('error', () => { showToast('Connection error'); });
+}
 
 function saveToLocal() { const settingsToSave = { scale: state.scale, showAvatars: state.showAvatars, showBadges: state.showBadges, showEmojiBadges: state.showEmojiBadges, theme: state.theme, showBubbles: state.showBubbles, messageGapRem: state.messageGapRem, pageBgColor: state.pageBgColor, pageBgOpacity: state.pageBgOpacity, preset: state.preset || 'Custom', demoMode: state.demoMode, sounds: state.sounds, music: state.music, logEnabled: state.logEnabled }; try { localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave)); } catch {} }
 function loadFromLocal() { let settingsString = null; try { settingsString = localStorage.getItem('challachat.settings'); } catch {} if (!settingsString) return; try { const data = JSON.parse(settingsString); if (typeof data.scale === 'number') state.scale = data.scale; if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars; if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges; if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges; if (data.theme) { state.theme = { ...state.theme, ...data.theme }; if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1; } if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor; if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity; if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles; if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem; if (typeof data.preset === 'string') state.preset = data.preset; if (data.sounds && typeof data.sounds === 'object') { state.sounds = { ...state.sounds, ...data.sounds }; } if (data.music && typeof data.music === 'object') { state.music = { ...state.music, ...data.music }; } if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode; if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled; } catch {}
@@ -1155,6 +1207,104 @@ function updateFromUi() {
 
   applyMusicVolume();
   applyTheme(); saveToLocal(); 
+}
+
+// ================================
+// Music Controls (shared by UI + terminal hotkeys)
+// ================================
+
+async function musicTogglePlayPause() {
+  try {
+    await ensureMusicPlaylistLoaded();
+    if (!musicPlayer.playlist.length) {
+      showToast('No music found');
+      return;
+    }
+
+    // Toggle play/pause for the *current* tracked index.
+    if (musicPlayer.audio && !musicPlayer.audio.paused) {
+      musicPlayer.audio.pause();
+      syncMusicUi();
+      return;
+    }
+
+    if (musicPlayer.audio && musicPlayer.audio.paused) {
+      const wants = `/api/music/track/${getServerIndexAtPos(musicPlayer.index)}`;
+      const isSameTrack = typeof musicPlayer.audio.src === 'string' && musicPlayer.audio.src.includes(wants);
+      applyMusicVolume();
+      if (isSameTrack) {
+        await musicPlayer.audio.play();
+        return;
+      }
+    }
+
+    await playMusicIndex(musicPlayer.index);
+  } catch {
+    showToast('Failed to play music');
+  }
+}
+
+async function musicPrev() {
+  try {
+    await ensureMusicPlaylistLoaded();
+    if (!musicPlayer.playlist.length) {
+      showToast('No music found');
+      return;
+    }
+    const prev = musicPlayer.index - 1;
+    if (prev < 0) return;
+
+    const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+    setMusicIndex(prev);
+    if (wasPlaying) {
+      await playMusicIndex(prev);
+    }
+  } catch {
+    showToast('Failed to play previous');
+  }
+}
+
+async function musicNext() {
+  try {
+    await ensureMusicPlaylistLoaded();
+    if (!musicPlayer.playlist.length) {
+      showToast('No music found');
+      return;
+    }
+    const next = musicPlayer.index + 1;
+    if (next >= musicPlayer.playlist.length) return;
+
+    const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+    setMusicIndex(next);
+    if (wasPlaying) {
+      await playMusicIndex(next);
+    }
+  } catch {
+    showToast('Failed to play next');
+  }
+}
+
+async function musicShuffle() {
+  try {
+    await ensureMusicPlaylistLoaded();
+    if (!musicPlayer.playlist.length) {
+      showToast('No music found');
+      return;
+    }
+
+    const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
+    resetMusicOrderToDefault();
+    shuffleInPlace(musicPlayer.order);
+    setMusicIndex(0);
+
+    if (wasPlaying) {
+      await playMusicIndex(0);
+    } else {
+      syncMusicUi();
+    }
+  } catch {
+    showToast('Failed to shuffle');
+  }
 }
 function copyUrlWithSettings() { const baseUrl = new URL('/', location.origin); const params = baseUrl.searchParams; params.set('scale', String(state.scale)); if (state.preset && state.preset !== 'Custom') { params.set('preset', state.preset); } if (!state.showAvatars) params.set('noavatars', '1'); if (!state.showBadges) params.set('nobadges', '1'); if (!state.showBubbles) params.set('nobubbles', '1'); if (state.messageGapRem !== 0.4) { params.set('gap', String(state.messageGapRem)); } if (state.pageBgColor) { params.set('pagebgcol', state.pageBgColor.replace('#', '')); } if (typeof state.pageBgOpacity === 'number') { params.set('pagebgop', String(state.pageBgOpacity)); } params.set('text', state.theme.text.replace('#', '')); params.set('bubble', state.theme.bubbleColor.replace('#', '')); params.set('bg', String(state.theme.bgOpacity)); try { navigator.clipboard.writeText(baseUrl.toString()).then(() => showToast('URL copied')).catch(() => showToast('Copy failed')); } catch { showToast('Copy failed'); } }
 
@@ -1491,103 +1641,25 @@ function setupLoggerControls() {
     elements.musicPlayBtn?.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      try {
-        await ensureMusicPlaylistLoaded();
-        if (!musicPlayer.playlist.length) {
-          showToast('No music found');
-          return;
-        }
-
-        // Toggle play/pause for the *current* tracked index.
-        if (musicPlayer.audio && !musicPlayer.audio.paused) {
-          musicPlayer.audio.pause();
-          syncMusicUi();
-          return;
-        }
-
-        if (musicPlayer.audio && musicPlayer.audio.paused) {
-          const wants = `/api/music/track/${getServerIndexAtPos(musicPlayer.index)}`;
-          const isSameTrack = typeof musicPlayer.audio.src === 'string' && musicPlayer.audio.src.includes(wants);
-          applyMusicVolume();
-          if (isSameTrack) {
-            await musicPlayer.audio.play();
-            return;
-          }
-        }
-
-        await playMusicIndex(musicPlayer.index);
-      } catch {
-        showToast('Failed to play music');
-      }
+      void musicTogglePlayPause();
     });
 
     elements.musicPrevBtn?.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      try {
-        await ensureMusicPlaylistLoaded();
-        if (!musicPlayer.playlist.length) {
-          showToast('No music found');
-          return;
-        }
-        const prev = musicPlayer.index - 1;
-        if (prev < 0) return;
-
-        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
-        setMusicIndex(prev);
-        if (wasPlaying) {
-          await playMusicIndex(prev);
-        }
-      } catch {
-        showToast('Failed to play previous');
-      }
+      void musicPrev();
     });
 
     elements.musicNextBtn?.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      try {
-        await ensureMusicPlaylistLoaded();
-        if (!musicPlayer.playlist.length) {
-          showToast('No music found');
-          return;
-        }
-        const next = musicPlayer.index + 1;
-        if (next >= musicPlayer.playlist.length) return;
-
-        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
-        setMusicIndex(next);
-        if (wasPlaying) {
-          await playMusicIndex(next);
-        }
-      } catch {
-        showToast('Failed to play next');
-      }
+      void musicNext();
     });
 
     elements.musicShuffleBtn?.addEventListener('click', async (e) => {
       e.preventDefault();
       e.stopPropagation();
-      try {
-        await ensureMusicPlaylistLoaded();
-        if (!musicPlayer.playlist.length) {
-          showToast('No music found');
-          return;
-        }
-
-        const wasPlaying = !!(musicPlayer.audio && !musicPlayer.audio.paused);
-        resetMusicOrderToDefault();
-        shuffleInPlace(musicPlayer.order);
-        setMusicIndex(0);
-
-        if (wasPlaying) {
-          await playMusicIndex(0);
-        } else {
-          syncMusicUi();
-        }
-      } catch {
-        showToast('Failed to shuffle');
-      }
+      void musicShuffle();
     });
   }
 // ================================
