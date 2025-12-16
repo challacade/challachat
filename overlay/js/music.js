@@ -16,7 +16,8 @@ export const musicPlayer = {
   order: [],
   index: 0,
   audio: null,
-  lastWrittenServerIndex: null
+  lastWrittenServerIndex: null,
+  hasAutoShuffled: false
 };
 
 // ================================
@@ -206,6 +207,18 @@ async function fetchMusicPlaylist() {
   return resp.json();
 }
 
+async function fetchAutoShuffleSetting() {
+  if (isDemoSite()) return false;
+  try {
+    const resp = await fetch('/api/music', { cache: 'no-store' });
+    if (!resp.ok) return false;
+    const data = await resp.json();
+    return data?.autoShuffle === true;
+  } catch {
+    return false;
+  }
+}
+
 export async function ensureMusicPlaylistLoaded() {
   if (musicPlayer.playlist.length) return;
   const data = await fetchMusicPlaylist();
@@ -215,6 +228,16 @@ export async function ensureMusicPlaylistLoaded() {
   if (!musicPlayer.order || musicPlayer.order.length !== musicPlayer.playlist.length) {
     resetMusicOrderToDefault();
   }
+
+  // Auto-shuffle on first load if enabled in settings
+  if (!musicPlayer.hasAutoShuffled && musicPlayer.playlist.length > 1) {
+    const shouldAutoShuffle = await fetchAutoShuffleSetting();
+    if (shouldAutoShuffle) {
+      shuffleInPlace(musicPlayer.order);
+      musicPlayer.hasAutoShuffled = true;
+    }
+  }
+
   // Restore last-known index (clamped)
   const requestedIndex = Number(state?.music?.index) || 0;
   if (!musicPlayer.playlist.length) {

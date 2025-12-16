@@ -10,6 +10,8 @@ export type AppSettings = {
   enableMusicHotkeys?: boolean;
   /** Minimum jam count required before the jam finale system message is sent when the song changes. */
   jamCountMinimum?: number;
+  /** Automatically shuffle the playlist when it first loads. */
+  autoShuffle?: boolean;
 };
 
 export function getEnableMusicHotkeys(): boolean {
@@ -33,6 +35,11 @@ export function getJamCountMinimum(): number | null {
   if (!Number.isFinite(n)) return null;
   const i = Math.floor(n);
   return i > 0 ? i : null;
+}
+
+export function getAutoShuffle(): boolean {
+  const { settings } = readSettings();
+  return (settings as any)?.autoShuffle === true;
 }
 
 export function truncateSongId(songId: string): string {
@@ -115,9 +122,10 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean } {
   return {
     musicPath: getMusicPath(),
-    settingsPath: getSettingsPath()
+    settingsPath: getSettingsPath(),
+    autoShuffle: getAutoShuffle()
   };
 }
