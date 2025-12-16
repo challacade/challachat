@@ -113,7 +113,8 @@ When a stream is connected and a non-empty playlist is available, you can contro
 ```json
 {
    "musicPath": "D:/Music/MyPlaylist",
-   "maxSongIdLength": 80
+   "maxSongIdLength": 80,
+   "enableMusicHotkeys": true
 }
 ```
 

@@ -77,8 +77,6 @@ export class TerminalUI {
       input.setRawMode(true);
       input.resume();
       this.musicHotkeysActive = true;
-      console.log('');
-      console.log(`${ANSI.bold}${ANSI.cyan}Music hotkeys:${ANSI.reset} m play/pause, < prev, > next, ? shuffle`);
       return true;
     } catch {
       // If anything fails (non-TTY, raw mode unsupported), leave it disabled.

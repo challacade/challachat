@@ -9,7 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
+import { getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -101,6 +101,7 @@ class App {
   private tryEnableMusicHotkeys() {
     if (this.musicHotkeysEnabled) return;
     if (!this.isRunning) return;
+    if (!getEnableMusicHotkeys()) return;
 
     // Only enable after a real playlist exists.
     const current = refreshPlaylist();

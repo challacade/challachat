@@ -6,7 +6,14 @@ export type AppSettings = {
   musicPath?: string;
   /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
   maxSongIdLength?: number;
+  /** Enable terminal-driven music hotkeys (m, <, >, ?) for controlling the overlay music player. */
+  enableMusicHotkeys?: boolean;
 };
+
+export function getEnableMusicHotkeys(): boolean {
+  const { settings } = readSettings();
+  return (settings as any)?.enableMusicHotkeys === true;
+}
 
 export function getMaxSongIdLength(): number | null {
   const { settings } = readSettings();
