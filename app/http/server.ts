@@ -208,6 +208,18 @@ class App {
       }
     });
 
+    // Serve JS modules from /js/ folder
+    this.app.get('/js/:filename', (req: Request, res: Response) => {
+      const filename = req.params.filename;
+      const file = getStaticFile(`js/${filename}`);
+      if (file) {
+        res.setHeader('Content-Type', 'application/javascript');
+        res.send(file);
+      } else {
+        res.status(404).send('Not found');
+      }
+    });
+
     // Serve main pages
     this.app.get('/', (_req: Request, res: Response) => {
       const indexHtml = getStaticFile('index.html');
