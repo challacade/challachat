@@ -312,20 +312,14 @@ async function playMusicIndex(i) {
         return;
       }
 
-      setMusicIndex(nextPos);
-      const nextServerIndex = getServerIndexAtPos(nextPos);
-
-      // Fire-and-forget metadata load so the UI can show ID3 title quickly.
-      void ensureTrackMetaLoaded(nextServerIndex).then(() => {
-        // Update title without waiting for the next poll/interaction.
+      // Continue playback seamlessly by loading the next track.
+      try {
+        await playMusicIndex(nextPos);
+      } catch {
+        // If auto-advance fails (e.g., missing file), keep UI consistent.
+        try { setMusicIndex(nextPos); } catch {}
         try { syncMusicUi(); } catch {}
-        // Update server with the nicer "title - artist" once available.
-        try { void notifyNowPlaying(nextServerIndex, getDisplayTitleAtPos(nextPos)); } catch {}
-      });
-
-      // Let the server know which track is now playing (used for !jam tracking)
-      // This may initially be filename-based; the call above updates once meta loads.
-      try { void notifyNowPlaying(nextServerIndex, getDisplayTitleAtPos(nextPos)); } catch { void notifyNowPlaying(nextServerIndex); }
+      }
     });
   }
 
