@@ -2,6 +2,20 @@
 import puppeteer, { Browser, Page, HTTPRequest } from 'puppeteer';
 import { ChatEvent, CaptureOptions } from './types';
 
+export interface CaptureCallbacks {
+  onMessage: (m: ChatEvent) => void;
+  onError: (e: Error) => void;
+  onStatus: (s: any) => void;
+  onDelete: (id: string) => void;
+}
+
+export interface CaptureOpts {
+  pollInterval: number;
+  quiet: boolean;
+  maxRetries: number;
+  retryDelay: number;
+}
+
 /**
  * Simple hash function for generating stable message IDs.
  * Used inside page.evaluate() - must be self-contained.
@@ -17,20 +31,6 @@ export function cyrb53(str: string, seed = 0): string {
   h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
   const combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
   return combined.toString(36);
-}
-
-export interface CaptureCallbacks {
-  onMessage: (m: ChatEvent) => void;
-  onError: (e: Error) => void;
-  onStatus: (s: any) => void;
-  onDelete: (id: string) => void;
-}
-
-export interface CaptureOpts {
-  pollInterval: number;
-  quiet: boolean;
-  maxRetries: number;
-  retryDelay: number;
 }
 
 /**

@@ -40,64 +40,6 @@ export class TerminalUI {
     this.rl.setPrompt(this.defaultPrompt);
   }
 
-  enableMusicHotkeys(onAction: (action: MusicHotkeyAction) => void): boolean {
-    if (this.musicHotkeysActive) return true;
-
-    const input: any = process.stdin as any;
-    if (!input || !input.isTTY) return false;
-
-    try {
-      // Wire keypress events for the existing readline interface.
-      (readline as any).emitKeypressEvents(input, this.rl);
-    } catch {
-      try { (readline as any).emitKeypressEvents(input); } catch {}
-    }
-
-    this.keypressHandler = (str: string, key: any) => {
-      try {
-        if (key?.ctrl && key?.name === 'c') {
-          // Preserve Ctrl+C behavior.
-          try { this.disableMusicHotkeys(); } catch {}
-          try { process.emit('SIGINT'); } catch {}
-          return;
-        }
-
-        const ch = typeof str === 'string' ? str : '';
-        if (ch === 'm' || ch === 'M') { onAction('playPause'); return; }
-        if (ch === '<' || (key?.name === 'comma' && key?.shift)) { onAction('prev'); return; }
-        if (ch === '>' || (key?.name === 'period' && key?.shift)) { onAction('next'); return; }
-        if (ch === '?' || (key?.name === 'slash' && key?.shift)) { onAction('shuffle'); return; }
-      } catch {
-        // ignore
-      }
-    };
-
-    try {
-      input.on('keypress', this.keypressHandler);
-      input.setRawMode(true);
-      input.resume();
-      this.musicHotkeysActive = true;
-      return true;
-    } catch {
-      // If anything fails (non-TTY, raw mode unsupported), leave it disabled.
-      try { input.off('keypress', this.keypressHandler); } catch {}
-      this.keypressHandler = null;
-      this.musicHotkeysActive = false;
-      return false;
-    }
-  }
-
-  disableMusicHotkeys() {
-    if (!this.musicHotkeysActive) return;
-    const input: any = process.stdin as any;
-    try {
-      if (this.keypressHandler) input.off('keypress', this.keypressHandler);
-    } catch {}
-    this.keypressHandler = null;
-    try { input.setRawMode(false); } catch {}
-    this.musicHotkeysActive = false;
-  }
-
   onLine(cb: (line: string) => void) {
   // Ensure only one listener that respects one-off capture
   this.rl.removeAllListeners('line');
@@ -177,6 +119,64 @@ export class TerminalUI {
 
   addRecent(_name: string, _text: string) {
     // Intentionally no-op: we no longer preview chat in the terminal
+  }
+
+  enableMusicHotkeys(onAction: (action: MusicHotkeyAction) => void): boolean {
+    if (this.musicHotkeysActive) return true;
+
+    const input: any = process.stdin as any;
+    if (!input || !input.isTTY) return false;
+
+    try {
+      // Wire keypress events for the existing readline interface.
+      (readline as any).emitKeypressEvents(input, this.rl);
+    } catch {
+      try { (readline as any).emitKeypressEvents(input); } catch {}
+    }
+
+    this.keypressHandler = (str: string, key: any) => {
+      try {
+        if (key?.ctrl && key?.name === 'c') {
+          // Preserve Ctrl+C behavior.
+          try { this.disableMusicHotkeys(); } catch {}
+          try { process.emit('SIGINT'); } catch {}
+          return;
+        }
+
+        const ch = typeof str === 'string' ? str : '';
+        if (ch === 'm' || ch === 'M') { onAction('playPause'); return; }
+        if (ch === '<' || (key?.name === 'comma' && key?.shift)) { onAction('prev'); return; }
+        if (ch === '>' || (key?.name === 'period' && key?.shift)) { onAction('next'); return; }
+        if (ch === '?' || (key?.name === 'slash' && key?.shift)) { onAction('shuffle'); return; }
+      } catch {
+        // ignore
+      }
+    };
+
+    try {
+      input.on('keypress', this.keypressHandler);
+      input.setRawMode(true);
+      input.resume();
+      this.musicHotkeysActive = true;
+      return true;
+    } catch {
+      // If anything fails (non-TTY, raw mode unsupported), leave it disabled.
+      try { input.off('keypress', this.keypressHandler); } catch {}
+      this.keypressHandler = null;
+      this.musicHotkeysActive = false;
+      return false;
+    }
+  }
+
+  disableMusicHotkeys() {
+    if (!this.musicHotkeysActive) return;
+    const input: any = process.stdin as any;
+    try {
+      if (this.keypressHandler) input.off('keypress', this.keypressHandler);
+    } catch {}
+    this.keypressHandler = null;
+    try { input.setRawMode(false); } catch {}
+    this.musicHotkeysActive = false;
   }
 
   render() {

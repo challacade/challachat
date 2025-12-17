@@ -16,49 +16,6 @@ export type AppSettings = {
   playlistLoop?: boolean;
 };
 
-export function getEnableMusicHotkeys(): boolean {
-  const { settings } = readSettings();
-  return (settings as any)?.enableMusicHotkeys === true;
-}
-
-export function getMaxSongIdLength(): number | null {
-  const { settings } = readSettings();
-  const raw = (settings as any)?.maxSongIdLength;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  return i > 0 ? i : null;
-}
-
-export function getJamCountMinimum(): number | null {
-  const { settings } = readSettings();
-  const raw = (settings as any)?.jamCountMinimum;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  return i > 0 ? i : null;
-}
-
-export function getAutoShuffle(): boolean {
-  const { settings } = readSettings();
-  return (settings as any)?.autoShuffle === true;
-}
-
-export function getPlaylistLoop(): boolean {
-  const { settings } = readSettings();
-  // Default to true if not explicitly set to false
-  return (settings as any)?.playlistLoop !== false;
-}
-
-export function truncateSongId(songId: string): string {
-  const s = String(songId ?? '');
-  const max = getMaxSongIdLength();
-  if (!max) return s;
-  if (s.length <= max) return s;
-  if (max <= 3) return '...'.slice(0, max);
-  return s.slice(0, Math.max(0, max - 3)).trimEnd() + '...';
-}
-
 function getSettingsDir(): string {
   if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
     return path.join(process.env.LOCALAPPDATA, 'ChallaChat');
@@ -137,4 +94,47 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     autoShuffle: getAutoShuffle(),
     playlistLoop: getPlaylistLoop()
   };
+}
+
+export function getEnableMusicHotkeys(): boolean {
+  const { settings } = readSettings();
+  return (settings as any)?.enableMusicHotkeys === true;
+}
+
+export function getMaxSongIdLength(): number | null {
+  const { settings } = readSettings();
+  const raw = (settings as any)?.maxSongIdLength;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  return i > 0 ? i : null;
+}
+
+export function getJamCountMinimum(): number | null {
+  const { settings } = readSettings();
+  const raw = (settings as any)?.jamCountMinimum;
+  const n = Number(raw);
+  if (!Number.isFinite(n)) return null;
+  const i = Math.floor(n);
+  return i > 0 ? i : null;
+}
+
+export function getAutoShuffle(): boolean {
+  const { settings } = readSettings();
+  return (settings as any)?.autoShuffle === true;
+}
+
+export function getPlaylistLoop(): boolean {
+  const { settings } = readSettings();
+  // Default to true if not explicitly set to false
+  return (settings as any)?.playlistLoop !== false;
+}
+
+export function truncateSongId(songId: string): string {
+  const s = String(songId ?? '');
+  const max = getMaxSongIdLength();
+  if (!max) return s;
+  if (s.length <= max) return s;
+  if (max <= 3) return '...'.slice(0, max);
+  return s.slice(0, Math.max(0, max - 3)).trimEnd() + '...';
 }
