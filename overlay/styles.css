@@ -110,6 +110,16 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   font-style: italic;
 }
 
+/* Custom message below subscription info */
+.sub-custom-message {
+  display: block;
+  font-size: calc(1.10rem * var(--scale));
+  line-height: 1.35;
+  margin-top: calc(0.25rem * var(--scale));
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
 /* Reply preview (displayed above message content) */
 .reply-preview {
   display: block;

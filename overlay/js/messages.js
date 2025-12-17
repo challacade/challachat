@@ -205,8 +205,11 @@ export function renderMessage(item) {
     contentElement.append(' ');
   }
 
+  // Skip regular segment rendering for subscription messages (handled later with systemMessage)
+  const isSubMessageType = snippet?.type === 'newSponsorEvent' && typeof item.systemMessage === 'string' && item.systemMessage;
+  
   const segments = item?.segments;
-  if (Array.isArray(segments) && segments.length) {
+  if (!isSubMessageType && Array.isArray(segments) && segments.length) {
     for (const segment of segments) {
       if (!segment) continue;
       if (segment.t === 'text') {
@@ -221,7 +224,7 @@ export function renderMessage(item) {
         contentElement.appendChild(img);
       }
     }
-  } else {
+  } else if (!isSubMessageType) {
     const text = snippet?.displayMessage || snippet?.textMessageDetails?.messageText || '';
     contentElement.textContent = '';
 
@@ -339,12 +342,50 @@ export function renderMessage(item) {
     body.appendChild(replyEl);
   }
   
-  // Display system message (e.g., Twitch subscription info) on its own line
-  if (typeof item.systemMessage === 'string' && item.systemMessage) {
+  // For subscription messages, render systemMessage as inline content (not a separate line)
+  // For other message types with systemMessage, show it on its own line
+  const isSubMessage = snippet?.type === 'newSponsorEvent' && typeof item.systemMessage === 'string' && item.systemMessage;
+  
+  if (typeof item.systemMessage === 'string' && item.systemMessage && !isSubMessage) {
+    // Non-subscription system messages get their own line
     const systemEl = document.createElement('div');
     systemEl.className = 'system-message';
     systemEl.textContent = item.systemMessage;
     body.appendChild(systemEl);
+  }
+  
+  // For subscriptions, render systemMessage as inline content
+  // Custom message (segments) goes on its own line below
+  if (isSubMessage) {
+    contentElement.textContent = item.systemMessage;
+    
+    // If there's also custom message content, add it on a new line
+    const segments = item?.segments;
+    if (Array.isArray(segments) && segments.length) {
+      const customMsgEl = document.createElement('div');
+      customMsgEl.className = 'sub-custom-message';
+      for (const segment of segments) {
+        if (!segment) continue;
+        if (segment.t === 'text') {
+          customMsgEl.append(segment.text || '');
+        } else if (segment.t === 'emote' && segment.url) {
+          const img = document.createElement('img');
+          img.className = 'emoji-img';
+          img.src = segment.url;
+          img.alt = segment.alt || '';
+          img.decoding = 'async';
+          img.loading = 'lazy';
+          customMsgEl.appendChild(img);
+        }
+      }
+      // Only append if there's actual content
+      if (customMsgEl.textContent?.trim() || customMsgEl.querySelector('img')) {
+        body.appendChild(contentElement);
+        body.appendChild(customMsgEl);
+        container.appendChild(body);
+        return container;
+      }
+    }
   }
   
   body.appendChild(contentElement);

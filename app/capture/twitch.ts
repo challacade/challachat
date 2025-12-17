@@ -311,6 +311,12 @@ export class TwitchChatCapture extends BaseChatCapture {
           
           if (!authorName) return; // Can't process without a username
 
+          // Strip the username from the beginning of systemMessage since we show it in the header
+          let cleanSystemMessage = systemMessage;
+          if (authorName && systemMessage.startsWith(authorName)) {
+            cleanSystemMessage = systemMessage.slice(authorName.length).trim();
+          }
+
           const messageText = segments.filter(s => s.t === 'text').map(s => s.text).join('').trim();
           const stableKey = `twitch-sub|${authorName}|${systemMessage}|${messageText}`;
           const messageId = `tw_sub_${cyrb53(stableKey)}`;
@@ -323,7 +329,7 @@ export class TwitchChatCapture extends BaseChatCapture {
             segments: segments.length > 0 ? segments : (messageText ? [{ t: 'text', text: messageText }] : []),
             timestamp: Date.now(),
             kind,
-            systemMessage
+            systemMessage: cleanSystemMessage
           };
           out.push(payload);
         } catch {}
