@@ -49,6 +49,11 @@ export interface ChatEvent {
   };
   /** System/platform message (e.g. "Subscribed at Tier 1. They've subscribed for 24 months!") */
   systemMessage?: string;
+  /** Reply context when this message is a reply to another message */
+  replyTo?: {
+    username: string;
+    messagePreview: string;
+  };
 }
 
 export interface CaptureOptions {

@@ -708,7 +708,8 @@ class App {
       effects: message.effects,
       amountDisplay: message.amountDisplay,
       color: message.color,
-      systemMessage: message.systemMessage
+      systemMessage: message.systemMessage,
+      replyTo: message.replyTo
     };
   }
 

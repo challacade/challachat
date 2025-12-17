@@ -183,6 +183,26 @@ export class TwitchChatCapture extends BaseChatCapture {
             if (colorMatch) nameColor = colorMatch[1].trim();
           }
           
+          // Check for reply context
+          // Reply info is in a <p> with "Replying to @username: message preview"
+          // The title attribute contains the full original message
+          let replyTo: { username: string; messagePreview: string } | undefined;
+          const replyContainer = element.closest('.chat-line__message')?.querySelector('p[title]') as HTMLElement | null;
+          if (replyContainer) {
+            const replyText = replyContainer.textContent?.trim() || '';
+            const titleText = replyContainer.getAttribute('title') || '';
+            // Parse "Replying to @username: message"
+            const match = replyText.match(/^Replying to @([^:]+):\s*/i);
+            if (match) {
+              const username = match[1].trim();
+              // Use title attribute for full message if available, otherwise extract from text
+              const messagePreview = titleText || replyText.replace(match[0], '').trim();
+              if (username && messagePreview) {
+                replyTo = { username, messagePreview };
+              }
+            }
+          }
+          
           const messageContainer = element.querySelector('[data-a-target="chat-line-message-body"]') as HTMLElement | null;
           const segments = parseMessageSegments(messageContainer);
           const messageText = segments.filter(s => s.t === 'text').map(s => s.text).join('').trim();
@@ -201,7 +221,8 @@ export class TwitchChatCapture extends BaseChatCapture {
             text: messageText,
             segments: segments.length > 0 ? segments : [{ t: 'text', text: messageText }],
             timestamp: Date.now(),
-            kind: 'text'
+            kind: 'text',
+            replyTo
           };
           out.push(payload);
         } catch {}
@@ -327,7 +348,8 @@ export class TwitchChatCapture extends BaseChatCapture {
           segments: message.segments,
           kind: message.kind || 'text',
           ts: message.timestamp || Date.now(),
-          systemMessage: message.systemMessage
+          systemMessage: message.systemMessage,
+          replyTo: message.replyTo
         };
         this.callbacks.onMessage(evt);
       }

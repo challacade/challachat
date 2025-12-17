@@ -127,6 +127,10 @@ export function extEventToItem(event) {
   if (typeof event.systemMessage === 'string' && event.systemMessage) {
     extras.systemMessage = event.systemMessage;
   }
+  // Pass through replyTo for reply messages
+  if (event.replyTo && typeof event.replyTo.username === 'string') {
+    extras.replyTo = event.replyTo;
+  }
   
   const showUsername = event?.showUsername !== false;
   const effects = (event && typeof event === 'object') ? (event.effects || null) : null;
@@ -309,6 +313,31 @@ export function renderMessage(item) {
   }
   
   if (showUsername) body.appendChild(header);
+  
+  // Display reply preview (e.g., "↩ @username: message preview")
+  if (item.replyTo && typeof item.replyTo.username === 'string') {
+    const replyEl = document.createElement('div');
+    replyEl.className = 'reply-preview';
+    
+    const replyIcon = document.createElement('span');
+    replyIcon.className = 'reply-icon';
+    replyIcon.textContent = '↩ ';
+    replyEl.appendChild(replyIcon);
+    
+    const replyUsername = document.createElement('span');
+    replyUsername.className = 'reply-username';
+    replyUsername.textContent = `@${item.replyTo.username}`;
+    replyEl.appendChild(replyUsername);
+    
+    if (item.replyTo.messagePreview) {
+      const replyText = document.createElement('span');
+      replyText.className = 'reply-text';
+      replyText.textContent = `: ${item.replyTo.messagePreview}`;
+      replyEl.appendChild(replyText);
+    }
+    
+    body.appendChild(replyEl);
+  }
   
   // Display system message (e.g., Twitch subscription info) on its own line
   if (typeof item.systemMessage === 'string' && item.systemMessage) {
