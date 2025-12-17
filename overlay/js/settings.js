@@ -25,6 +25,29 @@ let isMouseDetected = false;
 let initialShowTimeout = null;
 let clickShowTimeout = null;
 
+export function syncMusicSettingsButtonVisibility() {
+  const btn = elements.musicSettingsBtn;
+  const panel = elements.musicSettings;
+  const enabled = !!musicPlayer?.isConfigured;
+
+  if (!enabled) {
+    // Ensure the music UI is not visible or interactable when not configured.
+    btn?.classList.remove('show');
+    btn?.classList.add('hidden');
+    panel?.classList.add('hidden');
+    return;
+  }
+
+  // Configured: follow the same visibility rules as the other settings buttons.
+  if (isMouseDetected) {
+    btn?.classList.remove('hidden');
+    btn?.classList.add('show');
+  } else {
+    btn?.classList.remove('show');
+    btn?.classList.add('hidden');
+  }
+}
+
 // ================================
 // Mouse Detection Helpers
 // ================================
@@ -34,8 +57,8 @@ function isMouseNearSettingsButton(mouseX, mouseY) {
   const buttonSize = 48;
   const generalRight = 12;
   const soundRight = 68;
-  const musicRight = 124;
-  const appearanceRight = 180;
+  const appearanceRight = 124;
+  const musicRight = 180;
   const generalLeft = window.innerWidth - generalRight - buttonSize;
   const soundLeft = window.innerWidth - soundRight - buttonSize;
   const musicLeft = window.innerWidth - musicRight - buttonSize;
@@ -59,8 +82,7 @@ function showSettingsButton() {
     elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden');
     elements.soundSettingsBtn?.classList.add('show');
-    elements.musicSettingsBtn?.classList.remove('hidden');
-    elements.musicSettingsBtn?.classList.add('show');
+    syncMusicSettingsButtonVisibility();
     elements.generalSettingsBtn?.classList.remove('hidden');
     elements.generalSettingsBtn?.classList.add('show');
   }
@@ -77,7 +99,8 @@ function hideSettingsButton() {
       if (!isMouseDetected) {
         elements.settingsBtn?.classList.add('hidden');
         elements.soundSettingsBtn?.classList.add('hidden');
-        elements.musicSettingsBtn?.classList.add('hidden');
+        // Only keep visible when configured; otherwise ensure hidden.
+        syncMusicSettingsButtonVisibility();
         elements.generalSettingsBtn?.classList.add('hidden');
       }
     }, 160);
@@ -115,8 +138,7 @@ function showSettingsButtonInitially() {
   elements.settingsBtn?.classList.add('show');
   elements.soundSettingsBtn?.classList.remove('hidden');
   elements.soundSettingsBtn?.classList.add('show');
-  elements.musicSettingsBtn?.classList.remove('hidden');
-  elements.musicSettingsBtn?.classList.add('show');
+  syncMusicSettingsButtonVisibility();
   elements.generalSettingsBtn?.classList.remove('hidden');
   elements.generalSettingsBtn?.classList.add('show');
   initialShowTimeout = setTimeout(() => {
@@ -146,8 +168,7 @@ function showSettingsButtonOnClick(event) {
     elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden');
     elements.soundSettingsBtn?.classList.add('show');
-    elements.musicSettingsBtn?.classList.remove('hidden');
-    elements.musicSettingsBtn?.classList.add('show');
+    syncMusicSettingsButtonVisibility();
     elements.generalSettingsBtn?.classList.remove('hidden');
     elements.generalSettingsBtn?.classList.add('show');
   }
@@ -192,6 +213,7 @@ export function setupMouseDetection() {
   elements.musicSettingsBtn?.addEventListener('click', (event) => {
     event.preventDefault();
     event.stopPropagation();
+    if (!musicPlayer?.isConfigured) return;
     elements.musicSettings?.classList.toggle('hidden');
     const isHidden = elements.musicSettings?.classList.contains('hidden');
     if (!isHidden) {

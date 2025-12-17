@@ -11,7 +11,7 @@
 
 import { state, elements, isDemoSite } from './js/state.js';
 import { attachAudioUnlockHandlers, initializeAudio } from './js/audio.js';
-import { toggleJam, ensureMusicPlaylistLoaded, fetchMusicSettings } from './js/music.js';
+import { toggleJam, ensureMusicPlaylistLoaded, fetchMusicSettings, musicPlayer } from './js/music.js';
 import { startDemoMode, adjustMessageAlignment } from './js/messages.js';
 import {
   setupMouseDetection,
@@ -22,6 +22,7 @@ import {
   loadFromUrl,
   syncUi,
   bindUi,
+  syncMusicSettingsButtonVisibility,
   fetchPollIntervalFromServer,
   fetchCensorFilterStatus,
   fetchLoggerStatus,
@@ -40,6 +41,12 @@ function start() {
   
   // Setup audio unlock handlers for browsers that block autoplay
   attachAudioUnlockHandlers();
+
+  // Fetch music configuration early so the Music UI can be hidden when not configured.
+  const musicSettingsPromise = (async () => {
+    try { await fetchMusicSettings(); } catch {}
+    try { syncMusicSettingsButtonVisibility(); } catch {}
+  })();
   
   // Setup mouse detection for settings buttons
   setupMouseDetection();
@@ -98,8 +105,12 @@ function start() {
   // Fetch settings from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
   try { fetchCensorFilterStatus(); } catch {}
-  try { fetchMusicSettings(); } catch {}
-  try { ensureMusicPlaylistLoaded(); } catch {}
+  // Music settings already requested above; don't eagerly load playlist unless music is configured.
+  void musicSettingsPromise.then(() => {
+    if (musicPlayer?.isConfigured) {
+      try { ensureMusicPlaylistLoaded(); } catch {}
+    }
+  });
   
   // Restore logger state
   try {

@@ -194,11 +194,11 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   opacity: 0;
   pointer-events: none;
 }
-/* Order from right to left: General (12px), Sound (68px), Music (124px), Appearance (180px) */
+/* Order from right to left: General (12px), Sound (68px), Appearance (124px), Music (180px) */
 .settings-btn.general { right: 12px; }
 .settings-btn.sound { right: 68px; }
-.settings-btn.music { right: 124px; }
-.settings-btn.appearance { right: 180px; }
+.settings-btn.appearance { right: 124px; }
+.settings-btn.music { right: 180px; }
 
 .settings-btn:hover {
   background: rgba(0, 0, 0, 0.9);

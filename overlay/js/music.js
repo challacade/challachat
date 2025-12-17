@@ -18,7 +18,8 @@ export const musicPlayer = {
   audio: null,
   lastWrittenServerIndex: null,
   hasAutoShuffled: false,
-  playlistLoop: true  // Default to true, updated from server settings
+  playlistLoop: true,  // Default to true, updated from server settings
+  isConfigured: false  // True when server settings provide a musicPath
 };
 
 // ================================
@@ -209,17 +210,19 @@ async function fetchMusicPlaylist() {
 }
 
 async function fetchMusicServerSettings() {
-  if (isDemoSite()) return { autoShuffle: false, playlistLoop: true };
+  if (isDemoSite()) return { autoShuffle: false, playlistLoop: true, musicPath: null };
   try {
     const resp = await fetch('/api/music', { cache: 'no-store' });
-    if (!resp.ok) return { autoShuffle: false, playlistLoop: true };
+    if (!resp.ok) return { autoShuffle: false, playlistLoop: true, musicPath: null };
     const data = await resp.json();
+    const musicPath = (typeof data?.musicPath === 'string' && data.musicPath.trim()) ? data.musicPath.trim() : null;
     return {
       autoShuffle: data?.autoShuffle === true,
-      playlistLoop: data?.playlistLoop !== false  // Default to true
+      playlistLoop: data?.playlistLoop !== false,  // Default to true
+      musicPath
     };
   } catch {
-    return { autoShuffle: false, playlistLoop: true };
+    return { autoShuffle: false, playlistLoop: true, musicPath: null };
   }
 }
 
@@ -237,6 +240,7 @@ export async function ensureMusicPlaylistLoaded() {
   if (!musicPlayer.hasAutoShuffled && musicPlayer.playlist.length > 0) {
     const serverSettings = await fetchMusicServerSettings();
     musicPlayer.playlistLoop = serverSettings.playlistLoop;
+    musicPlayer.isConfigured = !!serverSettings.musicPath;
     if (serverSettings.autoShuffle && musicPlayer.playlist.length > 1) {
       shuffleInPlace(musicPlayer.order);
       musicPlayer.hasAutoShuffled = true;
@@ -414,7 +418,25 @@ export async function musicShuffle() {
 
 export async function fetchMusicSettings() {
   const el = elements.musicPathDisplay;
-  if (!el) return;
+  if (!el) {
+    // Still update internal availability state even if the UI element isn't present.
+    if (!isDemoSite()) {
+      try {
+        const resp = await fetch('/api/music', { cache: 'no-store' });
+        if (resp.ok) {
+          const data = await resp.json();
+          const musicPath = (typeof data?.musicPath === 'string' && data.musicPath.trim()) ? data.musicPath.trim() : null;
+          musicPlayer.isConfigured = !!musicPath;
+          musicPlayer.playlistLoop = data?.playlistLoop !== false;
+        } else {
+          musicPlayer.isConfigured = false;
+        }
+      } catch {
+        musicPlayer.isConfigured = false;
+      }
+    }
+    return;
+  }
 
   if (isDemoSite()) {
     el.textContent = 'Not available on demo site';
@@ -426,8 +448,11 @@ export async function fetchMusicSettings() {
     if (!resp.ok) throw new Error('HTTP error');
     const data = await resp.json();
     const pathValue = typeof data?.musicPath === 'string' ? data.musicPath : null;
+    musicPlayer.isConfigured = !!(pathValue && pathValue.trim().length);
+    musicPlayer.playlistLoop = data?.playlistLoop !== false;
     el.textContent = pathValue && pathValue.trim().length ? pathValue : '(not set)';
   } catch {
+    musicPlayer.isConfigured = false;
     el.textContent = '(unavailable)';
   }
 }
