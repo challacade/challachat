@@ -93,7 +93,8 @@ export function extEventToItem(event) {
     isChatModerator: !!event?.author?.flags?.mod,
     isVerified: !!event?.author?.flags?.verified,
     isChatSponsor: !!event?.author?.flags?.member,
-    badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined
+    badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined,
+    nameColor: event?.author?.nameColor || undefined
   };
   
   let type = 'textMessageEvent';
@@ -180,6 +181,11 @@ export function renderMessage(item) {
   nameElement.className = 'name';
   const baseName = (authorDetails?.displayName || authorDetails?.name || 'Unknown');
   nameElement.textContent = baseName;
+  
+  // Apply username color if provided (primarily from Twitch)
+  if (authorDetails?.nameColor) {
+    nameElement.style.color = authorDetails.nameColor;
+  }
   
   const contentElement = document.createElement('span');
   contentElement.className = 'content';

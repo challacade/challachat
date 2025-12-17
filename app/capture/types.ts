@@ -22,6 +22,8 @@ export interface AuthorInfo {
   avatar?: string;
   flags?: AuthorFlags;
   badges?: AuthorBadge[];
+  /** Username display color (primarily used by Twitch) */
+  nameColor?: string;
 }
 
 export type Segment = { t: 'text'; text: string } | { t: 'emote'; url: string; alt?: string };
