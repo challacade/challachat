@@ -196,7 +196,7 @@ export class KickChatCapture extends BaseChatCapture {
           if (!messageText && segments.length === 0) return;
 
           const stableKey = `kick|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
-          const messageId = `kick_${dataIndex}_${cyrb53(stableKey)}`;
+          const messageId = `kick_${cyrb53(stableKey)}`;
           visibleIds.push(messageId);
 
           // Parse badges from the message row
