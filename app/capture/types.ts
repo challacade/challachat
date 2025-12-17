@@ -24,6 +24,8 @@ export interface AuthorInfo {
   badges?: AuthorBadge[];
   /** Username display color (primarily used by Twitch) */
   nameColor?: string;
+  /** Where badges appear relative to username: 'left' (Twitch) or 'right' (YouTube, default) */
+  badgePosition?: 'left' | 'right';
 }
 
 export type Segment = { t: 'text'; text: string } | { t: 'emote'; url: string; alt?: string };

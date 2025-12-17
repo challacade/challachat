@@ -94,7 +94,8 @@ export function extEventToItem(event) {
     isVerified: !!event?.author?.flags?.verified,
     isChatSponsor: !!event?.author?.flags?.member,
     badges: Array.isArray(event?.author?.badges) ? event.author.badges : undefined,
-    nameColor: event?.author?.nameColor || undefined
+    nameColor: event?.author?.nameColor || undefined,
+    badgePosition: event?.author?.badgePosition || 'right'
   };
   
   let type = 'textMessageEvent';
@@ -239,14 +240,15 @@ export function renderMessage(item) {
   // Render header with optional badges
   const header = document.createElement('span');
   header.className = 'header';
-  if (showUsername) {
-    header.appendChild(nameElement);
-  }
+  const badgePosition = authorDetails?.badgePosition || 'right';
 
   const badges = Array.isArray(item?.authorDetails?.badges) ? item.authorDetails.badges : [];
+  let badgesWrap = null;
   if (showUsername && state.showBadges && badges.length) {
-    const badgesWrap = document.createElement('span');
+    badgesWrap = document.createElement('span');
     badgesWrap.className = 'badges badges-inline';
+    // Add position class for CSS styling if needed
+    badgesWrap.classList.add(badgePosition === 'left' ? 'badges-left' : 'badges-right');
     try {
       const cs = getComputedStyle(nameElement);
       const fs = cs.fontSize;
@@ -273,10 +275,21 @@ export function renderMessage(item) {
         badgesWrap.appendChild(span);
       }
     }
-    
-    if (badgesWrap.childElementCount > 0) {
+  }
+  
+  // Append elements in correct order based on badge position
+  const hasBadges = badgesWrap && badgesWrap.childElementCount > 0;
+  if (showUsername) {
+    if (hasBadges && badgePosition === 'left') {
       header.appendChild(badgesWrap);
+      header.appendChild(nameElement);
     } else {
+      header.appendChild(nameElement);
+      if (hasBadges) {
+        header.appendChild(badgesWrap);
+      }
+    }
+    if (!hasBadges) {
       header.classList.add('no-inline-badges');
     }
   } else {

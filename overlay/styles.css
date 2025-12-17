@@ -113,6 +113,7 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 }
 .badges { display: inline-flex; align-items: flex-end; align-self: flex-end; gap: calc(0.08rem * var(--scale)); font-size: inherit; line-height: inherit; }
 .badges-inline { margin-left: calc(0.08rem * var(--scale)); }
+.badges-inline.badges-left { margin-left: 0; margin-right: calc(0.12rem * var(--scale)); }
 .badge-img { filter: drop-shadow(0 0 2px rgba(0,0,0,0.3)); align-self: flex-end; vertical-align: bottom; }
 /* Hide textual fallback for failed badge images */
 .badge-img:not([src]), .badge-img[src=""], .badge-img[onerror] {

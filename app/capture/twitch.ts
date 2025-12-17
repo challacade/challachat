@@ -203,7 +203,7 @@ export class TwitchChatCapture extends BaseChatCapture {
 
           const payload = {
             id: messageId,
-            author: { name: authorName, avatar: '', flags, badges, nameColor: nameColor || undefined },
+            author: { name: authorName, avatar: '', flags, badges, nameColor: nameColor || undefined, badgePosition: 'left' },
             text: messageText,
             segments: segments.length > 0 ? segments : [{ t: 'text', text: messageText }],
             timestamp: Date.now(),

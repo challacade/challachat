@@ -692,7 +692,14 @@ class App {
     const flags = message.author?.flags || { owner: false, mod: false, verified: false, member: false };
     return {
       id: message.id || `yt_${Date.now()}_${Math.random().toString(36).slice(2,7)}`,
-      author: { name: message.author?.name || 'User', avatar: message.author?.avatar || '', flags, badges: message.author?.badges },
+      author: {
+        name: message.author?.name || 'User',
+        avatar: message.author?.avatar || '',
+        flags,
+        badges: message.author?.badges,
+        nameColor: message.author?.nameColor,
+        badgePosition: message.author?.badgePosition
+      },
       text: message.text || '',
       segments: message.segments,
       kind: message.kind || 'text',
