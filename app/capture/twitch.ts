@@ -124,7 +124,8 @@ export class TwitchChatCapture extends BaseChatCapture {
         const processNode = (node: Node) => {
           if (node.nodeType === Node.TEXT_NODE) {
             const text = node.nodeValue || '';
-            if (text.trim()) {
+            // Keep text if it has any content (including whitespace-only for spacing)
+            if (text) {
               const last = segments[segments.length - 1];
               if (last && last.t === 'text') last.text += text;
               else segments.push({ t: 'text', text });
@@ -144,7 +145,8 @@ export class TwitchChatCapture extends BaseChatCapture {
             }
             if (el.classList.contains('text-fragment') || el.getAttribute('data-a-target') === 'chat-message-text') {
               const text = el.textContent || '';
-              if (text.trim()) {
+              // Keep text if it has any content (including whitespace-only for spacing)
+              if (text) {
                 const last = segments[segments.length - 1];
                 if (last && last.t === 'text') last.text += text;
                 else segments.push({ t: 'text', text });
