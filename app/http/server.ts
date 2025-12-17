@@ -637,10 +637,10 @@ class App {
     this.capture = new TwitchChatCapture(channel, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message) => this.onCaptureMessage(message),
-      onDelete: (id) => this.onCaptureDelete(id),
-      onError: (err) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onDelete: (id: string) => this.onCaptureDelete(id),
+      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -707,7 +707,8 @@ class App {
       showUsername: message.showUsername,
       effects: message.effects,
       amountDisplay: message.amountDisplay,
-      color: message.color
+      color: message.color,
+      systemMessage: message.systemMessage
     };
   }
 

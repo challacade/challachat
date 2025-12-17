@@ -91,18 +91,87 @@ export class TwitchChatCapture extends BaseChatCapture {
         return fallbackSrc;
       }
 
+      // Parse badges from a container element
+      function parseBadges(container: Element) {
+        const badges: any[] = [];
+        const flags = { owner: false, mod: false, verified: false, member: false };
+        const badgeButtons = container.querySelectorAll('[data-a-target="chat-badge"]');
+        badgeButtons.forEach(badge => {
+          const img = badge.querySelector('img.chat-badge, img') as HTMLImageElement | null;
+          if (!img) return;
+          const src = img.getAttribute('src') || '';
+          const srcset = img.getAttribute('srcset');
+          const url = getBestSrcFromSrcset(srcset, src);
+          const ariaLabel = img.getAttribute('aria-label') || '';
+          const altText = img.getAttribute('alt') || '';
+          const alt = ariaLabel.replace(/\s*badge$/i, '').trim() || altText;
+          const altLower = (ariaLabel || altText).toLowerCase();
+          if (url) badges.push({ url, alt });
+          if (altLower.includes('broadcaster')) flags.owner = true;
+          if (altLower.includes('moderator') || altLower.includes('mod')) flags.mod = true;
+          if (altLower.includes('verified') || altLower.includes('partner')) flags.verified = true;
+          if (altLower.includes('subscriber') || altLower.includes('sub') || altLower.includes('month')) flags.member = true;
+          if (altLower.includes('vip')) flags.member = true;
+          if (altLower.includes('founder')) flags.member = true;
+        });
+        return { badges, flags };
+      }
+
+      // Parse message segments (text and emotes) from a container
+      function parseMessageSegments(container: Element | null) {
+        const segments: any[] = [];
+        if (!container) return segments;
+        const processNode = (node: Node) => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            const text = node.nodeValue || '';
+            if (text.trim()) {
+              const last = segments[segments.length - 1];
+              if (last && last.t === 'text') last.text += text;
+              else segments.push({ t: 'text', text });
+            }
+          } else if (node.nodeType === Node.ELEMENT_NODE) {
+            const el = node as HTMLElement;
+            if (el.tagName === 'IMG') {
+              const classes = el.className.toLowerCase();
+              if (classes.includes('emote') || classes.includes('emoticon') || classes.includes('chat-image')) {
+                const src = el.getAttribute('src') || '';
+                const srcset = el.getAttribute('srcset');
+                const url = getBestSrcFromSrcset(srcset, src);
+                const alt = el.getAttribute('alt') || '';
+                if (url) segments.push({ t: 'emote', url, alt });
+                return;
+              }
+            }
+            if (el.classList.contains('text-fragment') || el.getAttribute('data-a-target') === 'chat-message-text') {
+              const text = el.textContent || '';
+              if (text.trim()) {
+                const last = segments[segments.length - 1];
+                if (last && last.t === 'text') last.text += text;
+                else segments.push({ t: 'text', text });
+              }
+              return;
+            }
+            el.childNodes.forEach(child => processNode(child));
+          }
+        };
+        container.childNodes.forEach(child => processNode(child));
+        return segments;
+      }
+
       const out: any[] = [];
       const visibleIds: string[] = [];
 
-      // Find chat message containers
+      // ─────────────────────────────────────────────────────────────────────
+      // Regular chat messages
+      // ─────────────────────────────────────────────────────────────────────
       const messageElements = document.querySelectorAll('[data-a-target="chat-line-message"]');
 
       messageElements.forEach((element) => {
         try {
-          // Get message ID - try data-a-id first, fall back to generating one
+          // Skip if this is part of a subscription notice (handled separately)
+          if (element.closest('[data-test-selector="user-notice-line"]')) return;
+
           const msgId = element.getAttribute('data-a-id') || '';
-          
-          // Get username from the display name element
           const usernameEl = element.querySelector('[data-a-target="chat-message-username"]') as HTMLElement | null;
           const authorName = usernameEl?.textContent?.trim() || element.getAttribute('data-a-user') || 'Unknown';
           
@@ -114,92 +183,17 @@ export class TwitchChatCapture extends BaseChatCapture {
             if (colorMatch) nameColor = colorMatch[1].trim();
           }
           
-          // Get message body container
           const messageContainer = element.querySelector('[data-a-target="chat-line-message-body"]') as HTMLElement | null;
-
-          // Parse message segments (text and emotes)
-          const segments: any[] = [];
-          if (messageContainer) {
-            // Walk through all child nodes to preserve order of text and emotes
-            const processNode = (node: Node) => {
-              if (node.nodeType === Node.TEXT_NODE) {
-                const text = node.nodeValue || '';
-                if (text.trim()) {
-                  const last = segments[segments.length - 1];
-                  if (last && last.t === 'text') last.text += text;
-                  else segments.push({ t: 'text', text });
-                }
-              } else if (node.nodeType === Node.ELEMENT_NODE) {
-                const el = node as HTMLElement;
-                // Check for emote images (class can be chat-image, emote, emoticon, etc.)
-                if (el.tagName === 'IMG') {
-                  const classes = el.className.toLowerCase();
-                  if (classes.includes('emote') || classes.includes('emoticon') || classes.includes('chat-image')) {
-                    const src = el.getAttribute('src') || '';
-                    const srcset = el.getAttribute('srcset');
-                    const url = getBestSrcFromSrcset(srcset, src);
-                    const alt = el.getAttribute('alt') || '';
-                    if (url) segments.push({ t: 'emote', url, alt });
-                    return; // Don't recurse into img
-                  }
-                }
-                // Check for text fragments
-                if (el.classList.contains('text-fragment') || el.getAttribute('data-a-target') === 'chat-message-text') {
-                  const text = el.textContent || '';
-                  if (text.trim()) {
-                    const last = segments[segments.length - 1];
-                    if (last && last.t === 'text') last.text += text;
-                    else segments.push({ t: 'text', text });
-                  }
-                  return; // Don't recurse further
-                }
-                // Recurse into child nodes
-                el.childNodes.forEach(child => processNode(child));
-              }
-            };
-            messageContainer.childNodes.forEach(child => processNode(child));
-          }
-
-          // Build plain text from segments
+          const segments = parseMessageSegments(messageContainer);
           const messageText = segments.filter(s => s.t === 'text').map(s => s.text).join('').trim();
           
           if (!messageText && segments.length === 0) return;
 
-          // Generate stable ID
           const stableKey = `twitch|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
           const messageId = msgId || `tw_${cyrb53(stableKey)}`;
           visibleIds.push(messageId);
 
-          // Parse badges - look for badge buttons with images
-          const badgeButtons = element.querySelectorAll('[data-a-target="chat-badge"]');
-          const badges: any[] = [];
-          const flags = { owner: false, mod: false, verified: false, member: false };
-
-          badgeButtons.forEach(badge => {
-            const img = badge.querySelector('img.chat-badge, img') as HTMLImageElement | null;
-            if (!img) return;
-            
-            // Get the best quality badge image
-            const src = img.getAttribute('src') || '';
-            const srcset = img.getAttribute('srcset');
-            const url = getBestSrcFromSrcset(srcset, src);
-            
-            // Use aria-label for best alt text, fall back to alt attribute
-            const ariaLabel = img.getAttribute('aria-label') || '';
-            const altText = img.getAttribute('alt') || '';
-            const alt = ariaLabel.replace(/\s*badge$/i, '').trim() || altText;
-            const altLower = (ariaLabel || altText).toLowerCase();
-            
-            if (url) badges.push({ url, alt });
-            
-            // Set flags based on badge type
-            if (altLower.includes('broadcaster')) flags.owner = true;
-            if (altLower.includes('moderator') || altLower.includes('mod')) flags.mod = true;
-            if (altLower.includes('verified') || altLower.includes('partner')) flags.verified = true;
-            if (altLower.includes('subscriber') || altLower.includes('sub') || altLower.includes('month')) flags.member = true;
-            if (altLower.includes('vip')) flags.member = true;
-            if (altLower.includes('founder')) flags.member = true;
-          });
+          const { badges, flags } = parseBadges(element);
 
           const payload = {
             id: messageId,
@@ -208,6 +202,94 @@ export class TwitchChatCapture extends BaseChatCapture {
             segments: segments.length > 0 ? segments : [{ t: 'text', text: messageText }],
             timestamp: Date.now(),
             kind: 'text'
+          };
+          out.push(payload);
+        } catch {}
+      });
+
+      // ─────────────────────────────────────────────────────────────────────
+      // Subscription / Resub / Gift sub notices
+      // ─────────────────────────────────────────────────────────────────────
+      const userNotices = document.querySelectorAll('[data-test-selector="user-notice-line"]');
+
+      userNotices.forEach((notice) => {
+        try {
+          // Get the system message text (subscription info)
+          const systemTextEl = notice.querySelector('p') as HTMLElement | null;
+          const systemMessage = systemTextEl?.textContent?.trim() || '';
+          if (!systemMessage) return;
+
+          // Determine subscription type from system message
+          let kind = 'sub';
+          const sysLower = systemMessage.toLowerCase();
+          if (sysLower.includes('gifted') || sysLower.includes('gift')) {
+            kind = 'sub-gift';
+          }
+
+          // Extract username from system message or nested chat line
+          let authorName = '';
+          let nameColor = '';
+          
+          // Try to get from the chatter-name span in system message
+          const chatterNameEl = notice.querySelector('.chatter-name span, .chatter-name') as HTMLElement | null;
+          if (chatterNameEl) {
+            authorName = chatterNameEl.textContent?.trim() || '';
+          }
+
+          // Look for custom message in the nested chat line
+          const customMsgContainer = notice.querySelector('[data-a-target="chat-resubscription-message__custom-message"], [data-a-target*="custom-message"]');
+          const chatLine = customMsgContainer?.querySelector('[data-a-target="chat-line-message"]') || customMsgContainer;
+          
+          let segments: any[] = [];
+          let badges: any[] = [];
+          let flags = { owner: false, mod: false, verified: false, member: true }; // Subs are always members
+          
+          if (chatLine) {
+            // Get author info from the chat line if not already found
+            if (!authorName) {
+              const usernameEl = chatLine.querySelector('[data-a-target="chat-message-username"]') as HTMLElement | null;
+              authorName = usernameEl?.textContent?.trim() || chatLine.getAttribute('data-a-user') || '';
+            }
+            
+            // Get username color
+            const usernameEl = chatLine.querySelector('[data-a-target="chat-message-username"]') as HTMLElement | null;
+            if (usernameEl) {
+              const style = usernameEl.getAttribute('style') || '';
+              const colorMatch = style.match(/color:\s*([^;]+)/i);
+              if (colorMatch) nameColor = colorMatch[1].trim();
+            }
+            
+            // Parse badges from chat line
+            const badgeResult = parseBadges(chatLine as Element);
+            badges = badgeResult.badges;
+            flags = { ...flags, ...badgeResult.flags };
+            
+            // Parse custom message content
+            const msgBody = chatLine.querySelector('[data-a-target="chat-line-message-body"]') as HTMLElement | null;
+            segments = parseMessageSegments(msgBody);
+          }
+          
+          if (!authorName) {
+            // Fallback: try to extract from system message (e.g., "username Subscribed...")
+            const match = systemMessage.match(/^(\S+)\s+(subscribed|gifted)/i);
+            if (match) authorName = match[1];
+          }
+          
+          if (!authorName) return; // Can't process without a username
+
+          const messageText = segments.filter(s => s.t === 'text').map(s => s.text).join('').trim();
+          const stableKey = `twitch-sub|${authorName}|${systemMessage}|${messageText}`;
+          const messageId = `tw_sub_${cyrb53(stableKey)}`;
+          visibleIds.push(messageId);
+
+          const payload = {
+            id: messageId,
+            author: { name: authorName, avatar: '', flags, badges, nameColor: nameColor || undefined, badgePosition: 'left' },
+            text: messageText,
+            segments: segments.length > 0 ? segments : (messageText ? [{ t: 'text', text: messageText }] : []),
+            timestamp: Date.now(),
+            kind,
+            systemMessage
           };
           out.push(payload);
         } catch {}
@@ -222,7 +304,8 @@ export class TwitchChatCapture extends BaseChatCapture {
     for (const message of messages as any[]) {
       const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
       const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
-      if (!this.seenIds.has(message.id) && (hasText || hasSegments)) {
+      const isHighPriority = ['sub', 'sub-gift', 'cheer', 'donation'].includes(message.kind);
+      if (!this.seenIds.has(message.id) && (hasText || hasSegments || isHighPriority)) {
         this.seenIds.add(message.id);
         const evt: ChatEvent = {
           id: message.id,
@@ -230,7 +313,8 @@ export class TwitchChatCapture extends BaseChatCapture {
           text: message.text || '',
           segments: message.segments,
           kind: message.kind || 'text',
-          ts: message.timestamp || Date.now()
+          ts: message.timestamp || Date.now(),
+          systemMessage: message.systemMessage
         };
         this.callbacks.onMessage(evt);
       }

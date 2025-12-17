@@ -101,7 +101,7 @@ export function extEventToItem(event) {
   let type = 'textMessageEvent';
   const kind = event.kind || 'text';
   
-  if (kind === 'sub' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') {
+  if (kind === 'sub' || kind === 'sub-gift' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') {
     type = 'newSponsorEvent';
   } else if (kind === 'member-milestone') {
     type = 'memberMilestoneChatEvent';
@@ -122,6 +122,10 @@ export function extEventToItem(event) {
   if (kind === 'donation' && typeof event.amountDisplay === 'string') {
     extras.amountDisplay = event.amountDisplay;
     extras.color = event.color || '';
+  }
+  // Pass through systemMessage for sub/membership events
+  if (typeof event.systemMessage === 'string' && event.systemMessage) {
+    extras.systemMessage = event.systemMessage;
   }
   
   const showUsername = event?.showUsername !== false;
@@ -305,6 +309,15 @@ export function renderMessage(item) {
   }
   
   if (showUsername) body.appendChild(header);
+  
+  // Display system message (e.g., Twitch subscription info) on its own line
+  if (typeof item.systemMessage === 'string' && item.systemMessage) {
+    const systemEl = document.createElement('div');
+    systemEl.className = 'system-message';
+    systemEl.textContent = item.systemMessage;
+    body.appendChild(systemEl);
+  }
+  
   body.appendChild(contentElement);
   container.appendChild(body);
   return container;

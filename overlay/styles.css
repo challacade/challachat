@@ -99,6 +99,16 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 .content { font-size: calc(1.20rem * var(--scale)); line-height: 1.35; word-wrap: break-word; overflow-wrap: break-word; min-width: 0; display: inline; margin-left: calc(0.22rem * var(--scale)); }
 /* Slightly increase gap after name when there are no badges */
 .header.no-inline-badges + .content { margin-left: calc(0.4rem * var(--scale)); }
+/* System message (e.g., Twitch subscription info) */
+.system-message {
+  display: block;
+  font-size: calc(0.95rem * var(--scale));
+  line-height: 1.3;
+  opacity: 0.85;
+  margin-top: calc(0.1rem * var(--scale));
+  margin-bottom: calc(0.15rem * var(--scale));
+  font-style: italic;
+}
 
 /* Header row with name and badges */
 /* Ensure the header establishes the same typographic context as the name so badges/emotes can size to row height */

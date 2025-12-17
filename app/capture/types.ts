@@ -1,4 +1,4 @@
-export type ChatKind = 'text' | 'donation' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sticker';
+export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker';
 
 /** Supported streaming platforms */
 export type Platform = 'youtube' | 'twitch';
@@ -47,6 +47,8 @@ export interface ChatEvent {
     jam?: boolean;
     jamFinale?: boolean;
   };
+  /** System/platform message (e.g. "Subscribed at Tier 1. They've subscribed for 24 months!") */
+  systemMessage?: string;
 }
 
 export interface CaptureOptions {
