@@ -215,8 +215,21 @@ export class TwitchChatCapture extends BaseChatCapture {
       userNotices.forEach((notice) => {
         try {
           // Get the system message text (subscription info)
-          const systemTextEl = notice.querySelector('p') as HTMLElement | null;
-          const systemMessage = systemTextEl?.textContent?.trim() || '';
+          // For regular subs: the <p> contains the full message
+          // For gift subs: the message is split across <p> (username) and sibling <span> (details)
+          let systemMessage = '';
+          
+          // Try to get full text from the message container first
+          const giftContainer = notice.querySelector('.mystery-gift-theme__displayname')?.parentElement;
+          if (giftContainer) {
+            // Gift sub: combine all text from the container
+            systemMessage = giftContainer.textContent?.trim() || '';
+          } else {
+            // Regular sub: get from the <p> element
+            const systemTextEl = notice.querySelector('p') as HTMLElement | null;
+            systemMessage = systemTextEl?.textContent?.trim() || '';
+          }
+          
           if (!systemMessage) return;
 
           // Determine subscription type from system message
