@@ -1,5 +1,8 @@
 export type ChatKind = 'text' | 'donation' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sticker';
 
+/** Supported streaming platforms */
+export type Platform = 'youtube' | 'twitch';
+
 export interface AuthorFlags {
   owner?: boolean;
   mod?: boolean;

@@ -15,7 +15,8 @@ import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
-import type { ChatEvent } from '../capture/types';
+import TwitchChatCapture from '../capture/twitch';
+import type { ChatEvent, Platform } from '../capture/types';
 
 // Check if we're running as a Single Executable Application
 let sea: any = null;
@@ -81,7 +82,8 @@ class App {
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
-  private capture: YouTubeChatCapture | null = null;
+  private capture: YouTubeChatCapture | TwitchChatCapture | null = null;
+  private currentPlatform: Platform | null = null;
   private isRunning = false;
   private messageCount = 0;
   private startTime: number | null = null;
@@ -244,6 +246,7 @@ class App {
   this.app.get('/api/status', (_req: Request, res: Response) => {
       res.json({
         isRunning: this.isRunning,
+        platform: this.currentPlatform,
         videoId: this.currentVideoId,
         url: this.currentUrl,
         messageCount: this.messageCount,
@@ -462,7 +465,7 @@ class App {
     });
 
   this.io.on('connection', (socket: Socket) => {
-      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', videoId: this.currentVideoId, messageCount: this.messageCount });
+      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', platform: this.currentPlatform, videoId: this.currentVideoId, messageCount: this.messageCount });
     });
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
@@ -546,22 +549,72 @@ class App {
     }
   }
 
-  // Start capture for the provided livestream URL
+  // Detect platform from URL
+  private detectPlatform(url: string): Platform | null {
+    const normalized = String(url || '').toLowerCase();
+    if (normalized.includes('youtube.com') || normalized.includes('youtu.be') || normalized.includes('studio.youtube.com')) {
+      return 'youtube';
+    }
+    if (normalized.includes('twitch.tv')) {
+      return 'twitch';
+    }
+    return null;
+  }
+
+  // Extract Twitch channel name from URL
+  private extractTwitchChannel(url: string): string | null {
+    try {
+      const u = new URL(url);
+      if (!u.hostname.includes('twitch.tv')) return null;
+      // Handle various Twitch URL formats:
+      // https://www.twitch.tv/channelname
+      // https://www.twitch.tv/channelname/chat
+      // https://www.twitch.tv/popout/channelname/chat
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length === 0) return null;
+      // Skip 'popout' if present
+      if (parts[0] === 'popout' && parts.length >= 2) return parts[1].toLowerCase();
+      // Standard channel URL
+      return parts[0].toLowerCase();
+    } catch {
+      // Fallback regex
+      const match = url.match(/twitch\.tv\/(?:popout\/)?([^/?&#]+)/i);
+      return match ? match[1].toLowerCase() : null;
+    }
+  }
+
+  // Start capture for the provided livestream URL (YouTube or Twitch)
   private async startScraping(url: string) {
     if (this.isRunning) { console.log('Already capturing. Use "stop" first to change streams.'); return; }
+
+    const platform = this.detectPlatform(url);
+    if (!platform) {
+      throw new Error('Unsupported URL. Please provide a YouTube or Twitch livestream URL.');
+    }
+
+    if (platform === 'youtube') {
+      await this.startYouTubeCapture(url);
+    } else if (platform === 'twitch') {
+      await this.startTwitchCapture(url);
+    }
+  }
+
+  // Start YouTube-specific capture
+  private async startYouTubeCapture(url: string) {
     const isStudioUrl = /^https?:\/\/studio\.youtube\.com\//i.test(String(url || ''));
     const videoId = this.extractVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
     this.capture = new YouTubeChatCapture(videoId, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-  onMessage: (message) => this.onCaptureMessage(message),
-  onDelete: (id) => this.onCaptureDelete(id),
+      onMessage: (message) => this.onCaptureMessage(message),
+      onDelete: (id) => this.onCaptureDelete(id),
       onError: (err) => console.log(`[ERROR] ${err.message}`),
       onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
+    this.currentPlatform = 'youtube';
     this.currentVideoId = videoId;
     // For creator/admin URLs, store a public-style URL so status display matches what viewers use.
     this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
@@ -570,8 +623,37 @@ class App {
     this.tui.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'yt' platform identifier)
     startLogging('yt');
-  this.tui.render();
-    this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, startedAt: this.startTime });
+    this.tui.render();
+    this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, platform: 'youtube', startedAt: this.startTime });
+
+    // Enable terminal music hotkeys only after capture is active and music playlist exists.
+    try { this.tryEnableMusicHotkeys(); } catch {}
+  }
+
+  // Start Twitch-specific capture
+  private async startTwitchCapture(url: string) {
+    const channel = this.extractTwitchChannel(url);
+    if (!channel) throw new Error('Invalid Twitch URL. Please provide a valid Twitch channel URL.');
+    this.capture = new TwitchChatCapture(channel, {
+      pollInterval: DEFAULT_POLL_INTERVAL,
+      quiet: true,
+      onMessage: (message) => this.onCaptureMessage(message),
+      onDelete: (id) => this.onCaptureDelete(id),
+      onError: (err) => console.log(`[ERROR] ${err.message}`),
+      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+    });
+    await this.capture.start();
+    this.isRunning = true;
+    this.currentPlatform = 'twitch';
+    this.currentVideoId = channel; // Use channel name as the identifier
+    this.currentUrl = `https://www.twitch.tv/${channel}`;
+    this.messageCount = 0;
+    this.startTime = Date.now();
+    this.tui.setUrl(this.currentUrl);
+    // Start logging if enabled (uses 'tw' platform identifier for Twitch)
+    startLogging('tw');
+    this.tui.render();
+    this.io.emit('capture-status', { status: 'active', channel, platform: 'twitch', startedAt: this.startTime });
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
@@ -661,10 +743,10 @@ class App {
     console.log('Chat capture stopped');
     console.log(`Session duration: ${duration} seconds`);
     console.log(`Messages captured: ${this.messageCount}`);
-    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null;
+    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null; this.currentPlatform = null;
     try { this.tui.disableMusicHotkeys(); } catch {}
     this.musicHotkeysEnabled = false;
-    this.io.emit('capture-status', { status: 'stopped' });
+    this.io.emit('capture-status', { status: 'stopped', platform: null });
   }
 
   async shutdown() {
