@@ -315,17 +315,10 @@ export function renderMessage(item) {
     header.appendChild(amountEl);
   }
   
-  if (showUsername) body.appendChild(header);
-  
-  // Display reply preview (e.g., "↩ @username: message preview")
+  // Display reply preview ABOVE the header (e.g., "@username: message preview")
   if (item.replyTo && typeof item.replyTo.username === 'string') {
     const replyEl = document.createElement('div');
     replyEl.className = 'reply-preview';
-    
-    const replyIcon = document.createElement('span');
-    replyIcon.className = 'reply-icon';
-    replyIcon.textContent = '↩ ';
-    replyEl.appendChild(replyIcon);
     
     const replyUsername = document.createElement('span');
     replyUsername.className = 'reply-username';
@@ -341,6 +334,8 @@ export function renderMessage(item) {
     
     body.appendChild(replyEl);
   }
+  
+  if (showUsername) body.appendChild(header);
   
   // For subscription messages, render systemMessage as inline content (not a separate line)
   // For other message types with systemMessage, show it on its own line

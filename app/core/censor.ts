@@ -172,6 +172,14 @@ export function censorMessage(message: ChatEvent): ChatEvent {
     censored.segments = censorSegments(censored.segments);
   }
   
+  // Censor reply preview if present
+  if (censored.replyTo && censored.replyTo.messagePreview) {
+    censored.replyTo = {
+      ...censored.replyTo,
+      messagePreview: censorText(censored.replyTo.messagePreview)
+    };
+  }
+  
   return censored;
 }
 
