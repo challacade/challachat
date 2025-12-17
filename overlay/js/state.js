@@ -167,7 +167,7 @@ export const DEMO_MESSAGES = [
       avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=StreamFan&backgroundColor=ffc9de',
       flags: {}
     },
-    text: 'This works with Twitch, YouTube, and any platform!',
+    text: 'This works with Twitch, YouTube, Kick, and more!',
     kind: 'text'
   },
   {

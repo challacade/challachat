@@ -1,7 +1,7 @@
 export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker' | 'streak';
 
 /** Supported streaming platforms */
-export type Platform = 'youtube' | 'twitch';
+export type Platform = 'youtube' | 'twitch' | 'kick';
 
 export interface AuthorFlags {
   owner?: boolean;

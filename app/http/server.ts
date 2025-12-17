@@ -16,6 +16,7 @@ import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
+import KickChatCapture from '../capture/kick';
 import type { ChatEvent, Platform } from '../capture/types';
 
 // Check if we're running as a Single Executable Application
@@ -82,7 +83,7 @@ class App {
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
-  private capture: YouTubeChatCapture | TwitchChatCapture | null = null;
+  private capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture | null = null;
   private currentPlatform: Platform | null = null;
   private isRunning = false;
   private messageCount = 0;
@@ -558,6 +559,9 @@ class App {
     if (normalized.includes('twitch.tv')) {
       return 'twitch';
     }
+    if (normalized.includes('kick.com')) {
+      return 'kick';
+    }
     return null;
   }
 
@@ -589,13 +593,15 @@ class App {
 
     const platform = this.detectPlatform(url);
     if (!platform) {
-      throw new Error('Unsupported URL. Please provide a YouTube or Twitch livestream URL.');
+      throw new Error('Unsupported URL. Please provide a YouTube, Twitch, or Kick livestream URL.');
     }
 
     if (platform === 'youtube') {
       await this.startYouTubeCapture(url);
     } else if (platform === 'twitch') {
       await this.startTwitchCapture(url);
+    } else if (platform === 'kick') {
+      await this.startKickCapture(url);
     }
   }
 
@@ -654,6 +660,56 @@ class App {
     startLogging('tw');
     this.tui.render();
     this.io.emit('capture-status', { status: 'active', channel, platform: 'twitch', startedAt: this.startTime });
+
+    // Enable terminal music hotkeys only after capture is active and music playlist exists.
+    try { this.tryEnableMusicHotkeys(); } catch {}
+  }
+
+  // Extract Kick channel name from URL
+  private extractKickChannel(url: string): string | null {
+    try {
+      const u = new URL(url);
+      if (!u.hostname.includes('kick.com')) return null;
+      // Handle various Kick URL formats:
+      // https://kick.com/channelname
+      // https://kick.com/popout/channelname/chat
+      const parts = u.pathname.split('/').filter(Boolean);
+      if (parts.length === 0) return null;
+      // Skip 'popout' if present
+      if (parts[0] === 'popout' && parts.length >= 2) return parts[1].toLowerCase();
+      // Standard channel URL
+      return parts[0].toLowerCase();
+    } catch {
+      // Fallback regex
+      const match = url.match(/kick\.com\/(?:popout\/)?([^/?&#]+)/i);
+      return match ? match[1].toLowerCase() : null;
+    }
+  }
+
+  // Start Kick-specific capture
+  private async startKickCapture(url: string) {
+    const channel = this.extractKickChannel(url);
+    if (!channel) throw new Error('Invalid Kick URL. Please provide a valid Kick channel URL.');
+    this.capture = new KickChatCapture(channel, {
+      pollInterval: DEFAULT_POLL_INTERVAL,
+      quiet: true,
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onDelete: (id: string) => this.onCaptureDelete(id),
+      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+    });
+    await this.capture.start();
+    this.isRunning = true;
+    this.currentPlatform = 'kick';
+    this.currentVideoId = channel; // Use channel name as the identifier
+    this.currentUrl = `https://kick.com/${channel}`;
+    this.messageCount = 0;
+    this.startTime = Date.now();
+    this.tui.setUrl(this.currentUrl);
+    // Start logging if enabled (uses 'kk' platform identifier for Kick)
+    startLogging('kk');
+    this.tui.render();
+    this.io.emit('capture-status', { status: 'active', channel, platform: 'kick', startedAt: this.startTime });
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
