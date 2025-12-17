@@ -101,7 +101,7 @@ export function extEventToItem(event) {
   let type = 'textMessageEvent';
   const kind = event.kind || 'text';
   
-  if (kind === 'sub' || kind === 'sub-gift' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift') {
+  if (kind === 'sub' || kind === 'sub-gift' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift' || kind === 'streak') {
     type = 'newSponsorEvent';
   } else if (kind === 'member-milestone') {
     type = 'memberMilestoneChatEvent';

@@ -231,12 +231,57 @@ export class TwitchChatCapture extends BaseChatCapture {
       });
 
       // ─────────────────────────────────────────────────────────────────────
-      // Subscription / Resub / Gift sub notices
+      // Subscription / Resub / Gift sub / Watch Streak notices
       // ─────────────────────────────────────────────────────────────────────
       const userNotices = document.querySelectorAll('[data-test-selector="user-notice-line"]');
 
       userNotices.forEach((notice) => {
         try {
+          // First, check if this is a Watch Streak notice (different from subs)
+          const allText = notice.textContent?.toLowerCase() || '';
+          const isWatchStreak = allText.includes('watch streak') || allText.includes('stream streak');
+          
+          if (isWatchStreak) {
+            // Handle Watch Streak as a simple one-liner
+            const chatterNameEl = notice.querySelector('.chatter-name span, .chatter-name') as HTMLElement | null;
+            const authorName = chatterNameEl?.textContent?.trim() || '';
+            if (!authorName) return;
+            
+            // Get the full system message from all <p> elements
+            const paragraphs = notice.querySelectorAll('p');
+            let systemMessage = '';
+            paragraphs.forEach(p => {
+              systemMessage += (p.textContent || '') + ' ';
+            });
+            systemMessage = systemMessage.trim();
+            
+            // Clean up: remove the "+450" style point rewards text, keep just the streak message
+            // The message is like: "+450 Watch Streak reached!: username is currently on a 7-stream streak!"
+            const streakMatch = systemMessage.match(/(watch streak[^:]*:\s*.+)/i);
+            let cleanSystemMessage = streakMatch ? streakMatch[1] : systemMessage;
+            
+            // Strip the username from the message since we show it in header
+            if (authorName && cleanSystemMessage.includes(authorName)) {
+              cleanSystemMessage = cleanSystemMessage.replace(authorName, '').replace(/\s+/g, ' ').trim();
+            }
+            
+            const stableKey = `twitch-streak|${authorName}|${systemMessage}`;
+            const messageId = `tw_streak_${cyrb53(stableKey)}`;
+            visibleIds.push(messageId);
+            
+            const payload = {
+              id: messageId,
+              author: { name: authorName, avatar: '', flags: { owner: false, mod: false, verified: false, member: false }, badges: [], badgePosition: 'left' },
+              text: '',
+              segments: [],
+              timestamp: Date.now(),
+              kind: 'streak',
+              systemMessage: cleanSystemMessage
+            };
+            out.push(payload);
+            return; // Skip the subscription handling below
+          }
+          
           // Get the system message text (subscription info)
           // For regular subs: the <p> contains the full message
           // For gift subs: the message is split across <p> (username) and sibling <span> (details)

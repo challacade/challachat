@@ -1,4 +1,4 @@
-export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker';
+export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker' | 'streak';
 
 /** Supported streaming platforms */
 export type Platform = 'youtube' | 'twitch';
