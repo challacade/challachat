@@ -11,7 +11,8 @@
     "dev": "tsx app/http/server.ts",
     "build": "tsc -p .",
     "start": "node dist/http/server.js",
-    "start:system": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
+    "start:system": "bash ./scripts/start-on-system.sh",
+    "start:system:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
     "typecheck": "tsc -p . --noEmit",
     "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
     "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-installer.ps1"
