@@ -39,9 +39,13 @@ POST http://localhost:5050/api/filter/reload
 
 ## Getting started
 
+#### macOS / Linux
+- Run locally: `npm run start:system` or [scripts/start-on-system.sh](./scripts/start-on-system.sh)
+- Portable build: `npm run build:portable` or [scripts/build-portable.sh](./scripts/build-portable.sh)
+
 #### Windows
-- Run locally: [scripts/windows/start-on-system.ps1](./scripts/windows/start-on-system.ps1)
-- Portable build: [scripts/windows/build-portable.ps1](./scripts/windows/build-portable.ps1)
+- Run locally: `npm run start:system:win` or [scripts/windows/start-on-system.ps1](./scripts/windows/start-on-system.ps1)
+- Portable build: `npm run build:portable:win` or [scripts/windows/build-portable.ps1](./scripts/windows/build-portable.ps1)
 - Installer build: [scripts/windows/build-installer.ps1](./scripts/windows/build-installer.ps1)
 
 ## Profanity Filter
