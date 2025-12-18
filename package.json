@@ -14,7 +14,8 @@
     "start:system": "bash ./scripts/start-on-system.sh",
     "start:system:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
     "typecheck": "tsc -p . --noEmit",
-    "build:portable": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
+    "build:portable": "bash ./scripts/build-portable.sh",
+    "build:portable:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
     "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-installer.ps1"
   },
   "dependencies": {
