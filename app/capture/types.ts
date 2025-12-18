@@ -1,4 +1,4 @@
-export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker' | 'streak';
+export type ChatKind = 'text' | 'donation' | 'cheer' | 'member' | 'member-renewal' | 'member-milestone' | 'member-gift' | 'sub' | 'sub-gift' | 'sticker' | 'streak' | 'redemption';
 
 /** Supported streaming platforms */
 export type Platform = 'youtube' | 'twitch' | 'kick';
@@ -54,6 +54,8 @@ export interface ChatEvent {
     username: string;
     messagePreview: string;
   };
+  /** Reward name for redemption messages (channel points, etc.) */
+  rewardName?: string;
 }
 
 export interface CaptureOptions {

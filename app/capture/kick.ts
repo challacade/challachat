@@ -157,6 +157,58 @@ export class KickChatCapture extends BaseChatCapture {
           const dataIndex = element.getAttribute('data-index') || '';
           if (!dataIndex) return;
           
+          // Check for redemption message using structural indicators (language-agnostic):
+          // 1. Has .border-l-4 container with inline border-color
+          // 2. Has SVG icon (points/gems icon) as child
+          // 3. Has username button WITHOUT [title] attribute (regular messages have title)
+          // 4. Has p.line-clamp-2 with span.font-bold (reward name)
+          // 5. No regular message content span
+          const redemptionContainer = element.querySelector('.border-l-4') as HTMLElement | null;
+          if (redemptionContainer) {
+            const hasBorderColor = (redemptionContainer.getAttribute('style') || '').includes('border-color');
+            const hasSvgIcon = !!redemptionContainer.querySelector(':scope > svg, .shrink-0 > svg');
+            const rewardSpan = redemptionContainer.querySelector('p.line-clamp-2 span.font-bold') as HTMLElement | null;
+            const usernameBtn = redemptionContainer.querySelector('button.inline.font-bold') as HTMLElement | null;
+            // Regular chat messages have title attribute, redemptions don't
+            const hasNoTitleAttr = usernameBtn && !usernameBtn.hasAttribute('title');
+            
+            // Must have: border color styling, SVG icon, reward span, and username without title
+            if (hasBorderColor && hasSvgIcon && rewardSpan && hasNoTitleAttr) {
+              const authorName = usernameBtn?.textContent?.trim() || 'Unknown';
+              
+              // Extract username color from style
+              let nameColor = '';
+              const style = usernameBtn?.getAttribute('style') || '';
+              const colorMatch = style.match(/color:\s*([^;]+)/i);
+              if (colorMatch) nameColor = colorMatch[1].trim();
+              
+              // Extract border color for the highlight
+              const borderStyle = redemptionContainer.getAttribute('style') || '';
+              const borderColorMatch = borderStyle.match(/border-color:\s*([^;]+)/i);
+              const highlightColor = borderColorMatch ? borderColorMatch[1].trim() : '';
+              
+              // Find the reward name (text inside the bold span)
+              const rewardName = rewardSpan.textContent?.trim() || 'Reward';
+              
+              const stableKey = `kick-redeem|${authorName}|${rewardName}`;
+              const messageId = `kick_${cyrb53(stableKey)}`;
+              visibleIds.push(messageId);
+              
+              const payload = {
+                id: messageId,
+                author: { name: authorName, avatar: '', flags: {}, badges: [], nameColor: nameColor || undefined, badgePosition: 'left' },
+                text: `redeemed ${rewardName}`,
+                segments: [{ t: 'text', text: `redeemed ${rewardName}` }],
+                timestamp: Date.now(),
+                kind: 'redemption',
+                rewardName,
+                color: highlightColor || undefined
+              };
+              out.push(payload);
+              return; // Skip normal message parsing for this element
+            }
+          }
+          
           // Find the username button with title attribute
           const usernameEl = element.querySelector('button.inline.font-bold[title]') as HTMLElement | null;
           if (!usernameEl) return;
@@ -224,7 +276,7 @@ export class KickChatCapture extends BaseChatCapture {
     for (const message of messages as any[]) {
       const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
       const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
-      const isHighPriority = ['sub', 'sub-gift', 'cheer', 'donation'].includes(message.kind);
+      const isHighPriority = ['sub', 'sub-gift', 'cheer', 'donation', 'redemption'].includes(message.kind);
       if (!this.seenIds.has(message.id) && (hasText || hasSegments || isHighPriority)) {
         this.seenIds.add(message.id);
         const evt: ChatEvent = {
@@ -234,7 +286,9 @@ export class KickChatCapture extends BaseChatCapture {
           segments: message.segments,
           kind: message.kind || 'text',
           ts: message.timestamp || Date.now(),
-          replyTo: message.replyTo
+          replyTo: message.replyTo,
+          rewardName: message.rewardName,
+          color: message.color
         };
         this.callbacks.onMessage(evt);
       }
