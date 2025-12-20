@@ -58,6 +58,10 @@ export interface ChatEvent {
   rewardName?: string;
   /** Subscription/membership month count */
   months?: number;
+  /** Number of gift subs given in this event */
+  giftCount?: number;
+  /** Total gift subs given by this user in the channel */
+  totalGifted?: number;
 }
 
 export interface CaptureOptions {

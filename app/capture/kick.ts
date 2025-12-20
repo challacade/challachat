@@ -169,15 +169,63 @@ export class KickChatCapture extends BaseChatCapture {
               const borderColorMatch = borderStyle.match(/border-color:\s*([^;]+)/i);
               const highlightColor = borderColorMatch ? borderColorMatch[1].trim() : '';
               
-              // Check for SUBSCRIPTION: has span.text-surface-onSurfaceSecondary container
+              // Check for GIFT SUBSCRIPTION: button is sibling of span.text-surface-onSurfaceSecondary
+              // Structure: div.flex-col > button + span.text-surface-onSurfaceSecondary
+              const flexColContainer = highlightContainer.querySelector('.flex.flex-col, div.flex-col') as HTMLElement | null;
+              const giftUsernameBtn = flexColContainer?.querySelector(':scope > button.font-bold') as HTMLElement | null;
+              const giftInfoSpan = flexColContainer?.querySelector(':scope > span.text-surface-onSurfaceSecondary') as HTMLElement | null;
+              
+              if (giftUsernameBtn && giftInfoSpan) {
+                const authorName = giftUsernameBtn.textContent?.trim() || 'Unknown';
+                
+                // Extract gift count - first standalone number span in the info text
+                const numberSpans = giftInfoSpan.querySelectorAll('span');
+                let giftCount = 1;
+                let totalGifted: number | undefined;
+                
+                numberSpans.forEach((span, index) => {
+                  const text = span.textContent?.trim() || '';
+                  // First number is gift count, look for standalone number
+                  if (/^\d+$/.test(text)) {
+                    if (index === 0 || giftCount === 1) {
+                      giftCount = parseInt(text, 10) || 1;
+                    }
+                  }
+                  // Look for "X subscriptions" pattern for total
+                  const totalMatch = text.match(/^(\d+)\s+subscription/i);
+                  if (totalMatch) {
+                    totalGifted = parseInt(totalMatch[1], 10);
+                  }
+                });
+                
+                const stableKey = `kick-gift|${authorName}|${giftCount}|${totalGifted || 0}`;
+                const messageId = `kick_${cyrb53(stableKey)}`;
+                visibleIds.push(messageId);
+                
+                const payload = {
+                  id: messageId,
+                  author: { name: authorName, avatar: '', flags: {}, badges: [], badgePosition: 'left' },
+                  text: '',
+                  segments: [],
+                  timestamp: Date.now(),
+                  kind: 'sub-gift',
+                  giftCount,
+                  totalGifted,
+                  color: highlightColor || undefined
+                };
+                out.push(payload);
+                return; // Skip normal message parsing
+              }
+              
+              // Check for SUBSCRIPTION: has span.text-surface-onSurfaceSecondary with button INSIDE it
               const subContainer = highlightContainer.querySelector('span.text-surface-onSurfaceSecondary') as HTMLElement | null;
-              if (subContainer) {
-                const usernameBtn = subContainer.querySelector('button.font-bold') as HTMLElement | null;
-                const authorName = usernameBtn?.textContent?.trim() || 'Unknown';
+              const subUsernameBtn = subContainer?.querySelector('button.font-bold') as HTMLElement | null;
+              if (subContainer && subUsernameBtn) {
+                const authorName = subUsernameBtn.textContent?.trim() || 'Unknown';
                 
                 // Extract username color from style
                 let nameColor = '';
-                const style = usernameBtn?.getAttribute('style') || '';
+                const style = subUsernameBtn.getAttribute('style') || '';
                 const colorMatch = style.match(/color:\s*([^;]+)/i);
                 if (colorMatch) nameColor = colorMatch[1].trim();
                 
@@ -192,9 +240,6 @@ export class KickChatCapture extends BaseChatCapture {
                   }
                 });
                 
-                const isResub = months > 1;
-                const kind = isResub ? 'sub-gift' : 'sub'; // Use sub-gift for resubs to differentiate
-                
                 const stableKey = `kick-sub|${authorName}|${months}`;
                 const messageId = `kick_${cyrb53(stableKey)}`;
                 visibleIds.push(messageId);
@@ -205,7 +250,7 @@ export class KickChatCapture extends BaseChatCapture {
                   text: '',
                   segments: [],
                   timestamp: Date.now(),
-                  kind,
+                  kind: 'sub',
                   months,
                   color: highlightColor || undefined
                 };
@@ -331,7 +376,9 @@ export class KickChatCapture extends BaseChatCapture {
           replyTo: message.replyTo,
           rewardName: message.rewardName,
           color: message.color,
-          months: message.months
+          months: message.months,
+          giftCount: message.giftCount,
+          totalGifted: message.totalGifted
         };
         this.callbacks.onMessage(evt);
       }
