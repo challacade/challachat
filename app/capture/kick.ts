@@ -157,55 +157,97 @@ export class KickChatCapture extends BaseChatCapture {
           const dataIndex = element.getAttribute('data-index') || '';
           if (!dataIndex) return;
           
-          // Check for redemption message using structural indicators (language-agnostic):
-          // 1. Has .border-l-4 container with inline border-color
-          // 2. Has SVG icon (points/gems icon) as child
-          // 3. Has username button WITHOUT [title] attribute (regular messages have title)
-          // 4. Has p.line-clamp-2 with span.font-bold (reward name)
-          // 5. No regular message content span
-          const redemptionContainer = element.querySelector('.border-l-4') as HTMLElement | null;
-          if (redemptionContainer) {
-            const hasBorderColor = (redemptionContainer.getAttribute('style') || '').includes('border-color');
-            const hasSvgIcon = !!redemptionContainer.querySelector(':scope > svg, .shrink-0 > svg');
-            const rewardSpan = redemptionContainer.querySelector('p.line-clamp-2 span.font-bold') as HTMLElement | null;
-            const usernameBtn = redemptionContainer.querySelector('button.inline.font-bold') as HTMLElement | null;
-            // Regular chat messages have title attribute, redemptions don't
-            const hasNoTitleAttr = usernameBtn && !usernameBtn.hasAttribute('title');
+          // Check for redemption or subscription message using structural indicators (language-agnostic)
+          const highlightContainer = element.querySelector('.border-l-4') as HTMLElement | null;
+          if (highlightContainer) {
+            const hasBorderColor = (highlightContainer.getAttribute('style') || '').includes('border-color');
+            const hasSvgIcon = !!highlightContainer.querySelector(':scope > svg, .shrink-0 > svg');
             
-            // Must have: border color styling, SVG icon, reward span, and username without title
-            if (hasBorderColor && hasSvgIcon && rewardSpan && hasNoTitleAttr) {
-              const authorName = usernameBtn?.textContent?.trim() || 'Unknown';
-              
-              // Extract username color from style
-              let nameColor = '';
-              const style = usernameBtn?.getAttribute('style') || '';
-              const colorMatch = style.match(/color:\s*([^;]+)/i);
-              if (colorMatch) nameColor = colorMatch[1].trim();
-              
+            if (hasBorderColor && hasSvgIcon) {
               // Extract border color for the highlight
-              const borderStyle = redemptionContainer.getAttribute('style') || '';
+              const borderStyle = highlightContainer.getAttribute('style') || '';
               const borderColorMatch = borderStyle.match(/border-color:\s*([^;]+)/i);
               const highlightColor = borderColorMatch ? borderColorMatch[1].trim() : '';
               
-              // Find the reward name (text inside the bold span)
-              const rewardName = rewardSpan.textContent?.trim() || 'Reward';
+              // Check for SUBSCRIPTION: has span.text-surface-onSurfaceSecondary container
+              const subContainer = highlightContainer.querySelector('span.text-surface-onSurfaceSecondary') as HTMLElement | null;
+              if (subContainer) {
+                const usernameBtn = subContainer.querySelector('button.font-bold') as HTMLElement | null;
+                const authorName = usernameBtn?.textContent?.trim() || 'Unknown';
+                
+                // Extract username color from style
+                let nameColor = '';
+                const style = usernameBtn?.getAttribute('style') || '';
+                const colorMatch = style.match(/color:\s*([^;]+)/i);
+                if (colorMatch) nameColor = colorMatch[1].trim();
+                
+                // Find month count - look for standalone span with just a number
+                const monthSpans = subContainer.querySelectorAll('span');
+                let months = 1;
+                monthSpans.forEach(span => {
+                  const text = span.textContent?.trim() || '';
+                  // Match standalone numbers (month count)
+                  if (/^\d+$/.test(text)) {
+                    months = parseInt(text, 10) || 1;
+                  }
+                });
+                
+                const isResub = months > 1;
+                const kind = isResub ? 'sub-gift' : 'sub'; // Use sub-gift for resubs to differentiate
+                
+                const stableKey = `kick-sub|${authorName}|${months}`;
+                const messageId = `kick_${cyrb53(stableKey)}`;
+                visibleIds.push(messageId);
+                
+                const payload = {
+                  id: messageId,
+                  author: { name: authorName, avatar: '', flags: { member: true }, badges: [], nameColor: nameColor || undefined, badgePosition: 'left' },
+                  text: '',
+                  segments: [],
+                  timestamp: Date.now(),
+                  kind,
+                  months,
+                  color: highlightColor || undefined
+                };
+                out.push(payload);
+                return; // Skip normal message parsing
+              }
               
-              const stableKey = `kick-redeem|${authorName}|${rewardName}`;
-              const messageId = `kick_${cyrb53(stableKey)}`;
-              visibleIds.push(messageId);
+              // Check for REDEMPTION: has p.line-clamp-2 with span.font-bold (reward name)
+              const rewardSpan = highlightContainer.querySelector('p.line-clamp-2 span.font-bold') as HTMLElement | null;
+              const usernameBtn = highlightContainer.querySelector('button.inline.font-bold') as HTMLElement | null;
+              // Regular chat messages have title attribute, redemptions don't
+              const hasNoTitleAttr = usernameBtn && !usernameBtn.hasAttribute('title');
               
-              const payload = {
-                id: messageId,
-                author: { name: authorName, avatar: '', flags: {}, badges: [], nameColor: nameColor || undefined, badgePosition: 'left' },
-                text: `redeemed ${rewardName}`,
-                segments: [{ t: 'text', text: `redeemed ${rewardName}` }],
-                timestamp: Date.now(),
-                kind: 'redemption',
-                rewardName,
-                color: highlightColor || undefined
-              };
-              out.push(payload);
-              return; // Skip normal message parsing for this element
+              if (rewardSpan && hasNoTitleAttr) {
+                const authorName = usernameBtn?.textContent?.trim() || 'Unknown';
+                
+                // Extract username color from style
+                let nameColor = '';
+                const style = usernameBtn?.getAttribute('style') || '';
+                const colorMatch = style.match(/color:\s*([^;]+)/i);
+                if (colorMatch) nameColor = colorMatch[1].trim();
+                
+                // Find the reward name
+                const rewardName = rewardSpan.textContent?.trim() || 'Reward';
+                
+                const stableKey = `kick-redeem|${authorName}|${rewardName}`;
+                const messageId = `kick_${cyrb53(stableKey)}`;
+                visibleIds.push(messageId);
+                
+                const payload = {
+                  id: messageId,
+                  author: { name: authorName, avatar: '', flags: {}, badges: [], nameColor: nameColor || undefined, badgePosition: 'left' },
+                  text: `redeemed ${rewardName}`,
+                  segments: [{ t: 'text', text: `redeemed ${rewardName}` }],
+                  timestamp: Date.now(),
+                  kind: 'redemption',
+                  rewardName,
+                  color: highlightColor || undefined
+                };
+                out.push(payload);
+                return; // Skip normal message parsing
+              }
             }
           }
           
@@ -288,7 +330,8 @@ export class KickChatCapture extends BaseChatCapture {
           ts: message.timestamp || Date.now(),
           replyTo: message.replyTo,
           rewardName: message.rewardName,
-          color: message.color
+          color: message.color,
+          months: message.months
         };
         this.callbacks.onMessage(evt);
       }

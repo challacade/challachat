@@ -56,6 +56,8 @@ export interface ChatEvent {
   };
   /** Reward name for redemption messages (channel points, etc.) */
   rewardName?: string;
+  /** Subscription/membership month count */
+  months?: number;
 }
 
 export interface CaptureOptions {
