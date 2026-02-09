@@ -9,7 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -406,7 +406,7 @@ class App {
       const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
       const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
       const capped = truncateSongId(details);
-      const line = `\u266b  ${capped}  \u266b`;
+      const line = getDisableSongIdNotes() ? `   ${capped}  ` : `\u266b  ${capped}  \u266b`;
 
       const writeResult = writeSongTxt(line);
       if (!writeResult.ok) {

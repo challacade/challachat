@@ -14,6 +14,8 @@ export type AppSettings = {
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
   playlistLoop?: boolean;
+  /** When true, replaces the ♫ music-note characters with spaces in the song.txt output. */
+  disableSongIdNotes?: boolean;
 };
 
 function getSettingsDir(): string {
@@ -128,6 +130,11 @@ export function getPlaylistLoop(): boolean {
   const { settings } = readSettings();
   // Default to true if not explicitly set to false
   return (settings as any)?.playlistLoop !== false;
+}
+
+export function getDisableSongIdNotes(): boolean {
+  const { settings } = readSettings();
+  return (settings as any)?.disableSongIdNotes === true;
 }
 
 export function truncateSongId(songId: string): string {

@@ -121,7 +121,8 @@ When a stream is connected and a non-empty playlist is available, you can contro
    "enableMusicHotkeys": true,
    "jamCountMinimum": 3,
    "autoShuffle": true,
-   "playlistLoop": true
+   "playlistLoop": true,
+   "disableSongIdNotes": false
 }
 ```
 
@@ -131,6 +132,7 @@ When a stream is connected and a non-empty playlist is available, you can contro
 - `jamCountMinimum` — Optional minimum number of jams required before the jam finale message is sent when the song changes.
 - `autoShuffle` — Optional; when `true`, automatically shuffles the playlist when it first loads in the overlay.
 - `playlistLoop` — Optional; when `true` (the default), the playlist loops back to the first song after the last song ends. Set to `false` to stop playback at the end.
+- `disableSongIdNotes` — Optional; when `true`, replaces the ♫ music-note characters with spaces in the `song.txt` output. Useful on systems where those characters don't render correctly.
 
 ## Releases (GitHub Actions)
 
