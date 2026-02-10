@@ -12,8 +12,8 @@ export function runChatCommands(message: ChatEvent, ctx: CommandContext): void {
   const text = typeof message.text === 'string' ? message.text.trim() : '';
   if (!text) return;
 
-  // Command: !jam
-  if (text === '!jam' && isJamEnabled()) {
+  // Command: !jam (case-insensitive)
+  if (text.toLowerCase() === '!jam' && isJamEnabled()) {
     const authorName = message.author?.name || '';
     const result = tryJam(authorName, ctx.nowPlaying);
     if (result.accepted) {
