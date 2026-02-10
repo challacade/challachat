@@ -52,6 +52,7 @@ export const elements = {
   musicEnableJam: document.getElementById('musicEnableJam'),
   musicSongDisplay: document.getElementById('musicSongDisplay'),
   songDisplaySelect: document.getElementById('songDisplaySelect'),
+  scrollSongDisplay: document.getElementById('scrollSongDisplay'),
   songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
@@ -237,7 +238,8 @@ export const state = {
     index: 0,
     writeSongFile: false,
     enableJam: false,
-    songDisplay: 'none'  // 'none' | 'top' | 'bottom'
+    songDisplay: 'none',  // 'none' | 'top' | 'bottom'
+    scrollSongDisplay: false
   },
   preset: 'Dark',
   startedAt: null,

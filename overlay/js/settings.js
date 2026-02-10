@@ -301,6 +301,10 @@ export function applySongDisplay() {
   songEl.classList.add(position);
   overlay?.classList.add(`song-display-${position}`);
   
+  // Apply or remove scrolling
+  const scrolling = !!state.music?.scrollSongDisplay;
+  songEl.classList.toggle('scrolling', scrolling);
+  
   // Update song title from music player
   updateSongDisplayText();
 }
@@ -318,7 +322,21 @@ export function updateSongDisplayText() {
     const { getDisplayTitleAtPos, musicPlayer } = window.__challaChatMusicExports || {};
     if (getDisplayTitleAtPos && musicPlayer) {
       const title = getDisplayTitleAtPos(musicPlayer.index);
-      songEl.textContent = title ? `♫ ${title} ♫` : '';
+      const display = title ? `♫ ${title} ♫` : '';
+      const textSpan = songEl.querySelector('.song-display-text');
+      if (textSpan) {
+        // For scrolling: duplicate text with a separator for seamless loop
+        const scrolling = songEl.classList.contains('scrolling');
+        textSpan.textContent = scrolling && display ? `${display}\u2003\u2003\u2003${display}\u2003\u2003\u2003` : display;
+        // Scale duration based on text length for consistent speed
+        if (scrolling && display) {
+          const chars = display.length;
+          const duration = Math.max(8, chars * 0.35);
+          songEl.style.setProperty('--marquee-duration', `${duration}s`);
+        }
+      } else {
+        songEl.textContent = display;
+      }
     }
   } catch {
     // Fallback: will be updated when music module calls this
@@ -462,6 +480,7 @@ export function syncUi() {
   if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
   if (elements.musicEnableJam) elements.musicEnableJam.checked = !!state.music.enableJam;
   if (elements.musicSongDisplay) elements.musicSongDisplay.value = state.music.songDisplay || 'none';
+  if (elements.scrollSongDisplay) elements.scrollSongDisplay.checked = !!state.music.scrollSongDisplay;
   
   applySongDisplay();
   applyTheme();
@@ -540,6 +559,9 @@ export function updateFromUi() {
   // Song display setting
   if (elements.musicSongDisplay) {
     state.music.songDisplay = elements.musicSongDisplay.value || 'none';
+  }
+  if (elements.scrollSongDisplay) {
+    state.music.scrollSongDisplay = !!elements.scrollSongDisplay.checked;
   }
   applySongDisplay();
 
@@ -1113,6 +1135,7 @@ export function bindUi() {
   elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
   elements.musicEnableJam?.addEventListener('change', updateFromUi);
   elements.musicSongDisplay?.addEventListener('change', updateFromUi);
+  elements.scrollSongDisplay?.addEventListener('change', updateFromUi);
   
   // Poll interval controls
   setupPollIntervalControls();

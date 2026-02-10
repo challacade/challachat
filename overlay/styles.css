@@ -433,6 +433,27 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   transition: opacity 0.3s ease;
 }
 
+/* Static (non-scrolling) mode: text span is inline, no animation */
+.song-display-overlay .song-display-text {
+  display: inline;
+}
+
+/* Scrolling marquee mode */
+.song-display-overlay.scrolling {
+  text-overflow: clip;
+  text-align: left;
+}
+
+.song-display-overlay.scrolling .song-display-text {
+  display: inline-block;
+  animation: song-marquee var(--marquee-duration, 12s) linear infinite;
+}
+
+@keyframes song-marquee {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
 .song-display-overlay.hidden {
   display: none;
 }
