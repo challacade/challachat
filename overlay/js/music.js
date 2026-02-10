@@ -6,6 +6,15 @@
 import { state, elements, isDemoSite, showToast, saveToLocal } from './state.js';
 import { clamp01, postJson, shuffleInPlace } from './utils.js';
 
+// Helper to update song display overlay without circular imports
+function callUpdateSongDisplay() {
+  try {
+    if (typeof window.__challaChatUpdateSongDisplay === 'function') {
+      window.__challaChatUpdateSongDisplay();
+    }
+  } catch {}
+}
+
 // ================================
 // Music Player State
 // ================================
@@ -149,9 +158,14 @@ export function syncMusicUi() {
         // Only update if user hasn't changed tracks since we started.
         if (getServerIndexAtPos(musicPlayer.index) !== serverIndexSnapshot) return;
         titleEl.textContent = getDisplayTitleAtPos(musicPlayer.index);
+        // Also update song display overlay
+        callUpdateSongDisplay();
       });
     }
   }
+
+  // Update song display overlay
+  callUpdateSongDisplay();
 
   // Play button label (toggle)
   const playBtn = elements.musicPlayBtn;
@@ -456,3 +470,9 @@ export async function fetchMusicSettings() {
     el.textContent = '(unavailable)';
   }
 }
+
+// Expose music exports globally for song display integration
+window.__challaChatMusicExports = {
+  getDisplayTitleAtPos,
+  musicPlayer
+};

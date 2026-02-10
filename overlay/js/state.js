@@ -50,6 +50,8 @@ export const elements = {
   musicShuffleBtn: document.getElementById('musicShuffleBtn'),
   musicWriteSongFile: document.getElementById('musicWriteSongFile'),
   musicEnableJam: document.getElementById('musicEnableJam'),
+  musicSongDisplay: document.getElementById('musicSongDisplay'),
+  songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -233,7 +235,8 @@ export const state = {
     volume: 1,
     index: 0,
     writeSongFile: false,
-    enableJam: false
+    enableJam: false,
+    songDisplay: 'none'  // 'none' | 'top' | 'bottom'
   },
   preset: 'Dark',
   startedAt: null,

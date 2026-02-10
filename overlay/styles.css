@@ -402,6 +402,70 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 
 @keyframes slide-in { from { transform: translateY(10px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
+/* ================================
+   Song Display Overlay
+   ================================ */
+
+.song-display-overlay {
+  position: absolute;
+  left: 0;
+  right: 0;
+  padding: calc(0.5rem * var(--scale)) calc(1rem * var(--scale));
+  font-size: calc(1.1rem * var(--scale));
+  font-weight: 600;
+  color: var(--text);
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  z-index: 2;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: opacity 0.3s ease;
+}
+
+.song-display-overlay.hidden {
+  display: none;
+}
+
+.song-display-overlay.top {
+  top: 0;
+}
+
+.song-display-overlay.bottom {
+  bottom: 0;
+}
+
+/* Add gap to messages container when song display is active */
+.overlay.song-display-top .messages {
+  top: calc(2.5rem * var(--scale));
+}
+
+.overlay.song-display-bottom .messages {
+  bottom: calc(2.5rem * var(--scale));
+}
+
+/* Music display dropdown row */
+.settings .music-display-row {
+  margin-top: 16px;
+}
+
+.settings .music-display-row label {
+  display: grid;
+  gap: 6px;
+}
+
+.settings .music-display-row select {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #fff;
+  border-radius: 8px;
+  padding: 8px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
 @media (max-width: 600px) { :root { --base-scale: 0.9; } }
 @media (max-width: 420px) { :root { --base-scale: 0.8; } }
 @media (max-height: 400px) { :root { --base-scale: 0.85; } }

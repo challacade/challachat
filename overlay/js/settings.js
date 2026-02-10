@@ -282,6 +282,52 @@ export function applyTheme() {
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 }
 
+export function applySongDisplay() {
+  const overlay = elements.overlay;
+  const songEl = elements.songDisplayOverlay;
+  const position = state.music?.songDisplay || 'none';
+  
+  // Update overlay classes for message gap
+  overlay?.classList.remove('song-display-top', 'song-display-bottom');
+  
+  if (position === 'none' || !songEl) {
+    songEl?.classList.add('hidden');
+    songEl?.classList.remove('top', 'bottom');
+    return;
+  }
+  
+  // Show the song display and position it
+  songEl.classList.remove('hidden', 'top', 'bottom');
+  songEl.classList.add(position);
+  overlay?.classList.add(`song-display-${position}`);
+  
+  // Update song title from music player
+  updateSongDisplayText();
+}
+
+export function updateSongDisplayText() {
+  const songEl = elements.songDisplayOverlay;
+  if (!songEl) return;
+  
+  const position = state.music?.songDisplay || 'none';
+  if (position === 'none') return;
+  
+  // Import getDisplayTitleAtPos dynamically to avoid circular dependencies
+  // The title will be updated whenever syncMusicUi is called
+  try {
+    const { getDisplayTitleAtPos, musicPlayer } = window.__challaChatMusicExports || {};
+    if (getDisplayTitleAtPos && musicPlayer) {
+      const title = getDisplayTitleAtPos(musicPlayer.index);
+      songEl.textContent = title ? `♫ ${title} ♫` : '';
+    }
+  } catch {
+    // Fallback: will be updated when music module calls this
+  }
+}
+
+// Register global callback so music.js can call this without circular imports
+window.__challaChatUpdateSongDisplay = updateSongDisplayText;
+
 export function applyPreset(name) {
   if (!name || name === 'Custom' || !PRESETS[name]) return;
   const preset = PRESETS[name];
@@ -367,6 +413,10 @@ export function loadFromUrl() {
   if (url.searchParams.has('pagebgop')) {
     state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop'))));
   }
+  if (url.searchParams.has('songdisplay')) {
+    const val = url.searchParams.get('songdisplay');
+    if (['none', 'top', 'bottom'].includes(val)) state.music.songDisplay = val;
+  }
 }
 
 // ================================
@@ -411,7 +461,9 @@ export function syncUi() {
   if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
   if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
   if (elements.musicEnableJam) elements.musicEnableJam.checked = !!state.music.enableJam;
+  if (elements.musicSongDisplay) elements.musicSongDisplay.value = state.music.songDisplay || 'none';
   
+  applySongDisplay();
   applyTheme();
   
   // Keep custom dropdown label/selection in sync
@@ -483,6 +535,12 @@ export function updateFromUi() {
       try { void notifyNowPlaying(getServerIndexAtPos(musicPlayer.index)); } catch {}
     }
   }
+
+  // Song display setting
+  if (elements.musicSongDisplay) {
+    state.music.songDisplay = elements.musicSongDisplay.value || 'none';
+  }
+  applySongDisplay();
 
   applyMusicVolume();
   applyTheme();
@@ -747,6 +805,9 @@ export function copyUrlWithSettings() {
   params.set('text', state.theme.text.replace('#', ''));
   params.set('bubble', state.theme.bubbleColor.replace('#', ''));
   params.set('bg', String(state.theme.bgOpacity));
+  if (state.music.songDisplay && state.music.songDisplay !== 'none') {
+    params.set('songdisplay', state.music.songDisplay);
+  }
   
   try {
     navigator.clipboard.writeText(baseUrl.toString())
@@ -1036,6 +1097,7 @@ export function bindUi() {
   elements.musicVolume?.addEventListener('input', updateFromUi);
   elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
   elements.musicEnableJam?.addEventListener('change', updateFromUi);
+  elements.musicSongDisplay?.addEventListener('change', updateFromUi);
   
   // Poll interval controls
   setupPollIntervalControls();
