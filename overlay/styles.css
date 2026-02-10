@@ -419,12 +419,10 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   left: 0;
   right: 0;
   padding: calc(0.5rem * var(--scale)) calc(1rem * var(--scale));
-  font-size: calc(1.1rem * var(--scale));
+  font-size: calc(1.35rem * var(--scale));
   font-weight: 600;
   color: var(--text);
-  background: rgba(0, 0, 0, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: var(--page-bg, transparent);
   z-index: 2;
   text-align: center;
   white-space: nowrap;
@@ -468,11 +466,11 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 
 /* Add gap to messages container when song display is active */
 .overlay.song-display-top .messages {
-  top: calc(2.5rem * var(--scale));
+  top: calc(2.75rem * var(--scale));
 }
 
 .overlay.song-display-bottom .messages {
-  bottom: calc(2.5rem * var(--scale));
+  bottom: calc(2.75rem * var(--scale));
 }
 
 /* Music display dropdown row */

@@ -275,7 +275,9 @@ export function applyTheme() {
   const bg = parseInt(normalizedBgHex.slice(2, 4), 16);
   const bb = parseInt(normalizedBgHex.slice(4, 6), 16);
   const bgOpacity = Math.max(0, Math.min(1, state.pageBgOpacity));
-  document.body.style.background = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`;
+  const pageBg = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`;
+  document.body.style.background = pageBg;
+  document.documentElement.style.setProperty('--page-bg', pageBg);
   
   document.documentElement.classList.toggle('no-bubbles', !state.showBubbles);
   document.documentElement.classList.toggle('no-badges', !state.showBadges);
