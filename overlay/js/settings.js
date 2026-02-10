@@ -468,6 +468,7 @@ export function syncUi() {
   
   // Keep custom dropdown label/selection in sync
   try { syncCustomPresetDropdown(); } catch {}
+  try { syncSongDisplayDropdown(); } catch {}
 }
 
 export function updateFromUi() {
@@ -819,12 +820,12 @@ export function copyUrlWithSettings() {
 }
 
 // ================================
-// Custom Dropdown for Preset
+// Custom Dropdown (reusable)
 // ================================
 
-export function buildCustomPresetDropdown() {
-  const select = document.getElementById('preset');
-  const mount = document.getElementById('presetSelect');
+function buildCustomSelect(selectId, mountId) {
+  const select = document.getElementById(selectId);
+  const mount = document.getElementById(mountId);
   if (!select || !mount) return;
 
   mount.innerHTML = '';
@@ -960,19 +961,33 @@ export function buildCustomPresetDropdown() {
   mount.appendChild(menu);
 }
 
+function syncCustomSelect(selectId, mountId) {
+  const select = document.getElementById(selectId);
+  const label = document.querySelector(`#${mountId} .select-custom__label`);
+  const options = document.querySelectorAll(`#${mountId} .select-custom__option`);
+  if (!select || !label || !options.length) return;
+  const currentText = select.options[select.selectedIndex]?.text || select.value;
+  label.textContent = currentText;
+  options.forEach((el) => {
+    if (el.dataset.value === select.value) el.setAttribute('aria-selected', 'true');
+    else el.removeAttribute('aria-selected');
+  });
+}
+
+export function buildCustomPresetDropdown() {
+  buildCustomSelect('preset', 'presetSelect');
+}
+
 export function syncCustomPresetDropdown() {
-  try {
-    const select = document.getElementById('preset');
-    const label = document.querySelector('#presetSelect .select-custom__label');
-    const options = document.querySelectorAll('#presetSelect .select-custom__option');
-    if (!select || !label || !options.length) return;
-    const currentText = select.options[select.selectedIndex]?.text || select.value;
-    label.textContent = currentText;
-    options.forEach((el, i) => {
-      if (el.dataset.value === select.value) el.setAttribute('aria-selected', 'true');
-      else el.removeAttribute('aria-selected');
-    });
-  } catch {}
+  try { syncCustomSelect('preset', 'presetSelect'); } catch {}
+}
+
+export function buildSongDisplayDropdown() {
+  buildCustomSelect('musicSongDisplay', 'songDisplaySelect');
+}
+
+export function syncSongDisplayDropdown() {
+  try { syncCustomSelect('musicSongDisplay', 'songDisplaySelect'); } catch {}
 }
 
 // ================================

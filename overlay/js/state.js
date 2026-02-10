@@ -51,6 +51,7 @@ export const elements = {
   musicWriteSongFile: document.getElementById('musicWriteSongFile'),
   musicEnableJam: document.getElementById('musicEnableJam'),
   musicSongDisplay: document.getElementById('musicSongDisplay'),
+  songDisplaySelect: document.getElementById('songDisplaySelect'),
   songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),

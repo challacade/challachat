@@ -181,6 +181,17 @@
       <button id="musicNextBtn" class="secondary">Next</button>
       <button id="musicShuffleBtn" class="secondary">Shuffle</button>
     </div>
+    <div class="grid music-display-row">
+      <label>
+        Song Display
+        <select id="musicSongDisplay">
+          <option value="none">None</option>
+          <option value="top">Top</option>
+          <option value="bottom">Bottom</option>
+        </select>
+        <div id="songDisplaySelect" class="select-custom" aria-hidden="true"></div>
+      </label>
+    </div>
     <div class="censor-row music-write-row">
       <label class="checkbox-label">
         <input id="musicWriteSongFile" type="checkbox" />
@@ -191,16 +202,6 @@
       <label class="checkbox-label">
         <input id="musicEnableJam" type="checkbox" />
         <span>Enable !jam</span>
-      </label>
-    </div>
-    <div class="grid music-display-row">
-      <label>
-        Song Display
-        <select id="musicSongDisplay">
-          <option value="none">None</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-        </select>
       </label>
     </div>
     <!--<div class="censor-row">

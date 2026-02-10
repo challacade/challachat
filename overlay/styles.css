@@ -343,6 +343,14 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   height: 0 !important;
 }
 
+.settings select#musicSongDisplay {
+  position: absolute !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
+  width: 0 !important;
+  height: 0 !important;
+}
+
 .select-custom {
   position: relative;
   display: inline-block;
@@ -454,16 +462,6 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 .settings .music-display-row label {
   display: grid;
   gap: 6px;
-}
-
-.settings .music-display-row select {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.15);
-  color: #fff;
-  border-radius: 8px;
-  padding: 8px;
-  font-size: 13px;
-  cursor: pointer;
 }
 
 @media (max-width: 600px) { :root { --base-scale: 0.9; } }

@@ -28,6 +28,7 @@ import {
   fetchLoggerStatus,
   toggleLogger,
   buildCustomPresetDropdown,
+  buildSongDisplayDropdown,
   syncCustomPresetDropdown
 } from './js/settings.js';
 import { startSSE } from './js/sse.js';
@@ -121,10 +122,11 @@ function start() {
     }
   } catch {}
   
-  // Build custom preset dropdown
+  // Build custom dropdowns
   try {
     buildCustomPresetDropdown();
     syncCustomPresetDropdown();
+    buildSongDisplayDropdown();
   } catch {}
   
   // Start SSE connection
