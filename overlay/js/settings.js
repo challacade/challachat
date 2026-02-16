@@ -266,8 +266,10 @@ export function applyTheme() {
   const r = parseInt(normalizedHex.slice(0, 2), 16);
   const g = parseInt(normalizedHex.slice(2, 4), 16);
   const b = parseInt(normalizedHex.slice(4, 6), 16);
-  const bubbleColor = `rgba(${r}, ${g}, ${b}, ${state.showBubbles ? state.theme.bgOpacity : 0})`;
+  const bubbleOpacity = state.showBubbles ? state.theme.bgOpacity : 0;
+  const bubbleColor = `rgba(${r}, ${g}, ${b}, ${bubbleOpacity})`;
   document.documentElement.style.setProperty('--bubble', bubbleColor);
+  document.documentElement.style.setProperty('--bubble-blur', bubbleOpacity > 0 ? 'blur(8px)' : 'none');
   
   const bgHex = (state.pageBgColor || '#000000').replace('#', '');
   const normalizedBgHex = bgHex.length === 3 ? bgHex.split('').map(c => c + c).join('') : bgHex.padEnd(6, '0');

@@ -8,6 +8,7 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 :root {
   --text: #fff;
   --bubble: rgba(0,0,0,0.35);
+  --bubble-blur: blur(8px);
   --base-scale: 1;
   --scale: var(--base-scale);
   --message-gap: 0.4;
@@ -37,8 +38,8 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   color: var(--text);
   background: var(--bubble);
   border: none;
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: var(--bubble-blur);
+  -webkit-backdrop-filter: var(--bubble-blur);
   border-radius: calc(8px * var(--scale));
   padding: calc(0.28rem * var(--scale)) calc(0.36rem * var(--scale));
   width: 100%;
@@ -70,6 +71,8 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   background: transparent !important;
   border-color: transparent !important;
   box-shadow: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
   padding: 0 0 0 8px !important;
   margin-block: calc(0.125rem * var(--scale));
 }
