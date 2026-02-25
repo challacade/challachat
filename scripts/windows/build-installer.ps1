@@ -1,63 +1,15 @@
 #!/usr/bin/env pwsh
 # Build ChallaChat Windows installer using electron-builder (NSIS)
-# Produces: build/electron/ChallaChat Setup <version>.exe
+# Produces: build/electron/ChallaChat-Setup.exe
 
-$ErrorActionPreference = 'Stop'
-$ScriptDir = $PSScriptRoot
-$RootDir = Split-Path -Parent (Split-Path -Parent $ScriptDir)
-Set-Location -Path $RootDir
+. "$PSScriptRoot/build-common.ps1"
 
-function Run($cmd) {
-  Write-Host "Running: $cmd" -ForegroundColor Cyan
-  Invoke-Expression $cmd
-  if ($LASTEXITCODE -ne 0) { throw "Command failed: $cmd" }
-}
+Show-Banner 'ChallaChat - Windows Installer Build'
+$gitVersion = Get-GitVersion
+Start-BuildStep
 
-Write-Host "======================================" -ForegroundColor Magenta
-Write-Host " ChallaChat - Windows Installer Build" -ForegroundColor Magenta
-Write-Host "======================================" -ForegroundColor Magenta
-Write-Host ""
-
-# Detect version from git tags (strip leading 'v' if present)
-$gitVersion = $null
-try {
-  $gitTag = (git describe --tags --abbrev=0 2>$null)
-  if ($gitTag) {
-    $gitVersion = $gitTag -replace '^v', ''
-    Write-Host "Detected version from git tag: $gitVersion" -ForegroundColor Cyan
-  }
-} catch { }
-if (-not $gitVersion) {
-  $gitVersion = (Get-Content package.json | ConvertFrom-Json).version
-  Write-Host "No git tag found, using package.json version: $gitVersion" -ForegroundColor Yellow
-}
-
-# Clean previous builds
-Write-Host "Cleaning previous build output..." -ForegroundColor Yellow
-if (Test-Path "build/electron") { Remove-Item -Recurse -Force "build/electron" }
-
-# Build TypeScript then package with electron-builder
-Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
-Run "npm run build"
-
-Write-Host "Packaging with electron-builder (NSIS installer)..." -ForegroundColor Yellow
-
-# Inject git-derived version into package.json before building
-$pkgJson = Get-Content package.json -Raw | ConvertFrom-Json
-$originalVersion = $pkgJson.version
-$pkgJson.version = $gitVersion
-$jsonText = $pkgJson | ConvertTo-Json -Depth 10
-[System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
-Write-Host "Set package.json version: $originalVersion -> $gitVersion" -ForegroundColor Cyan
-
-try {
-  Run "npx electron-builder --win nsis"
-} finally {
-  # Restore original version
-  $pkgJson.version = $originalVersion
-  $jsonText = $pkgJson | ConvertTo-Json -Depth 10
-  [System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
-}
+Write-Host 'Packaging with electron-builder (NSIS installer)...' -ForegroundColor Yellow
+Invoke-ElectronBuilder '--win nsis' $gitVersion
 
 # Find the installer in the output
 $outputDir = "build/electron"
@@ -74,5 +26,5 @@ if ($installer) {
   Write-Host "  Size: $([math]::Round($installerSize,1)) MB" -ForegroundColor Cyan
   Write-Host ""
 } else {
-  Write-Warning "Installer .exe not found in $outputDir — check electron-builder output above."
+  Write-Warning "Installer .exe not found in $outputDir - check electron-builder output above."
 }

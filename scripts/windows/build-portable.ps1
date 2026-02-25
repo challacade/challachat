@@ -1,71 +1,15 @@
 #!/usr/bin/env pwsh
 # Build ChallaChat portable distribution using electron-builder (unpacked)
 # Produces: build/electron/win-unpacked/ChallaChat.exe (no installer needed)
-#
-# NOTE: Must be run as Administrator due to electron-builder winCodeSign symlink issue.
-# See: https://github.com/electron-userland/electron-builder/issues/8149
-#
-# TODO: Once electron-builder ships a release where the `toolsets.winCodeSign` config
-# actually switches to per-platform archives, we can drop the admin requirement.
-# Track PR: https://github.com/electron-userland/electron-builder/pull/9430
-# Config to add in package.json "build": { "toolsets": { "winCodeSign": "1.1.0" } }
 
-$ErrorActionPreference = 'Stop'
-$ScriptDir = $PSScriptRoot
-$RootDir = Split-Path -Parent (Split-Path -Parent $ScriptDir)
-Set-Location -Path $RootDir
+. "$PSScriptRoot/build-common.ps1"
 
-function Run($cmd) {
-  Write-Host "Running: $cmd" -ForegroundColor Cyan
-  Invoke-Expression $cmd
-  if ($LASTEXITCODE -ne 0) { throw "Command failed: $cmd" }
-}
+Show-Banner 'ChallaChat - Portable Electron Build'
+$gitVersion = Get-GitVersion
+Start-BuildStep
 
-Write-Host "=====================================" -ForegroundColor Magenta
-Write-Host " ChallaChat - Portable Electron Build" -ForegroundColor Magenta
-Write-Host "=====================================" -ForegroundColor Magenta
-Write-Host ""
-
-# Detect version from git tags (strip leading 'v' if present)
-$gitVersion = $null
-try {
-  $gitTag = (git describe --tags --abbrev=0 2>$null)
-  if ($gitTag) {
-    $gitVersion = $gitTag -replace '^v', ''
-    Write-Host "Detected version from git tag: $gitVersion" -ForegroundColor Cyan
-  }
-} catch { }
-if (-not $gitVersion) {
-  $gitVersion = (Get-Content package.json | ConvertFrom-Json).version
-  Write-Host "No git tag found, using package.json version: $gitVersion" -ForegroundColor Yellow
-}
-
-# Clean previous builds
-Write-Host "Cleaning previous build output..." -ForegroundColor Yellow
-if (Test-Path "build/electron") { Remove-Item -Recurse -Force "build/electron" }
-
-# Build TypeScript then package with electron-builder (--dir = unpacked)
-Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
-Run "npm run build"
-
-Write-Host "Packaging with electron-builder (portable)..." -ForegroundColor Yellow
-
-# Inject git-derived version into package.json before building
-$pkgJson = Get-Content package.json -Raw | ConvertFrom-Json
-$originalVersion = $pkgJson.version
-$pkgJson.version = $gitVersion
-$jsonText = $pkgJson | ConvertTo-Json -Depth 10
-[System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
-Write-Host "Set package.json version: $originalVersion -> $gitVersion" -ForegroundColor Cyan
-
-try {
-  Run "npx electron-builder --win portable --dir"
-} finally {
-  # Restore original version
-  $pkgJson.version = $originalVersion
-  $jsonText = $pkgJson | ConvertTo-Json -Depth 10
-  [System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
-}
+Write-Host 'Packaging with electron-builder (portable)...' -ForegroundColor Yellow
+Invoke-ElectronBuilder '--win portable --dir' $gitVersion
 
 $unpackedDir = "build/electron/win-unpacked"
 if (-not (Test-Path $unpackedDir)) {
@@ -86,8 +30,8 @@ Write-Host "=====================================" -ForegroundColor Green
 Write-Host " Portable build complete!" -ForegroundColor Green
 Write-Host "=====================================" -ForegroundColor Green
 Write-Host ""
-Write-Host "Output: build\electron\win-unpacked\" -ForegroundColor Cyan
+Write-Host 'Output: build\electron\win-unpacked\' -ForegroundColor Cyan
 Write-Host "  ChallaChat.exe : $([math]::Round($exeSize,1)) MB" -ForegroundColor Cyan
 Write-Host "  Total          : $([math]::Round($totalSize,1)) MB" -ForegroundColor Cyan
 Write-Host ""
-Write-Host "To run: .\build\electron\win-unpacked\ChallaChat.exe" -ForegroundColor White
+Write-Host 'To run: .\build\electron\win-unpacked\ChallaChat.exe' -ForegroundColor White
