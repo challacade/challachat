@@ -17,9 +17,81 @@
     "start:system": "bash ./scripts/start-on-system.sh",
     "start:system:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
     "typecheck": "tsc -p . --noEmit",
-    "build:portable": "bash ./scripts/build-portable.sh",
-    "build:portable:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-portable.ps1",
-    "build:installer": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/build-installer.ps1"
+    "pack": "tsc -p . && electron-builder --dir",
+    "dist": "tsc -p . && electron-builder",
+    "dist:win": "tsc -p . && electron-builder --win",
+    "dist:mac": "tsc -p . && electron-builder --mac",
+    "dist:linux": "tsc -p . && electron-builder --linux"
+  },
+  "build": {
+    "appId": "com.challacade.challachat",
+    "productName": "ChallaChat",
+    "directories": {
+      "output": "build/electron"
+    },
+    "files": [
+      {
+        "from": "dist",
+        "to": "dist",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "overlay",
+        "to": "overlay",
+        "filter": ["**/*"]
+      },
+      {
+        "from": "admin",
+        "to": "admin",
+        "filter": ["**/*"]
+      },
+      "package.json"
+    ],
+    "extraMetadata": {
+      "main": "dist/main/main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "overlay/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "installerIcon": "overlay/favicon.ico",
+      "uninstallerIcon": "overlay/favicon.ico",
+      "deleteAppDataOnUninstall": true
+    },
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.entertainment",
+      "icon": "website/img/challachat.png"
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Utility",
+      "icon": "website/img/challachat.png"
+    },
+    "asar": true,
+    "npmRebuild": true
   },
   "dependencies": {
     "express": "^4.19.2",
@@ -32,11 +104,7 @@
     "@types/node": "^24.0.0",
     "electron": "^40.6.1",
     "electron-builder": "^26.8.1",
-    "postject": "^1.0.0-alpha.6",
-    "rcedit": "^4.0.1",
     "tsx": "^4.16.2",
-    "typescript": "^5.5.4",
-    "webpack": "^5.101.3",
-    "webpack-cli": "^6.0.1"
+    "typescript": "^5.5.4"
   }
 }
