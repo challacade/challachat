@@ -468,7 +468,7 @@ export function syncUi() {
   
   if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles;
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
-  if (elements.messageGap) elements.messageGap.value = String(state.messageGapRem);
+
   
   // Sound panel
   if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
@@ -522,9 +522,7 @@ export function updateFromUi() {
     }
   }
   
-  if (elements.messageGap) {
-    state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value)));
-  }
+
   
   // Per-sound volumes only (set to 0 to disable)
   if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
@@ -1097,7 +1095,7 @@ export function bindUi() {
   elements.demoMode?.addEventListener('change', updateFromUi);
   elements.showBadges?.addEventListener('change', updateFromUi);
   elements.showAvatars?.addEventListener('change', updateFromUi);
-  elements.messageGap?.addEventListener('input', updateFromUi);
+
   elements.pageBgColor?.addEventListener('input', updateFromUi);
   elements.textColor?.addEventListener('input', updateFromUi);
   elements.bubbleColor?.addEventListener('input', updateFromUi);

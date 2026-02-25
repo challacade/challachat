@@ -119,6 +119,9 @@ export function startSSE() {
       if (typeof data.bgOpacity === 'number') {
         state.pageBgOpacity = Math.max(0, Math.min(1, data.bgOpacity));
       }
+      if (typeof data.messageGap === 'number') {
+        state.messageGapRem = Math.max(0, Math.min(1.5, data.messageGap));
+      }
       applyTheme();
     } catch {
       // ignore

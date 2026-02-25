@@ -63,6 +63,7 @@ class App extends EventEmitter {
     textOpacity: 1,
     bubbleOpacity: 0.14,
     bgOpacity: 0,
+    messageGap: 0.4,
   };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
@@ -359,6 +360,9 @@ class App extends EventEmitter {
       }
       if (typeof body.bgOpacity === 'number') {
         this.appearance.bgOpacity = Math.max(0, Math.min(1, body.bgOpacity));
+      }
+      if (typeof body.messageGap === 'number') {
+        this.appearance.messageGap = Math.max(0, Math.min(1.5, body.messageGap));
       }
       // Broadcast to all overlay SSE clients
       this.sse.send('appearance', this.appearance);

@@ -45,6 +45,8 @@ const bubbleOpSlider  = $('bubbleOpSlider');
 const bubbleOpLabel   = $('bubbleOpLabel');
 const bgOpSlider      = $('bgOpSlider');
 const bgOpLabel       = $('bgOpLabel');
+const gapSlider       = $('gapSlider');
+const gapLabel        = $('gapLabel');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -326,6 +328,10 @@ function updateAppearanceUI(a) {
     bgOpSlider.value = a.bgOpacity;
     bgOpLabel.textContent = 'Background opacity: ' + a.bgOpacity.toFixed(2);
   }
+  if (typeof a.messageGap === 'number') {
+    gapSlider.value = a.messageGap;
+    gapLabel.textContent = 'Vertical gap: ' + a.messageGap.toFixed(2);
+  }
 }
 
 let appearanceDebounce = null;
@@ -355,6 +361,11 @@ bgOpSlider.addEventListener('input', () => {
   const val = Number(bgOpSlider.value);
   bgOpLabel.textContent = 'Background opacity: ' + val.toFixed(2);
   sendAppearance({ bgOpacity: val });
+});
+gapSlider.addEventListener('input', () => {
+  const val = Number(gapSlider.value);
+  gapLabel.textContent = 'Vertical gap: ' + val.toFixed(2);
+  sendAppearance({ messageGap: val });
 });
 
 // ─── Copy overlay URL ──────────────────────────────────────────

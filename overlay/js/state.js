@@ -23,7 +23,7 @@ export const elements = {
   bubbleColorPreview: document.getElementById('bubbleColorPreview'),
   showBubbles: document.getElementById('showBubbles'),
   demoMode: document.getElementById('demoMode'),
-  messageGap: document.getElementById('messageGap'),
+
   pageBgColor: document.getElementById('pageBgColor'),
   pageBgColorPreview: document.getElementById('pageBgColorPreview'),
   copyUrlBtn: document.getElementById('copyUrlBtn'),
