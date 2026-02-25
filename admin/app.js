@@ -54,6 +54,7 @@ const showBubblesToggle = $('showBubblesToggle');
 const showAvatarsToggle = $('showAvatarsToggle');
 const showBadgesToggle  = $('showBadgesToggle');
 const presetSelect      = $('presetSelect');
+const previewHost       = $('previewHost');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -332,6 +333,117 @@ const PRESETS = {
   }
 };
 
+// ─── Live preview (Shadow DOM) ─────────────────────────────────
+let previewShadow = null;
+
+async function initPreview() {
+  if (!previewHost || previewShadow) return;
+  try {
+    const res = await fetch('/styles.css');
+    const overlayCss = await res.text();
+    previewShadow = previewHost.attachShadow({ mode: 'open' });
+
+    // Google Fonts link for the overlay font
+    const fontLink = document.createElement('link');
+    fontLink.rel = 'stylesheet';
+    fontLink.href = 'https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap';
+    previewShadow.appendChild(fontLink);
+
+    const style = document.createElement('style');
+    style.textContent = overlayCss + `\n
+      /* Preview overrides – :root vars don't inherit into shadow DOM,
+         so we re-declare them on the wrapper which scopes all children. */
+      :host { display: block; }
+      .preview-wrap {
+        --base-scale: 1;
+        --scale: var(--base-scale);
+        --message-gap: 0.4;
+        --text: #fff;
+        --bubble: rgba(0,0,0,0.35);
+        --bubble-blur: blur(8px);
+        --primary: #00b5ff;
+        --emote-scale: 0.95;
+        border-radius: 8px;
+        padding: 12px 10px;
+        overflow: hidden;
+        transition: background 0.15s;
+        font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", system-ui, sans-serif;
+      }
+      .messages {
+        position: relative !important;
+        inset: unset !important;
+      }
+      .message { animation: none !important; }
+      /* hide overlay-only UI */
+      .settings-btn, .settings, .toast, .song-display-overlay { display: none !important; }
+    `;
+    previewShadow.appendChild(style);
+
+    const wrap = document.createElement('div');
+    wrap.className = 'preview-wrap';
+    wrap.innerHTML = `
+      <div class="overlay">
+        <div class="messages" style="position:relative;inset:unset;">
+          <div class="message single-line ring-mod">
+            <div class="avatar"><img src="https://api.dicebear.com/9.x/thumbs/svg?seed=mod" alt="avatar" /></div>
+            <div class="body">
+              <span class="header"><span class="name">ModUser</span></span>
+              <span class="content"> Welcome to the stream!</span>
+            </div>
+          </div>
+          <div class="message single-line">
+            <div class="avatar"><img src="https://api.dicebear.com/9.x/thumbs/svg?seed=viewer" alt="avatar" /></div>
+            <div class="body">
+              <span class="header no-inline-badges"><span class="name">Viewer123</span></span>
+              <span class="content"> This is a chat message preview</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    previewShadow.appendChild(wrap);
+  } catch (e) {
+    console.warn('Preview init failed:', e);
+  }
+}
+
+function updatePreview() {
+  if (!previewShadow) return;
+  const wrap = previewShadow.querySelector('.preview-wrap');
+  const overlay = previewShadow.querySelector('.overlay');
+  if (!wrap || !overlay) return;
+
+  const scale = Number(scaleSlider.value) || 1;
+  const textOp = Number(textOpSlider.value);
+  const bubbleOp = Number(bubbleOpSlider.value);
+  const bgOp = Number(bgOpSlider.value);
+  const gap = Number(gapSlider.value);
+  const textHex = textColorPicker.value.replace('#', '');
+  const bubbleHex = bubbleColorPicker.value.replace('#', '');
+  const bgHex = bgColorPicker.value.replace('#', '');
+  const showBubbles = showBubblesToggle.checked;
+
+  const tr = parseInt(textHex.slice(0,2),16), tg = parseInt(textHex.slice(2,4),16), tb = parseInt(textHex.slice(4,6),16);
+  const br2 = parseInt(bubbleHex.slice(0,2),16), bg2 = parseInt(bubbleHex.slice(2,4),16), bb = parseInt(bubbleHex.slice(4,6),16);
+  const pr = parseInt(bgHex.slice(0,2),16), pg = parseInt(bgHex.slice(2,4),16), pb = parseInt(bgHex.slice(4,6),16);
+
+  // Preview uses a fixed scale for readability — we apply a clamped version
+  const previewScale = Math.max(0.55, Math.min(1.1, scale * 0.65));
+  wrap.style.setProperty('--base-scale', String(previewScale));
+  wrap.style.setProperty('--scale', String(previewScale));
+  wrap.style.setProperty('--message-gap', String(gap));
+  wrap.style.setProperty('--text', `rgba(${tr},${tg},${tb},${Math.max(0, Math.min(1, textOp))})`);
+
+  const bubbleOpVal = showBubbles ? bubbleOp : 0;
+  wrap.style.setProperty('--bubble', `rgba(${br2},${bg2},${bb},${bubbleOpVal})`);
+  wrap.style.setProperty('--bubble-blur', bubbleOpVal > 0 ? 'blur(8px)' : 'none');
+  wrap.style.background = `rgba(${pr},${pg},${pb},${Math.max(0, Math.min(1, bgOp))})`;  
+
+  overlay.classList.toggle('no-bubbles', !showBubbles);
+  overlay.classList.toggle('no-avatars', !showAvatarsToggle.checked);
+  overlay.classList.toggle('no-badges', !showBadgesToggle.checked);
+}
+
 async function fetchAppearance() {
   try {
     const data = await api('GET', '/api/appearance');
@@ -381,6 +493,7 @@ function updateAppearanceUI(a) {
   if (typeof a.preset === 'string') {
     presetSelect.value = a.preset;
   }
+  updatePreview();
 }
 
 let appearanceDebounce = null;
@@ -396,54 +509,65 @@ scaleSlider.addEventListener('input', () => {
   scaleLabel.textContent = 'Scale: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ scale: val, preset: 'Custom' });
+  updatePreview();
 });
 textOpSlider.addEventListener('input', () => {
   const val = Number(textOpSlider.value);
   textOpLabel.textContent = 'Text opacity: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ textOpacity: val, preset: 'Custom' });
+  updatePreview();
 });
 bubbleOpSlider.addEventListener('input', () => {
   const val = Number(bubbleOpSlider.value);
   bubbleOpLabel.textContent = 'Bubble opacity: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ bubbleOpacity: val, preset: 'Custom' });
+  updatePreview();
 });
 bgOpSlider.addEventListener('input', () => {
   const val = Number(bgOpSlider.value);
   bgOpLabel.textContent = 'Background opacity: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ bgOpacity: val, preset: 'Custom' });
+  updatePreview();
 });
 gapSlider.addEventListener('input', () => {
   const val = Number(gapSlider.value);
   gapLabel.textContent = 'Vertical gap: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ messageGap: val, preset: 'Custom' });
+  updatePreview();
 });
 textColorPicker.addEventListener('input', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ textColor: textColorPicker.value, preset: 'Custom' });
+  updatePreview();
 });
 bubbleColorPicker.addEventListener('input', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ bubbleColor: bubbleColorPicker.value, preset: 'Custom' });
+  updatePreview();
 });
 bgColorPicker.addEventListener('input', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ bgColor: bgColorPicker.value, preset: 'Custom' });
+  updatePreview();
 });
 showBubblesToggle.addEventListener('change', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ showBubbles: showBubblesToggle.checked, preset: 'Custom' });
+  updatePreview();
 });
 showAvatarsToggle.addEventListener('change', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ showAvatars: showAvatarsToggle.checked, preset: 'Custom' });
+  updatePreview();
 });
 showBadgesToggle.addEventListener('change', () => {
   presetSelect.value = 'Custom';
   sendAppearance({ showBadges: showBadgesToggle.checked, preset: 'Custom' });
+  updatePreview();
 });
 presetSelect.addEventListener('change', () => {
   const name = presetSelect.value;
@@ -484,5 +608,5 @@ if (isElectron) {
 
 fetchStatus();
 fetchSettings();
-fetchAppearance();
+initPreview().then(() => fetchAppearance());
 pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);
