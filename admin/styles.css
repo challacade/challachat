@@ -476,10 +476,12 @@ footer {
   gap: 6px;
 }
 .a-label {
+  font-family: 'Inter Tight', 'Segoe UI', 'Roboto Condensed', sans-serif;
   font-size: 11px;
   font-weight: 600;
+  font-stretch: condensed;
   color: var(--text-dim);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
 .a-item input[type="range"] {
@@ -487,7 +489,7 @@ footer {
   -webkit-appearance: none;
   appearance: none;
   height: 4px;
-  background: var(--border);
+  background: #484b5c;
   border-radius: 2px;
   outline: none;
 }
