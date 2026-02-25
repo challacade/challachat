@@ -10,6 +10,7 @@ import {
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById, shouldPlaySound 
 } from './messages.js';
+import { applyTheme } from './settings.js';
 
 // ================================
 // SSE Connection
@@ -97,6 +98,19 @@ export function startSSE() {
         void musicShuffle();
         return;
       }
+    } catch {
+      // ignore
+    }
+  });
+
+  // Appearance updates from admin UI
+  eventSource.addEventListener('appearance', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.scale === 'number') {
+        state.scale = Math.max(0.5, Math.min(3, data.scale));
+      }
+      applyTheme();
     } catch {
       // ignore
     }

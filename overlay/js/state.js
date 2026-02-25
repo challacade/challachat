@@ -15,7 +15,6 @@ export const elements = {
   settingsBtn: document.getElementById('settingsBtn'),
   soundSettingsBtn: document.getElementById('soundSettingsBtn'),
   musicSettingsBtn: document.getElementById('musicSettingsBtn'),
-  scale: document.getElementById('scale'),
   showAvatars: document.getElementById('showAvatars'),
   showBadges: document.getElementById('showBadges'),
   textColor: document.getElementById('textColor'),

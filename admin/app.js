@@ -36,6 +36,9 @@ const loggerToggle    = $('loggerToggle');
 const loggerMeta      = $('loggerMeta');
 const jamToggle       = $('jamToggle');
 const jamMeta         = $('jamMeta');
+// Appearance
+const scaleSlider     = $('scaleSlider');
+const scaleValue      = $('scaleValue');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -291,6 +294,32 @@ jamToggle.addEventListener('change', async () => {
   } catch { jamToggle.checked = !jamToggle.checked; }
 });
 
+// ─── Appearance ────────────────────────────────────────────────
+
+async function fetchAppearance() {
+  try {
+    const data = await api('GET', '/api/appearance');
+    if (data) updateAppearanceUI(data);
+  } catch {}
+}
+
+function updateAppearanceUI(a) {
+  if (typeof a.scale === 'number') {
+    scaleSlider.value = a.scale;
+    scaleValue.textContent = a.scale.toFixed(2);
+  }
+}
+
+let scaleDebounce = null;
+scaleSlider.addEventListener('input', () => {
+  const val = Number(scaleSlider.value);
+  scaleValue.textContent = val.toFixed(2);
+  clearTimeout(scaleDebounce);
+  scaleDebounce = setTimeout(async () => {
+    try { await api('POST', '/api/appearance', { scale: val }); } catch {}
+  }, 150);
+});
+
 // ─── Copy overlay URL ──────────────────────────────────────────
 
 copyBtn.addEventListener('click', () => {
@@ -319,4 +348,5 @@ if (isElectron) {
 
 fetchStatus();
 fetchSettings();
+fetchAppearance();
 pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);

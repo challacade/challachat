@@ -446,7 +446,6 @@ export function loadFromUrl() {
 // ================================
 
 export function syncUi() {
-  elements.scale.value = String(state.scale);
   if (elements.showAvatars) elements.showAvatars.checked = state.showAvatars;
   if (elements.showBadges) elements.showBadges.checked = state.showBadges;
   
@@ -495,7 +494,6 @@ export function syncUi() {
 }
 
 export function updateFromUi() {
-  state.scale = Math.max(0.5, Math.min(3, Number(elements.scale.value) || 1.35));
   if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked;
   if (elements.showBadges) state.showBadges = elements.showBadges.checked;
   state.preset = 'Custom';
@@ -1114,7 +1112,6 @@ export function bindUi() {
   elements.textOpacity?.addEventListener('input', updateFromUi);
   elements.bubbleColor?.addEventListener('input', updateFromUi);
   elements.bgOpacity?.addEventListener('input', updateFromUi);
-  elements.scale?.addEventListener('input', updateFromUi);
   
   const presetEl = document.getElementById('preset');
   if (presetEl) {

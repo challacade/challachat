@@ -56,6 +56,9 @@ class App extends EventEmitter {
   private headless: boolean;
   private tui: TerminalUI | null = null;
   private musicHotkeysEnabled = false;
+
+  // Overlay appearance settings (admin-controlled, broadcast via SSE)
+  private appearance: Record<string, number | string | boolean> = { scale: 1.35 };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 
@@ -329,9 +332,30 @@ class App extends EventEmitter {
       }
     });
 
+  // Overlay appearance (admin-controlled)
+  this.app.get('/api/appearance', (_req: Request, res: Response) => {
+      res.json(this.appearance);
+    });
+  this.app.post('/api/appearance', (req: Request, res: Response) => {
+      const body = req.body;
+      if (!body || typeof body !== 'object') {
+        res.status(400).json({ error: 'Invalid body' });
+        return;
+      }
+      // Merge only known keys
+      if (typeof body.scale === 'number') {
+        this.appearance.scale = Math.max(0.5, Math.min(3, body.scale));
+      }
+      // Broadcast to all overlay SSE clients
+      this.sse.send('appearance', this.appearance);
+      res.json({ ok: true, ...this.appearance });
+    });
+
   this.app.get('/api/stream', (_req: Request, res: Response) => {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
+      // Send current appearance immediately so overlay gets the latest on connect
+      res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
       this.sse.add(res);
     });
 
