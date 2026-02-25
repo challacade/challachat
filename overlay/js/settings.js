@@ -446,15 +446,13 @@ export function loadFromUrl() {
 // ================================
 
 export function syncUi() {
-  if (elements.showAvatars) elements.showAvatars.checked = state.showAvatars;
-  if (elements.showBadges) elements.showBadges.checked = state.showBadges;
+
   
   const presetElement = document.getElementById('preset');
   if (presetElement) presetElement.value = state.preset || 'Custom';
   
 
   
-  if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles;
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
 
   
@@ -479,13 +477,9 @@ export function syncUi() {
 }
 
 export function updateFromUi() {
-  if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked;
-  if (elements.showBadges) state.showBadges = elements.showBadges.checked;
   state.preset = 'Custom';
   
 
-  
-  if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked;
   
   if (elements.demoMode) {
     const newDemoMode = elements.demoMode.checked;
@@ -1065,10 +1059,7 @@ export function bindUi() {
   
   // Basic controls
   elements.copyUrlBtn?.addEventListener('click', () => copyUrlWithSettings());
-  elements.showBubbles?.addEventListener('change', updateFromUi);
   elements.demoMode?.addEventListener('change', updateFromUi);
-  elements.showBadges?.addEventListener('change', updateFromUi);
-  elements.showAvatars?.addEventListener('change', updateFromUi);
 
 
   

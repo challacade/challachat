@@ -131,6 +131,15 @@ export function startSSE() {
       if (typeof data.bgColor === 'string') {
         state.pageBgColor = data.bgColor;
       }
+      if (typeof data.showBubbles === 'boolean') {
+        state.showBubbles = data.showBubbles;
+      }
+      if (typeof data.showAvatars === 'boolean') {
+        state.showAvatars = data.showAvatars;
+      }
+      if (typeof data.showBadges === 'boolean') {
+        state.showBadges = data.showBadges;
+      }
       applyTheme();
     } catch {
       // ignore

@@ -50,6 +50,9 @@ const gapLabel        = $('gapLabel');
 const textColorPicker   = $('textColorPicker');
 const bubbleColorPicker = $('bubbleColorPicker');
 const bgColorPicker     = $('bgColorPicker');
+const showBubblesToggle = $('showBubblesToggle');
+const showAvatarsToggle = $('showAvatarsToggle');
+const showBadgesToggle  = $('showBadgesToggle');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -344,6 +347,15 @@ function updateAppearanceUI(a) {
   if (typeof a.bgColor === 'string') {
     bgColorPicker.value = a.bgColor;
   }
+  if (typeof a.showBubbles === 'boolean') {
+    showBubblesToggle.checked = a.showBubbles;
+  }
+  if (typeof a.showAvatars === 'boolean') {
+    showAvatarsToggle.checked = a.showAvatars;
+  }
+  if (typeof a.showBadges === 'boolean') {
+    showBadgesToggle.checked = a.showBadges;
+  }
 }
 
 let appearanceDebounce = null;
@@ -387,6 +399,15 @@ bubbleColorPicker.addEventListener('input', () => {
 });
 bgColorPicker.addEventListener('input', () => {
   sendAppearance({ bgColor: bgColorPicker.value });
+});
+showBubblesToggle.addEventListener('change', () => {
+  sendAppearance({ showBubbles: showBubblesToggle.checked });
+});
+showAvatarsToggle.addEventListener('change', () => {
+  sendAppearance({ showAvatars: showAvatarsToggle.checked });
+});
+showBadgesToggle.addEventListener('change', () => {
+  sendAppearance({ showBadges: showBadgesToggle.checked });
 });
 
 // ─── Copy overlay URL ──────────────────────────────────────────

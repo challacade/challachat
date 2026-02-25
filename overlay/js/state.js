@@ -15,10 +15,9 @@ export const elements = {
   settingsBtn: document.getElementById('settingsBtn'),
   soundSettingsBtn: document.getElementById('soundSettingsBtn'),
   musicSettingsBtn: document.getElementById('musicSettingsBtn'),
-  showAvatars: document.getElementById('showAvatars'),
-  showBadges: document.getElementById('showBadges'),
 
-  showBubbles: document.getElementById('showBubbles'),
+
+
   demoMode: document.getElementById('demoMode'),
 
 
