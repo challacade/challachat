@@ -13,7 +13,6 @@ export const elements = {
   toast: document.getElementById('toast'),
   settings: document.getElementById('settings'),
   settingsBtn: document.getElementById('settingsBtn'),
-  soundSettingsBtn: document.getElementById('soundSettingsBtn'),
   musicSettingsBtn: document.getElementById('musicSettingsBtn'),
 
 
@@ -22,12 +21,6 @@ export const elements = {
 
 
   copyUrlBtn: document.getElementById('copyUrlBtn'),
-  msgVolume: document.getElementById('msgVolume'),
-  donationVolume: document.getElementById('donationVolume'),
-  memberVolume: document.getElementById('memberVolume'),
-  testMessageBtn: document.getElementById('testMessageBtn'),
-  testDonationBtn: document.getElementById('testDonationBtn'),
-  testMemberBtn: document.getElementById('testMemberBtn'),
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),

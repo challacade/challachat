@@ -72,6 +72,13 @@ class App extends EventEmitter {
     showBadges: true,
     preset: 'Dark',
   };
+
+  // Sound settings (admin-controlled, sounds play in admin UI)
+  private sounds: Record<string, number> = {
+    messageVolume: 1,
+    donationVolume: 1,
+    memberVolume: 1,
+  };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 
@@ -402,11 +409,31 @@ class App extends EventEmitter {
       res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
       // Send current appearance immediately so overlay gets the latest on connect
       res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
+      res.write(`event: sounds\ndata: ${JSON.stringify(this.sounds)}\n\n`);
       this.sse.add(res);
     });
 
   this.io.on('connection', (socket: Socket) => {
       socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', platform: this.currentPlatform, videoId: this.currentVideoId, messageCount: this.messageCount });
+    });
+
+  // Sound settings (admin-controlled)
+  this.app.get('/api/sounds', (_req: Request, res: Response) => {
+      res.json(this.sounds);
+    });
+
+  this.app.post('/api/sounds', (req: Request, res: Response) => {
+      const body = req.body || {};
+      if (typeof body.messageVolume === 'number') {
+        this.sounds.messageVolume = Math.max(0, Math.min(2, body.messageVolume));
+      }
+      if (typeof body.donationVolume === 'number') {
+        this.sounds.donationVolume = Math.max(0, Math.min(2, body.donationVolume));
+      }
+      if (typeof body.memberVolume === 'number') {
+        this.sounds.memberVolume = Math.max(0, Math.min(2, body.memberVolume));
+      }
+      res.json({ ok: true, ...this.sounds });
     });
 
   // Serve admin control panel (static files from admin/ directory)
@@ -706,6 +733,20 @@ class App extends EventEmitter {
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
+
+    // Determine sound type and broadcast to admin UI for playback
+    const kind = filtered.kind || 'text';
+    let soundType: string | null = null;
+    if (kind === 'sub' || kind === 'sub-gift' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift' || kind === 'streak' || kind === 'member-milestone') {
+      soundType = 'member';
+    } else if (kind === 'cheer' || kind === 'donation') {
+      soundType = 'donation';
+    } else {
+      soundType = 'message';
+    }
+    if (soundType) {
+      this.sse.send('play-sound', { type: soundType, ts: Date.now() });
+    }
   }
 
   // Relay delete events (by id) so overlays can remove them immediately

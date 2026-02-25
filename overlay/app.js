@@ -10,7 +10,6 @@
 // ================================
 
 import { state, elements, isDemoSite } from './js/state.js';
-import { attachAudioUnlockHandlers, initializeAudio } from './js/audio.js';
 import { toggleJam, ensureMusicPlaylistLoaded, fetchMusicSettings, musicPlayer } from './js/music.js';
 import { startDemoMode, adjustMessageAlignment } from './js/messages.js';
 import {
@@ -40,9 +39,6 @@ import { startSSE } from './js/sse.js';
 function start() {
   state.startedAt = Date.now();
   
-  // Setup audio unlock handlers for browsers that block autoplay
-  attachAudioUnlockHandlers();
-
   // Fetch music configuration early so the Music UI can be hidden when not configured.
   const musicSettingsPromise = (async () => {
     try { await fetchMusicSettings(); } catch {}
@@ -99,9 +95,6 @@ function start() {
   if (state.demoMode) {
     startDemoMode();
   }
-  
-  // Initialize audio
-  initializeAudio();
   
   // Fetch settings from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}

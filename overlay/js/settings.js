@@ -5,7 +5,7 @@
 
 import { state, elements, PRESETS, SETTINGS_TOGGLE_KEYS, PROXIMITY_DISTANCE, isDemoSite, showToast, saveToLocal } from './state.js';
 import { clamp01, isValidHexColor, normalizeHexColor, updateColorPreview, setupColorInput } from './utils.js';
-import { audio, ensureAudioContext, initializeAudio, playSound } from './audio.js';
+
 import { 
   musicPlayer, applyMusicVolume, getServerIndexAtPos, syncMusicUi, 
   ensureMusicPlaylistLoaded, notifyNowPlaying, toggleJam, requestSongFileWrite,
@@ -456,11 +456,6 @@ export function syncUi() {
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
 
   
-  // Sound panel
-  if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
-  if (elements.donationVolume) elements.donationVolume.value = String(state.sounds.donation.volume);
-  if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
-  
   // Music panel
   if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
   if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
@@ -492,11 +487,6 @@ export function updateFromUi() {
   }
   
 
-  
-  // Per-sound volumes only (set to 0 to disable)
-  if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
-  if (elements.donationVolume) state.sounds.donation.volume = Math.max(0, Math.min(2, Number(elements.donationVolume.value)));
-  if (elements.memberVolume) state.sounds.member.volume = Math.max(0, Math.min(2, Number(elements.memberVolume.value)));
   
   // Music volume (HTMLAudioElement: 0..1)
   if (elements.musicVolume) state.music.volume = clamp01(Number(elements.musicVolume.value));
@@ -1061,11 +1051,6 @@ export function bindUi() {
 
   elements.clearMessagesBtn?.addEventListener('click', () => clearAllMessages());
   
-  // Per-sound volumes
-  elements.msgVolume?.addEventListener('input', updateFromUi);
-  elements.donationVolume?.addEventListener('input', updateFromUi);
-  elements.memberVolume?.addEventListener('input', updateFromUi);
-  
   // Music volume
   elements.musicVolume?.addEventListener('input', updateFromUi);
   elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
@@ -1082,40 +1067,6 @@ export function bindUi() {
   // Logger controls
   setupLoggerControls();
   
-  // Per-sound Test buttons
-  elements.testMessageBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.message) {
-      await initializeAudio();
-    }
-    playSound(audio.message, state.sounds.message.volume);
-    showToast('Test: message');
-  });
-  
-  elements.testDonationBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.donation) {
-      await initializeAudio();
-    }
-    playSound(audio.donation, state.sounds.donation.volume);
-    showToast('Test: donation');
-  });
-  
-  elements.testMemberBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.member) {
-      await initializeAudio();
-    }
-    playSound(audio.member, state.sounds.member.volume);
-    showToast('Test: membership');
-  });
-
   // Music controls
   elements.musicPlayBtn?.addEventListener('click', async (e) => {
     e.preventDefault();

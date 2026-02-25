@@ -3,9 +3,8 @@
  * Message rendering, avatar handling, push/remove/update, and demo mode
  */
 
-import { state, elements, DEMO_MESSAGES, SOUND_FRESH_MS, showToast } from './state.js';
+import { state, elements, DEMO_MESSAGES, showToast } from './state.js';
 import { handleAvatarError } from './utils.js';
-import { audio, playSound } from './audio.js';
 
 // ================================
 // Demo Mode
@@ -65,16 +64,6 @@ function addDemoMessage() {
   
   if (messageNode) {
     pushMessageElement(messageNode, item.snippet.publishedAt);
-    const shouldPlay = shouldPlaySound(item.snippet.publishedAt);
-    if (shouldPlay) {
-      if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') {
-        if ((state.sounds.member.volume || 0) > 0) playSound(audio.member, state.sounds.member.volume);
-      } else if (item.snippet.type === 'superChatEvent') {
-        if ((state.sounds.donation.volume || 0) > 0) playSound(audio.donation, state.sounds.donation.volume);
-      } else {
-        if ((state.sounds.message.volume || 0) > 0) playSound(audio.message, state.sounds.message.volume);
-      }
-    }
   }
 }
 
@@ -469,15 +458,4 @@ export function clearAllMessages() {
   state.seenIds.clear();
   state.byId.clear();
   showToast('All messages cleared');
-}
-
-// ================================
-// Sound Helpers
-// ================================
-
-export function shouldPlaySound(publishedAt) {
-  const timestamp = new Date(publishedAt).getTime();
-  if (!Number.isFinite(timestamp)) return true;
-  const startTimestamp = state.startedAt || 0;
-  return timestamp >= (startTimestamp - SOUND_FRESH_MS);
 }

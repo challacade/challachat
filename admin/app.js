@@ -55,6 +55,16 @@ const showAvatarsToggle = $('showAvatarsToggle');
 const showBadgesToggle  = $('showBadgesToggle');
 const presetSelect      = $('presetSelect');
 const previewHost       = $('previewHost');
+// Sound
+const msgVolSlider      = $('msgVolSlider');
+const msgVolLabel       = $('msgVolLabel');
+const donVolSlider      = $('donVolSlider');
+const donVolLabel       = $('donVolLabel');
+const memVolSlider      = $('memVolSlider');
+const memVolLabel       = $('memVolLabel');
+const testMsgBtn        = $('testMsgBtn');
+const testDonBtn        = $('testDonBtn');
+const testMemBtn        = $('testMemBtn');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -72,6 +82,95 @@ const navButtons = [navHome, navAppearance, navSound, navSettings];
 
 let pollTimer = null;
 let connecting = false;
+
+// ─── Audio system ──────────────────────────────────────────────
+
+const adminAudio = { ctx: null, gain: null, message: null, donation: null, member: null };
+
+function ensureAudioCtx() {
+  if (adminAudio.ctx) return;
+  try {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    const ctx = new AC();
+    const gain = ctx.createGain();
+    gain.gain.value = 1;
+    gain.connect(ctx.destination);
+    adminAudio.ctx = ctx;
+    adminAudio.gain = gain;
+  } catch {}
+}
+
+async function loadAudioBuffer(src) {
+  try {
+    ensureAudioCtx();
+    const resp = await fetch(src);
+    const ab = await resp.arrayBuffer();
+    const buf = await adminAudio.ctx.decodeAudioData(ab);
+    return { type: 'webaudio', buffer: buf };
+  } catch {}
+  // Fallback to HTML Audio
+  try {
+    const el = new Audio(src);
+    el.preload = 'auto';
+    return { type: 'html', node: el };
+  } catch {}
+  return null;
+}
+
+function playSoundAdmin(handle, vol = 1) {
+  if (!handle) return;
+  try { if (adminAudio.ctx?.state === 'suspended') adminAudio.ctx.resume().catch(() => {}); } catch {}
+  const volume = Math.max(0, Math.min(2, vol));
+  if (handle.type === 'webaudio') {
+    try {
+      ensureAudioCtx();
+      const src = adminAudio.ctx.createBufferSource();
+      src.buffer = handle.buffer;
+      const g = adminAudio.ctx.createGain();
+      g.gain.value = volume;
+      src.connect(g).connect(adminAudio.gain);
+      src.start(0);
+    } catch {}
+  } else if (handle.type === 'html') {
+    try {
+      const s = handle.node.currentSrc || handle.node.src;
+      if (s) {
+        const dup = new Audio(s);
+        dup.volume = Math.min(1, volume);
+        dup.play().catch(() => {});
+      }
+    } catch {}
+  }
+}
+
+async function initAdminAudio() {
+  ensureAudioCtx();
+  adminAudio.message  = await loadAudioBuffer('/sounds/message.mp3');
+  adminAudio.donation = await loadAudioBuffer('/sounds/donation.mp3');
+  adminAudio.member   = await loadAudioBuffer('/sounds/member.mp3');
+}
+
+// ─── SSE connection (for play-sound events) ────────────────────
+
+function startAdminSSE() {
+  const es = new EventSource('/api/stream');
+  es.addEventListener('play-sound', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      const type = data?.type; // 'message' | 'donation' | 'member'
+      if (type === 'member' && adminAudio.member) {
+        playSoundAdmin(adminAudio.member, Number(memVolSlider.value) || 0);
+      } else if (type === 'donation' && adminAudio.donation) {
+        playSoundAdmin(adminAudio.donation, Number(donVolSlider.value) || 0);
+      } else if (type === 'message' && adminAudio.message) {
+        playSoundAdmin(adminAudio.message, Number(msgVolSlider.value) || 0);
+      }
+    } catch {}
+  });
+  es.addEventListener('error', () => {
+    // Auto-reconnect is built into EventSource
+  });
+}
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -591,6 +690,67 @@ copyBtn.addEventListener('click', () => {
   }).catch(() => {});
 });
 
+// ─── Sound controls ────────────────────────────────────────────
+
+let soundDebounce = null;
+function sendSounds(patch) {
+  clearTimeout(soundDebounce);
+  soundDebounce = setTimeout(async () => {
+    try { await api('POST', '/api/sounds', patch); } catch {}
+  }, 150);
+}
+
+async function fetchSounds() {
+  try {
+    const data = await api('GET', '/api/sounds');
+    if (!data) return;
+    if (typeof data.messageVolume === 'number') {
+      msgVolSlider.value = data.messageVolume;
+      msgVolLabel.textContent = 'Message: ' + data.messageVolume.toFixed(2);
+    }
+    if (typeof data.donationVolume === 'number') {
+      donVolSlider.value = data.donationVolume;
+      donVolLabel.textContent = 'Donation: ' + data.donationVolume.toFixed(2);
+    }
+    if (typeof data.memberVolume === 'number') {
+      memVolSlider.value = data.memberVolume;
+      memVolLabel.textContent = 'Membership: ' + data.memberVolume.toFixed(2);
+    }
+  } catch {}
+}
+
+msgVolSlider.addEventListener('input', () => {
+  const val = Number(msgVolSlider.value);
+  msgVolLabel.textContent = 'Message: ' + val.toFixed(2);
+  sendSounds({ messageVolume: val });
+});
+donVolSlider.addEventListener('input', () => {
+  const val = Number(donVolSlider.value);
+  donVolLabel.textContent = 'Donation: ' + val.toFixed(2);
+  sendSounds({ donationVolume: val });
+});
+memVolSlider.addEventListener('input', () => {
+  const val = Number(memVolSlider.value);
+  memVolLabel.textContent = 'Membership: ' + val.toFixed(2);
+  sendSounds({ memberVolume: val });
+});
+
+testMsgBtn.addEventListener('click', async () => {
+  ensureAudioCtx();
+  if (!adminAudio.message) await initAdminAudio();
+  playSoundAdmin(adminAudio.message, Number(msgVolSlider.value) || 0);
+});
+testDonBtn.addEventListener('click', async () => {
+  ensureAudioCtx();
+  if (!adminAudio.donation) await initAdminAudio();
+  playSoundAdmin(adminAudio.donation, Number(donVolSlider.value) || 0);
+});
+testMemBtn.addEventListener('click', async () => {
+  ensureAudioCtx();
+  if (!adminAudio.member) await initAdminAudio();
+  playSoundAdmin(adminAudio.member, Number(memVolSlider.value) || 0);
+});
+
 // ─── Key bindings ──────────────────────────────────────────────
 
 connectBtn.addEventListener('click', handleConnect);
@@ -608,5 +768,8 @@ if (isElectron) {
 
 fetchStatus();
 fetchSettings();
+fetchSounds();
 initPreview().then(() => fetchAppearance());
+initAdminAudio().catch(() => {});
+startAdminSSE();
 pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);

@@ -18,7 +18,6 @@
     <div id="messages" class="messages" aria-live="polite"></div>
     <div id="toast" class="toast hidden"></div>
     <button id="settingsBtn" class="settings-btn appearance hidden" aria-label="Appearance">🎨</button>
-  <button id="soundSettingsBtn" class="settings-btn sound hidden" aria-label="Sound Settings">🔊</button>
   <button id="musicSettingsBtn" class="settings-btn music hidden" aria-label="Music">🎵</button>
   <button id="generalSettingsBtn" class="settings-btn general hidden" aria-label="Settings">⚙️</button>
   </div>
@@ -29,32 +28,6 @@
 
 
 
-  </div>
-
-  <!-- Sound Settings Panel -->
-  <div id="soundSettings" class="settings hidden">
-    <h2>Sound Settings</h2>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Message Volume
-        <input id="msgVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testMessageBtn" class="secondary" title="Play sample message sound">Test</button>
-    </div>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Donation Volume
-        <input id="donationVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testDonationBtn" class="secondary" title="Play sample donation sound">Test</button>
-    </div>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Membership Volume
-        <input id="memberVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testMemberBtn" class="secondary" title="Play sample membership sound">Test</button>
-    </div>
   </div>
 
   <!-- General Settings Panel -->

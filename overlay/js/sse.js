@@ -4,11 +4,10 @@
  */
 
 import { state, isDemoSite, showToast } from './state.js';
-import { audio, playSound } from './audio.js';
 import { musicTogglePlayPause, musicPrev, musicNext, musicShuffle } from './music.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
-  removeMessageById, updateMessageById, shouldPlaySound 
+  removeMessageById, updateMessageById 
 } from './messages.js';
 import { applyTheme } from './settings.js';
 
@@ -22,11 +21,6 @@ export function startSSE() {
   const eventSource = new EventSource('/api/stream');
 
   eventSource.addEventListener('open', () => {
-    try {
-      if (audio.ctx && audio.ctx.state === 'suspended') {
-        audio.ctx.resume().catch(() => {});
-      }
-    } catch {}
   });
 
   eventSource.addEventListener('chat', (event) => {
@@ -49,29 +43,6 @@ export function startSSE() {
         
         if (messageNode) {
           pushMessageElement(messageNode, item.snippet.publishedAt);
-          const shouldPlay = shouldPlaySound(item.snippet.publishedAt);
-          
-          if (shouldPlay) {
-            if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') {
-              if ((state.sounds.member.volume || 0) > 0) {
-                playSound(audio.member, state.sounds.member.volume);
-              }
-            } else if (item.snippet.type === 'superChatEvent') {
-              if ((state.sounds.donation.volume || 0) > 0) {
-                playSound(audio.donation, state.sounds.donation.volume);
-              }
-            } else {
-              if ((state.sounds.message.volume || 0) > 0) {
-                playSound(audio.message, state.sounds.message.volume);
-              }
-            }
-            
-            try {
-              if (audio.ctx && audio.ctx.state === 'suspended') {
-                showToast('Click overlay to enable sound');
-              }
-            } catch {}
-          }
         }
       });
     } catch {}
