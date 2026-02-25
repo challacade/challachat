@@ -479,8 +479,6 @@ export function syncUi() {
 export function updateFromUi() {
   state.preset = 'Custom';
   
-
-  
   if (elements.demoMode) {
     const newDemoMode = elements.demoMode.checked;
     if (newDemoMode !== state.demoMode) {
@@ -1061,19 +1059,6 @@ export function bindUi() {
   elements.copyUrlBtn?.addEventListener('click', () => copyUrlWithSettings());
   elements.demoMode?.addEventListener('change', updateFromUi);
 
-
-  
-  const presetEl = document.getElementById('preset');
-  if (presetEl) {
-    presetEl.addEventListener('change', () => {
-      state.preset = presetEl.value || 'Custom';
-      applyPreset(state.preset);
-      syncUi();
-      saveToLocal();
-      showToast(`${state.preset} preset applied`);
-    });
-  }
-  
   elements.clearMessagesBtn?.addEventListener('click', () => clearAllMessages());
   
   // Per-sound volumes

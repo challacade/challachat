@@ -70,6 +70,7 @@ class App extends EventEmitter {
     showBubbles: true,
     showAvatars: true,
     showBadges: true,
+    preset: 'Dark',
   };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
@@ -387,6 +388,9 @@ class App extends EventEmitter {
       }
       if (typeof body.showBadges === 'boolean') {
         this.appearance.showBadges = body.showBadges;
+      }
+      if (typeof body.preset === 'string' && ['Dark', 'Light', 'Transparent', 'Custom'].includes(body.preset)) {
+        this.appearance.preset = body.preset;
       }
       // Broadcast to all overlay SSE clients
       this.sse.send('appearance', this.appearance);

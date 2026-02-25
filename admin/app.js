@@ -53,6 +53,7 @@ const bgColorPicker     = $('bgColorPicker');
 const showBubblesToggle = $('showBubblesToggle');
 const showAvatarsToggle = $('showAvatarsToggle');
 const showBadgesToggle  = $('showBadgesToggle');
+const presetSelect      = $('presetSelect');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -310,6 +311,27 @@ jamToggle.addEventListener('change', async () => {
 
 // ─── Appearance ────────────────────────────────────────────────
 
+const PRESETS = {
+  Dark: {
+    scale: 1.35, messageGap: 0.5,
+    textColor: '#ffffff', bubbleColor: '#ffffff', bgColor: '#000000',
+    textOpacity: 1, bubbleOpacity: 0.14, bgOpacity: 1,
+    showBubbles: true, showAvatars: true, showBadges: true
+  },
+  Light: {
+    scale: 1.35, messageGap: 0.5,
+    textColor: '#111111', bubbleColor: '#000000', bgColor: '#ffffff',
+    textOpacity: 1, bubbleOpacity: 0.08, bgOpacity: 1,
+    showBubbles: true, showAvatars: true, showBadges: true
+  },
+  Transparent: {
+    scale: 1.35, messageGap: 0.4,
+    textColor: '#ffffff', bubbleColor: '#ffffff', bgColor: '#000000',
+    textOpacity: 1, bubbleOpacity: 0.14, bgOpacity: 0,
+    showBubbles: false, showAvatars: true, showBadges: true
+  }
+};
+
 async function fetchAppearance() {
   try {
     const data = await api('GET', '/api/appearance');
@@ -356,6 +378,9 @@ function updateAppearanceUI(a) {
   if (typeof a.showBadges === 'boolean') {
     showBadgesToggle.checked = a.showBadges;
   }
+  if (typeof a.preset === 'string') {
+    presetSelect.value = a.preset;
+  }
 }
 
 let appearanceDebounce = null;
@@ -369,45 +394,66 @@ function sendAppearance(patch) {
 scaleSlider.addEventListener('input', () => {
   const val = Number(scaleSlider.value);
   scaleLabel.textContent = 'Scale: ' + val.toFixed(2);
-  sendAppearance({ scale: val });
+  presetSelect.value = 'Custom';
+  sendAppearance({ scale: val, preset: 'Custom' });
 });
 textOpSlider.addEventListener('input', () => {
   const val = Number(textOpSlider.value);
   textOpLabel.textContent = 'Text opacity: ' + val.toFixed(2);
-  sendAppearance({ textOpacity: val });
+  presetSelect.value = 'Custom';
+  sendAppearance({ textOpacity: val, preset: 'Custom' });
 });
 bubbleOpSlider.addEventListener('input', () => {
   const val = Number(bubbleOpSlider.value);
   bubbleOpLabel.textContent = 'Bubble opacity: ' + val.toFixed(2);
-  sendAppearance({ bubbleOpacity: val });
+  presetSelect.value = 'Custom';
+  sendAppearance({ bubbleOpacity: val, preset: 'Custom' });
 });
 bgOpSlider.addEventListener('input', () => {
   const val = Number(bgOpSlider.value);
   bgOpLabel.textContent = 'Background opacity: ' + val.toFixed(2);
-  sendAppearance({ bgOpacity: val });
+  presetSelect.value = 'Custom';
+  sendAppearance({ bgOpacity: val, preset: 'Custom' });
 });
 gapSlider.addEventListener('input', () => {
   const val = Number(gapSlider.value);
   gapLabel.textContent = 'Vertical gap: ' + val.toFixed(2);
-  sendAppearance({ messageGap: val });
+  presetSelect.value = 'Custom';
+  sendAppearance({ messageGap: val, preset: 'Custom' });
 });
 textColorPicker.addEventListener('input', () => {
-  sendAppearance({ textColor: textColorPicker.value });
+  presetSelect.value = 'Custom';
+  sendAppearance({ textColor: textColorPicker.value, preset: 'Custom' });
 });
 bubbleColorPicker.addEventListener('input', () => {
-  sendAppearance({ bubbleColor: bubbleColorPicker.value });
+  presetSelect.value = 'Custom';
+  sendAppearance({ bubbleColor: bubbleColorPicker.value, preset: 'Custom' });
 });
 bgColorPicker.addEventListener('input', () => {
-  sendAppearance({ bgColor: bgColorPicker.value });
+  presetSelect.value = 'Custom';
+  sendAppearance({ bgColor: bgColorPicker.value, preset: 'Custom' });
 });
 showBubblesToggle.addEventListener('change', () => {
-  sendAppearance({ showBubbles: showBubblesToggle.checked });
+  presetSelect.value = 'Custom';
+  sendAppearance({ showBubbles: showBubblesToggle.checked, preset: 'Custom' });
 });
 showAvatarsToggle.addEventListener('change', () => {
-  sendAppearance({ showAvatars: showAvatarsToggle.checked });
+  presetSelect.value = 'Custom';
+  sendAppearance({ showAvatars: showAvatarsToggle.checked, preset: 'Custom' });
 });
 showBadgesToggle.addEventListener('change', () => {
-  sendAppearance({ showBadges: showBadgesToggle.checked });
+  presetSelect.value = 'Custom';
+  sendAppearance({ showBadges: showBadgesToggle.checked, preset: 'Custom' });
+});
+presetSelect.addEventListener('change', () => {
+  const name = presetSelect.value;
+  const p = PRESETS[name];
+  if (p) {
+    updateAppearanceUI({ ...p, preset: name });
+    sendAppearance({ ...p, preset: name });
+  } else {
+    sendAppearance({ preset: 'Custom' });
+  }
 });
 
 // ─── Copy overlay URL ──────────────────────────────────────────

@@ -140,6 +140,9 @@ export function startSSE() {
       if (typeof data.showBadges === 'boolean') {
         state.showBadges = data.showBadges;
       }
+      if (typeof data.preset === 'string') {
+        state.preset = data.preset;
+      }
       applyTheme();
     } catch {
       // ignore
