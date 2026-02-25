@@ -24,7 +24,7 @@
   "dependencies": {
     "express": "^4.19.2",
     "music-metadata": "^11.10.3",
-    "puppeteer": "^24.9.0",
+    "puppeteer-core": "^24.37.5",
     "socket.io": "^4.7.5"
   },
   "devDependencies": {

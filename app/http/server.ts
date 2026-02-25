@@ -19,6 +19,7 @@ import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
 import type { ChatEvent, Platform } from '../capture/types';
+import { closeBrowser } from '../capture/browserPool';
 
 /**
  * Typed events emitted by the App class.
@@ -764,6 +765,7 @@ class App extends EventEmitter {
 
   async shutdown(): Promise<void> {
     await this.shutdownCapture();
+    await closeBrowser();
     return new Promise<void>((resolve) => {
       this.server.close(() => {
         console.log('Server closed. Goodbye!');
