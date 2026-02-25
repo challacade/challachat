@@ -72,24 +72,33 @@ check_dependencies() {
 }
 
 start_application() {
-  echo -e "${GREEN}Starting ChallaChat...${NC}"
-  echo -e "${CYAN}Compiling TypeScript and running the application${NC}"
-  echo ""
-
-  # Build the TypeScript
   echo -e "${YELLOW}Compiling TypeScript...${NC}"
   run_cmd "npm run build"
 
-  echo ""
-  echo -e "${YELLOW}The app will be available at:${NC}"
-  echo -e "${WHITE}  http://localhost:5050${NC}"
-  echo ""
-  echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
-  echo ""
-
-  # Run the compiled version
-  run_cmd "npm start"
+  if [ "$TERMINAL_MODE" = true ]; then
+    echo ""
+    echo -e "${GREEN}Starting ChallaChat (terminal mode)...${NC}"
+    echo -e "${YELLOW}The app will be available at:${NC}"
+    echo -e "${WHITE}  http://localhost:5050${NC}"
+    echo ""
+    echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
+    echo ""
+    run_cmd "npm start"
+  else
+    echo ""
+    echo -e "${GREEN}Starting ChallaChat (Electron)...${NC}"
+    echo ""
+    run_cmd "npm run electron"
+  fi
 }
+
+# Parse flags
+TERMINAL_MODE=false
+for arg in "$@"; do
+  case "$arg" in
+    --terminal) TERMINAL_MODE=true ;;
+  esac
+done
 
 # Main script
 write_header "ChallaChat - System Start"

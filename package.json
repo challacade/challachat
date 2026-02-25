@@ -12,7 +12,7 @@
     "dev": "tsx app/http/server.ts",
     "build": "tsc -p .",
     "start": "node dist/http/server.js",
-    "electron": "tsc -p . && electron .",
+    "electron": "electron .",
     "electron:dev": "tsc -p . && electron .",
     "start:system": "bash ./scripts/start-on-system.sh",
     "start:system:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",

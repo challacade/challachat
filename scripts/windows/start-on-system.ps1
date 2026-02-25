@@ -1,6 +1,14 @@
 #!/usr/bin/env pwsh
 # Start ChallaChat using system Node.js and dependencies
 # Runs directly from source without building executables
+#
+# Usage:
+#   .\start-on-system.ps1              # Launch Electron UI (default)
+#   .\start-on-system.ps1 --terminal   # Launch in terminal-only mode
+
+param(
+  [switch]$Terminal
+)
 
 $ErrorActionPreference = 'Stop'
 $ScriptDir = $PSScriptRoot
@@ -61,23 +69,28 @@ function Check-Dependencies {
 }
 
 function Start-Application {
-  Write-Host "Starting ChallaChat..." -ForegroundColor Green
-  Write-Host "Compiling TypeScript and running the application" -ForegroundColor Cyan
-  Write-Host ""
-  
-  # Build the TypeScript
   Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
   Run "npm run build"
-  
-  Write-Host ""
-  Write-Host "The app will be available at:" -ForegroundColor Yellow
-  Write-Host "  http://localhost:5050" -ForegroundColor White
-  Write-Host ""
-  Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
-  Write-Host ""
-  
-  # Run the compiled version
-  Run "npm start"
+
+  if ($Terminal) {
+    Write-Host ""
+    Write-Host "Starting ChallaChat (terminal mode)..." -ForegroundColor Green
+    Write-Host "The app will be available at:" -ForegroundColor Yellow
+    Write-Host "  http://localhost:5050" -ForegroundColor White
+    Write-Host ""
+    Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
+    Write-Host ""
+    Run "npm start"
+  } else {
+    Write-Host ""
+    Write-Host "Starting ChallaChat (Electron)..." -ForegroundColor Green
+    Write-Host ""
+
+    # Launch Electron as a detached process so this terminal can close
+    $electronBin = Join-Path $RootDir 'node_modules/.bin/electron.cmd'
+    Start-Process -FilePath $electronBin -ArgumentList '.' -WorkingDirectory $RootDir -WindowStyle Hidden
+    Write-Host "ChallaChat is running. You can close this terminal." -ForegroundColor Green
+  }
 }
 
 # Main script
