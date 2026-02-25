@@ -13,7 +13,6 @@ const isElectron = !!(window.challachat && window.challachat.isElectron);
 // ─── DOM refs ──────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 const serverDot     = $('serverDot');
-const serverStatus  = $('serverStatus');
 const urlInput      = $('urlInput');
 const connectBtn    = $('connectBtn');
 const connectError  = $('connectError');
@@ -37,6 +36,20 @@ const loggerToggle    = $('loggerToggle');
 const loggerMeta      = $('loggerMeta');
 const jamToggle       = $('jamToggle');
 const jamMeta         = $('jamMeta');
+// Navigation
+const navHome         = $('navHome');
+const navAppearance   = $('navAppearance');
+const navSound        = $('navSound');
+const navSettings     = $('navSettings');
+
+const pages = {
+  home:       $('pageHome'),
+  appearance: $('pageAppearance'),
+  sound:      $('pageSound'),
+  settings:   $('pageSettings'),
+};
+
+const navButtons = [navHome, navAppearance, navSound, navSettings];
 
 let pollTimer = null;
 let connecting = false;
@@ -70,8 +83,23 @@ function hideError() {
 
 function setServerActive(active) {
   serverDot.className = 'status-dot' + (active ? ' active' : '');
-  serverStatus.textContent = active ? 'Server running' : 'Starting\u2026';
 }
+
+// ─── Page navigation ───────────────────────────────────────────
+
+function switchPage(pageName) {
+  // Hide all pages, de-activate all nav buttons
+  for (const [name, el] of Object.entries(pages)) {
+    el.classList.toggle('active', name === pageName);
+  }
+  navButtons.forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.page === pageName);
+  });
+}
+
+navButtons.forEach(btn => {
+  btn.addEventListener('click', () => switchPage(btn.dataset.page));
+});
 
 // ─── Generic API helper (IPC or HTTP) ──────────────────────────
 

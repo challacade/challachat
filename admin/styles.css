@@ -51,14 +51,35 @@ header {
   flex-shrink: 0;
 }
 
-header h1 {
+/* ── Home / logo button ───────────────────────────────────────── */
+.nav-home {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: none;
+  border: none;
+  cursor: pointer;
   font-size: 18px;
   font-weight: 700;
-  color: #f9fafb;
+  font-family: inherit;
+  color: var(--text-dim);
   letter-spacing: -0.02em;
+  padding: 4px 8px;
+  border-radius: 8px;
+  transition: color 0.2s, background 0.15s;
+  -webkit-app-region: no-drag;
+}
+.nav-home:hover {
+  background: rgba(255,255,255,0.04);
+  color: #f9fafb;
+}
+.nav-home.active {
+  color: #f9fafb;
+}
+.nav-home .status-dot {
+  width: 7px;
+  height: 7px;
+  flex-shrink: 0;
 }
 
 .logo-icon {
@@ -67,14 +88,45 @@ header h1 {
   color: var(--accent);
 }
 
-.server-status {
+/* ── Nav tabs (circle icon buttons) ───────────────────────────── */
+.nav-tabs {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-dim);
+  gap: 6px;
+  -webkit-app-region: no-drag;
 }
 
+.nav-tab {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
+  padding: 0;
+}
+.nav-tab svg {
+  width: 16px;
+  height: 16px;
+}
+.nav-tab:hover {
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border-color: var(--text-dim);
+}
+.nav-tab.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(99,102,241,0.35);
+}
+
+/* ── Server status dot ────────────────────────────────────────── */
 .status-dot {
   width: 8px;
   height: 8px;
@@ -84,6 +136,23 @@ header h1 {
 }
 .status-dot.active { background: var(--green); }
 .status-dot.error  { background: var(--red);   }
+
+/* ── Pages ────────────────────────────────────────────────────── */
+.page {
+  display: none;
+  flex-direction: column;
+  gap: 12px;
+}
+.page.active {
+  display: flex;
+}
+
+/* ── Placeholder text (Appearance / Sound pages) ──────────────── */
+.placeholder-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
 
 /* ── Scrollable main area ─────────────────────────────────────── */
 main {
