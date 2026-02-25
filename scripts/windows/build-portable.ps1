@@ -26,6 +26,20 @@ Write-Host " ChallaChat - Portable Electron Build" -ForegroundColor Magenta
 Write-Host "=====================================" -ForegroundColor Magenta
 Write-Host ""
 
+# Detect version from git tags (strip leading 'v' if present)
+$gitVersion = $null
+try {
+  $gitTag = (git describe --tags --abbrev=0 2>$null)
+  if ($gitTag) {
+    $gitVersion = $gitTag -replace '^v', ''
+    Write-Host "Detected version from git tag: $gitVersion" -ForegroundColor Cyan
+  }
+} catch { }
+if (-not $gitVersion) {
+  $gitVersion = (Get-Content package.json | ConvertFrom-Json).version
+  Write-Host "No git tag found, using package.json version: $gitVersion" -ForegroundColor Yellow
+}
+
 # Clean previous builds
 Write-Host "Cleaning previous build output..." -ForegroundColor Yellow
 if (Test-Path "build/electron") { Remove-Item -Recurse -Force "build/electron" }
@@ -35,7 +49,23 @@ Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
 Run "npm run build"
 
 Write-Host "Packaging with electron-builder (portable)..." -ForegroundColor Yellow
-Run "npx electron-builder --win portable --dir"
+
+# Inject git-derived version into package.json before building
+$pkgJson = Get-Content package.json -Raw | ConvertFrom-Json
+$originalVersion = $pkgJson.version
+$pkgJson.version = $gitVersion
+$jsonText = $pkgJson | ConvertTo-Json -Depth 10
+[System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
+Write-Host "Set package.json version: $originalVersion -> $gitVersion" -ForegroundColor Cyan
+
+try {
+  Run "npx electron-builder --win portable --dir"
+} finally {
+  # Restore original version
+  $pkgJson.version = $originalVersion
+  $jsonText = $pkgJson | ConvertTo-Json -Depth 10
+  [System.IO.File]::WriteAllText("$RootDir/package.json", $jsonText)
+}
 
 $unpackedDir = "build/electron/win-unpacked"
 if (-not (Test-Path $unpackedDir)) {
