@@ -58,7 +58,12 @@ class App extends EventEmitter {
   private musicHotkeysEnabled = false;
 
   // Overlay appearance settings (admin-controlled, broadcast via SSE)
-  private appearance: Record<string, number | string | boolean> = { scale: 1.35 };
+  private appearance: Record<string, number | string | boolean> = {
+    scale: 1.35,
+    textOpacity: 1,
+    bubbleOpacity: 0.14,
+    bgOpacity: 0,
+  };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 
@@ -345,6 +350,15 @@ class App extends EventEmitter {
       // Merge only known keys
       if (typeof body.scale === 'number') {
         this.appearance.scale = Math.max(0.5, Math.min(3, body.scale));
+      }
+      if (typeof body.textOpacity === 'number') {
+        this.appearance.textOpacity = Math.max(0, Math.min(1, body.textOpacity));
+      }
+      if (typeof body.bubbleOpacity === 'number') {
+        this.appearance.bubbleOpacity = Math.max(0, Math.min(1, body.bubbleOpacity));
+      }
+      if (typeof body.bgOpacity === 'number') {
+        this.appearance.bgOpacity = Math.max(0, Math.min(1, body.bgOpacity));
       }
       // Broadcast to all overlay SSE clients
       this.sse.send('appearance', this.appearance);

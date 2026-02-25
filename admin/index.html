@@ -117,12 +117,26 @@
       <!-- ═══ APPEARANCE PAGE ═════════════════════════════════ -->
       <div class="page" id="pageAppearance">
 
-        <section class="card">
-          <h3>Overlay Appearance</h3>
-          <div class="slider-row">
-            <label for="scaleSlider">Scale</label>
-            <input type="range" id="scaleSlider" min="0.5" max="3" step="0.01" value="1.35" />
-            <span id="scaleValue" class="slider-value">1.35</span>
+        <section class="card appearance-card">
+          <div class="appearance-grid">
+            <div class="a-item">
+              <div class="a-label" id="scaleLabel">Scale: 1.35</div>
+              <input type="range" id="scaleSlider" min="0.5" max="3" step="0.01" value="1.35" />
+            </div>
+          </div>
+          <div class="appearance-grid">
+            <div class="a-item">
+              <div class="a-label" id="textOpLabel">Text opacity: 1.00</div>
+              <input type="range" id="textOpSlider" min="0" max="1" step="0.05" value="1" />
+            </div>
+            <div class="a-item">
+              <div class="a-label" id="bubbleOpLabel">Bubble opacity: 0.14</div>
+              <input type="range" id="bubbleOpSlider" min="0" max="1" step="0.05" value="0.14" />
+            </div>
+            <div class="a-item">
+              <div class="a-label" id="bgOpLabel">Background opacity: 0.00</div>
+              <input type="range" id="bgOpSlider" min="0" max="1" step="0.05" value="0" />
+            </div>
           </div>
         </section>
 

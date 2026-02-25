@@ -38,7 +38,13 @@ const jamToggle       = $('jamToggle');
 const jamMeta         = $('jamMeta');
 // Appearance
 const scaleSlider     = $('scaleSlider');
-const scaleValue      = $('scaleValue');
+const scaleLabel      = $('scaleLabel');
+const textOpSlider    = $('textOpSlider');
+const textOpLabel     = $('textOpLabel');
+const bubbleOpSlider  = $('bubbleOpSlider');
+const bubbleOpLabel   = $('bubbleOpLabel');
+const bgOpSlider      = $('bgOpSlider');
+const bgOpLabel       = $('bgOpLabel');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -306,18 +312,49 @@ async function fetchAppearance() {
 function updateAppearanceUI(a) {
   if (typeof a.scale === 'number') {
     scaleSlider.value = a.scale;
-    scaleValue.textContent = a.scale.toFixed(2);
+    scaleLabel.textContent = 'Scale: ' + a.scale.toFixed(2);
+  }
+  if (typeof a.textOpacity === 'number') {
+    textOpSlider.value = a.textOpacity;
+    textOpLabel.textContent = 'Text opacity: ' + a.textOpacity.toFixed(2);
+  }
+  if (typeof a.bubbleOpacity === 'number') {
+    bubbleOpSlider.value = a.bubbleOpacity;
+    bubbleOpLabel.textContent = 'Bubble opacity: ' + a.bubbleOpacity.toFixed(2);
+  }
+  if (typeof a.bgOpacity === 'number') {
+    bgOpSlider.value = a.bgOpacity;
+    bgOpLabel.textContent = 'Background opacity: ' + a.bgOpacity.toFixed(2);
   }
 }
 
-let scaleDebounce = null;
+let appearanceDebounce = null;
+function sendAppearance(patch) {
+  clearTimeout(appearanceDebounce);
+  appearanceDebounce = setTimeout(async () => {
+    try { await api('POST', '/api/appearance', patch); } catch {}
+  }, 150);
+}
+
 scaleSlider.addEventListener('input', () => {
   const val = Number(scaleSlider.value);
-  scaleValue.textContent = val.toFixed(2);
-  clearTimeout(scaleDebounce);
-  scaleDebounce = setTimeout(async () => {
-    try { await api('POST', '/api/appearance', { scale: val }); } catch {}
-  }, 150);
+  scaleLabel.textContent = 'Scale: ' + val.toFixed(2);
+  sendAppearance({ scale: val });
+});
+textOpSlider.addEventListener('input', () => {
+  const val = Number(textOpSlider.value);
+  textOpLabel.textContent = 'Text opacity: ' + val.toFixed(2);
+  sendAppearance({ textOpacity: val });
+});
+bubbleOpSlider.addEventListener('input', () => {
+  const val = Number(bubbleOpSlider.value);
+  bubbleOpLabel.textContent = 'Bubble opacity: ' + val.toFixed(2);
+  sendAppearance({ bubbleOpacity: val });
+});
+bgOpSlider.addEventListener('input', () => {
+  const val = Number(bgOpSlider.value);
+  bgOpLabel.textContent = 'Background opacity: ' + val.toFixed(2);
+  sendAppearance({ bgOpacity: val });
 });
 
 // ─── Copy overlay URL ──────────────────────────────────────────

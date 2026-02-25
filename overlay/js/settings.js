@@ -454,7 +454,6 @@ export function syncUi() {
   
   // Set hex color values and update previews
   elements.textColor.value = normalizeHexColor(state.theme.text);
-  if (elements.textOpacity) elements.textOpacity.value = String(state.theme.textOpacity || 1);
   updateColorPreview(elements.textColor, elements.textColorPreview);
   
   if (elements.bubbleColor) {
@@ -467,11 +466,9 @@ export function syncUi() {
     updateColorPreview(elements.pageBgColor, elements.pageBgColorPreview);
   }
   
-  elements.bgOpacity.value = String(state.theme.bgOpacity);
   if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles;
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
   if (elements.messageGap) elements.messageGap.value = String(state.messageGapRem);
-  if (elements.pageBgOpacity) elements.pageBgOpacity.value = String(state.pageBgOpacity);
   
   // Sound panel
   if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
@@ -502,7 +499,6 @@ export function updateFromUi() {
   if (isValidHexColor(elements.textColor.value)) {
     state.theme.text = normalizeHexColor(elements.textColor.value);
   }
-  if (elements.textOpacity) state.theme.textOpacity = Math.max(0, Math.min(1, Number(elements.textOpacity.value) || 1));
   
   if (elements.bubbleColor && isValidHexColor(elements.bubbleColor.value)) {
     state.theme.bubbleColor = normalizeHexColor(elements.bubbleColor.value);
@@ -512,7 +508,6 @@ export function updateFromUi() {
     state.pageBgColor = normalizeHexColor(elements.pageBgColor.value);
   }
   
-  state.theme.bgOpacity = Math.max(0, Math.min(1, Number(elements.bgOpacity.value)));
   if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked;
   
   if (elements.demoMode) {
@@ -529,9 +524,6 @@ export function updateFromUi() {
   
   if (elements.messageGap) {
     state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value)));
-  }
-  if (elements.pageBgOpacity) {
-    state.pageBgOpacity = Math.max(0, Math.min(1, Number(elements.pageBgOpacity.value)));
   }
   
   // Per-sound volumes only (set to 0 to disable)
@@ -1107,11 +1099,8 @@ export function bindUi() {
   elements.showAvatars?.addEventListener('change', updateFromUi);
   elements.messageGap?.addEventListener('input', updateFromUi);
   elements.pageBgColor?.addEventListener('input', updateFromUi);
-  elements.pageBgOpacity?.addEventListener('input', updateFromUi);
   elements.textColor?.addEventListener('input', updateFromUi);
-  elements.textOpacity?.addEventListener('input', updateFromUi);
   elements.bubbleColor?.addEventListener('input', updateFromUi);
-  elements.bgOpacity?.addEventListener('input', updateFromUi);
   
   const presetEl = document.getElementById('preset');
   if (presetEl) {

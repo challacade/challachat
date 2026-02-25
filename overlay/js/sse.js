@@ -110,6 +110,15 @@ export function startSSE() {
       if (typeof data.scale === 'number') {
         state.scale = Math.max(0.5, Math.min(3, data.scale));
       }
+      if (typeof data.textOpacity === 'number') {
+        state.theme.textOpacity = Math.max(0, Math.min(1, data.textOpacity));
+      }
+      if (typeof data.bubbleOpacity === 'number') {
+        state.theme.bgOpacity = Math.max(0, Math.min(1, data.bubbleOpacity));
+      }
+      if (typeof data.bgOpacity === 'number') {
+        state.pageBgOpacity = Math.max(0, Math.min(1, data.bgOpacity));
+      }
       applyTheme();
     } catch {
       // ignore
