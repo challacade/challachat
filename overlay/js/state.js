@@ -17,15 +17,11 @@ export const elements = {
   musicSettingsBtn: document.getElementById('musicSettingsBtn'),
   showAvatars: document.getElementById('showAvatars'),
   showBadges: document.getElementById('showBadges'),
-  textColor: document.getElementById('textColor'),
-  textColorPreview: document.getElementById('textColorPreview'),
-  bubbleColor: document.getElementById('bubbleColor'),
-  bubbleColorPreview: document.getElementById('bubbleColorPreview'),
+
   showBubbles: document.getElementById('showBubbles'),
   demoMode: document.getElementById('demoMode'),
 
-  pageBgColor: document.getElementById('pageBgColor'),
-  pageBgColorPreview: document.getElementById('pageBgColorPreview'),
+
   copyUrlBtn: document.getElementById('copyUrlBtn'),
   msgVolume: document.getElementById('msgVolume'),
   donationVolume: document.getElementById('donationVolume'),

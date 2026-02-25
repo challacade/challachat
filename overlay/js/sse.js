@@ -122,6 +122,15 @@ export function startSSE() {
       if (typeof data.messageGap === 'number') {
         state.messageGapRem = Math.max(0, Math.min(1.5, data.messageGap));
       }
+      if (typeof data.textColor === 'string') {
+        state.theme.text = data.textColor;
+      }
+      if (typeof data.bubbleColor === 'string') {
+        state.theme.bubbleColor = data.bubbleColor;
+      }
+      if (typeof data.bgColor === 'string') {
+        state.pageBgColor = data.bgColor;
+      }
       applyTheme();
     } catch {
       // ignore

@@ -47,6 +47,9 @@ const bgOpSlider      = $('bgOpSlider');
 const bgOpLabel       = $('bgOpLabel');
 const gapSlider       = $('gapSlider');
 const gapLabel        = $('gapLabel');
+const textColorPicker   = $('textColorPicker');
+const bubbleColorPicker = $('bubbleColorPicker');
+const bgColorPicker     = $('bgColorPicker');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -332,6 +335,15 @@ function updateAppearanceUI(a) {
     gapSlider.value = a.messageGap;
     gapLabel.textContent = 'Vertical gap: ' + a.messageGap.toFixed(2);
   }
+  if (typeof a.textColor === 'string') {
+    textColorPicker.value = a.textColor;
+  }
+  if (typeof a.bubbleColor === 'string') {
+    bubbleColorPicker.value = a.bubbleColor;
+  }
+  if (typeof a.bgColor === 'string') {
+    bgColorPicker.value = a.bgColor;
+  }
 }
 
 let appearanceDebounce = null;
@@ -366,6 +378,15 @@ gapSlider.addEventListener('input', () => {
   const val = Number(gapSlider.value);
   gapLabel.textContent = 'Vertical gap: ' + val.toFixed(2);
   sendAppearance({ messageGap: val });
+});
+textColorPicker.addEventListener('input', () => {
+  sendAppearance({ textColor: textColorPicker.value });
+});
+bubbleColorPicker.addEventListener('input', () => {
+  sendAppearance({ bubbleColor: bubbleColorPicker.value });
+});
+bgColorPicker.addEventListener('input', () => {
+  sendAppearance({ bgColor: bgColorPicker.value });
 });
 
 // ─── Copy overlay URL ──────────────────────────────────────────

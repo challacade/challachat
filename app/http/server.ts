@@ -64,6 +64,9 @@ class App extends EventEmitter {
     bubbleOpacity: 0.14,
     bgOpacity: 0,
     messageGap: 0.4,
+    textColor: '#ffffff',
+    bubbleColor: '#000000',
+    bgColor: '#000000',
   };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
@@ -363,6 +366,15 @@ class App extends EventEmitter {
       }
       if (typeof body.messageGap === 'number') {
         this.appearance.messageGap = Math.max(0, Math.min(1.5, body.messageGap));
+      }
+      if (typeof body.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.textColor)) {
+        this.appearance.textColor = body.textColor;
+      }
+      if (typeof body.bubbleColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bubbleColor)) {
+        this.appearance.bubbleColor = body.bubbleColor;
+      }
+      if (typeof body.bgColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bgColor)) {
+        this.appearance.bgColor = body.bgColor;
       }
       // Broadcast to all overlay SSE clients
       this.sse.send('appearance', this.appearance);

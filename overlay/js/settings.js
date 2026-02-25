@@ -452,19 +452,7 @@ export function syncUi() {
   const presetElement = document.getElementById('preset');
   if (presetElement) presetElement.value = state.preset || 'Custom';
   
-  // Set hex color values and update previews
-  elements.textColor.value = normalizeHexColor(state.theme.text);
-  updateColorPreview(elements.textColor, elements.textColorPreview);
-  
-  if (elements.bubbleColor) {
-    elements.bubbleColor.value = normalizeHexColor(state.theme.bubbleColor || '#000000');
-    updateColorPreview(elements.bubbleColor, elements.bubbleColorPreview);
-  }
-  
-  if (elements.pageBgColor) {
-    elements.pageBgColor.value = normalizeHexColor(state.pageBgColor || '#000000');
-    updateColorPreview(elements.pageBgColor, elements.pageBgColorPreview);
-  }
+
   
   if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles;
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
@@ -495,18 +483,7 @@ export function updateFromUi() {
   if (elements.showBadges) state.showBadges = elements.showBadges.checked;
   state.preset = 'Custom';
   
-  // Update colors from hex inputs
-  if (isValidHexColor(elements.textColor.value)) {
-    state.theme.text = normalizeHexColor(elements.textColor.value);
-  }
-  
-  if (elements.bubbleColor && isValidHexColor(elements.bubbleColor.value)) {
-    state.theme.bubbleColor = normalizeHexColor(elements.bubbleColor.value);
-  }
-  
-  if (elements.pageBgColor && isValidHexColor(elements.pageBgColor.value)) {
-    state.pageBgColor = normalizeHexColor(elements.pageBgColor.value);
-  }
+
   
   if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked;
   
@@ -1084,10 +1061,7 @@ export function bindUi() {
     }
   });
   
-  // Setup color inputs with previews
-  setupColorInput(elements.textColor, elements.textColorPreview);
-  setupColorInput(elements.bubbleColor, elements.bubbleColorPreview);
-  setupColorInput(elements.pageBgColor, elements.pageBgColorPreview);
+
   
   // Basic controls
   elements.copyUrlBtn?.addEventListener('click', () => copyUrlWithSettings());
@@ -1096,9 +1070,7 @@ export function bindUi() {
   elements.showBadges?.addEventListener('change', updateFromUi);
   elements.showAvatars?.addEventListener('change', updateFromUi);
 
-  elements.pageBgColor?.addEventListener('input', updateFromUi);
-  elements.textColor?.addEventListener('input', updateFromUi);
-  elements.bubbleColor?.addEventListener('input', updateFromUi);
+
   
   const presetEl = document.getElementById('preset');
   if (presetEl) {
