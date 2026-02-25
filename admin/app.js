@@ -7,68 +7,97 @@
  * when opened in a regular browser (terminal mode).
  */
 
-// --- Feature detect Electron ---
+// ─── Feature detect ────────────────────────────────────────────
 const isElectron = !!(window.challachat && window.challachat.isElectron);
 
-// --- Elements ---
-const serverDot = document.getElementById('serverDot');
-const serverStatus = document.getElementById('serverStatus');
-const urlInput = document.getElementById('urlInput');
-const connectBtn = document.getElementById('connectBtn');
-const connectError = document.getElementById('connectError');
-const connectSection = document.getElementById('connectSection');
-const captureSection = document.getElementById('captureSection');
-const platformBadge = document.getElementById('platformBadge');
-const captureUrl = document.getElementById('captureUrl');
-const messageCount = document.getElementById('messageCount');
-const uptime = document.getElementById('uptime');
-const disconnectBtn = document.getElementById('disconnectBtn');
-const overlayUrl = document.getElementById('overlayUrl');
-const copyBtn = document.getElementById('copyBtn');
+// ─── DOM refs ──────────────────────────────────────────────────
+const $ = (id) => document.getElementById(id);
+const serverDot     = $('serverDot');
+const serverStatus  = $('serverStatus');
+const urlInput      = $('urlInput');
+const connectBtn    = $('connectBtn');
+const connectError  = $('connectError');
+const connectSection  = $('connectSection');
+const captureSection  = $('captureSection');
+const platformBadge   = $('platformBadge');
+const captureUrl      = $('captureUrl');
+const messageCount    = $('messageCount');
+const uptime          = $('uptime');
+const pollDisplay     = $('pollDisplay');
+const pollSlider      = $('pollSlider');
+const pollValue       = $('pollValue');
+const disconnectBtn   = $('disconnectBtn');
+const overlayUrl      = $('overlayUrl');
+const copyBtn         = $('copyBtn');
+// Settings
+const filterToggle    = $('filterToggle');
+const filterReloadBtn = $('filterReloadBtn');
+const filterMeta      = $('filterMeta');
+const loggerToggle    = $('loggerToggle');
+const loggerMeta      = $('loggerMeta');
+const jamToggle       = $('jamToggle');
+const jamMeta         = $('jamMeta');
 
 let pollTimer = null;
 let connecting = false;
 
-// --- Helpers ---
+// ─── Helpers ───────────────────────────────────────────────────
 
 function formatUptime(ms) {
   if (!ms || ms <= 0) return '0s';
   const s = Math.floor(ms / 1000);
   if (s < 60) return `${s}s`;
   const m = Math.floor(s / 60);
-  const remainS = s % 60;
-  if (m < 60) return `${m}m ${remainS}s`;
+  const rs = s % 60;
+  if (m < 60) return `${m}m ${rs}s`;
   const h = Math.floor(m / 60);
-  const remainM = m % 60;
-  return `${h}h ${remainM}m`;
+  const rm = m % 60;
+  return `${h}h ${rm}m`;
+}
+
+function formatPoll(ms) {
+  if (ms >= 1000) return (ms / 1000).toFixed(1).replace(/\.0$/, '') + ' s';
+  return ms + ' ms';
 }
 
 function showError(msg) {
   connectError.textContent = msg;
   connectError.classList.remove('hidden');
 }
-
 function hideError() {
   connectError.classList.add('hidden');
 }
 
 function setServerActive(active) {
   serverDot.className = 'status-dot' + (active ? ' active' : '');
-  serverStatus.textContent = active ? 'Server running' : 'Starting...';
+  serverStatus.textContent = active ? 'Server running' : 'Starting\u2026';
 }
 
-// --- Unified status fetch (IPC or HTTP) ---
+// ─── Generic API helper (IPC or HTTP) ──────────────────────────
+
+async function api(method, path, body) {
+  if (isElectron) {
+    // IPC calls — map REST paths to IPC channels
+    if (path === '/api/status')          return window.challachat.invoke('get-status');
+    if (path === '/api/connect')         return window.challachat.invoke('connect', body?.url);
+    if (path === '/api/disconnect')      return window.challachat.invoke('disconnect');
+    // Settings go through REST even in Electron (served on localhost)
+    // Fall through to fetch
+  }
+  const opts = { method };
+  if (body) {
+    opts.headers = { 'Content-Type': 'application/json' };
+    opts.body = JSON.stringify(body);
+  }
+  const res = await fetch(path, opts);
+  return res.json();
+}
+
+// ─── Status polling ────────────────────────────────────────────
 
 async function fetchStatus() {
   try {
-    let data;
-    if (isElectron) {
-      data = await window.challachat.invoke('get-status');
-    } else {
-      const res = await fetch('/api/status');
-      if (!res.ok) return;
-      data = await res.json();
-    }
+    const data = await api('GET', '/api/status');
     if (data) updateUI(data);
   } catch {
     setServerActive(false);
@@ -77,10 +106,7 @@ async function fetchStatus() {
 
 function updateUI(status) {
   setServerActive(true);
-
-  if (status.overlayUrl) {
-    overlayUrl.textContent = status.overlayUrl;
-  }
+  if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
 
   if (status.isRunning) {
     connectSection.classList.add('hidden');
@@ -93,50 +119,84 @@ function updateUI(status) {
     captureUrl.textContent = status.url || '';
     messageCount.textContent = (status.messageCount || 0).toLocaleString();
     uptime.textContent = formatUptime(status.uptime || 0);
-  } else {
-    if (!connecting) {
-      connectSection.classList.remove('hidden');
+
+    if (status.pollIntervalMs) {
+      pollDisplay.textContent = formatPoll(status.pollIntervalMs);
+      pollSlider.value = status.pollIntervalMs;
+      pollValue.textContent = formatPoll(status.pollIntervalMs);
     }
+  } else {
+    if (!connecting) connectSection.classList.remove('hidden');
     captureSection.classList.add('hidden');
   }
 }
 
-// --- Connect / Disconnect ---
+// ─── Settings fetch ────────────────────────────────────────────
+
+async function fetchSettings() {
+  try {
+    const [filter, logger, jam] = await Promise.all([
+      api('GET', '/api/filter'),
+      api('GET', '/api/logger'),
+      api('GET', '/api/jam'),
+    ]);
+    updateFilterUI(filter);
+    updateLoggerUI(logger);
+    updateJamUI(jam);
+  } catch {
+    // Server may not be ready yet — ignore
+  }
+}
+
+function updateFilterUI(f) {
+  if (!f) return;
+  filterToggle.checked = f.active;
+  filterMeta.textContent = f.loaded
+    ? `${f.wordCount} words loaded`
+    : 'No word list loaded';
+}
+
+function updateLoggerUI(l) {
+  if (!l) return;
+  loggerToggle.checked = l.enabled;
+  if (l.logging) {
+    loggerMeta.textContent = `Logging (${l.messageCount} msgs)`;
+  } else {
+    loggerMeta.textContent = l.enabled ? 'Enabled, waiting for capture' : 'Disabled';
+  }
+}
+
+function updateJamUI(j) {
+  if (!j) return;
+  jamToggle.checked = j.enabled;
+  if (j.enabled && j.jamCount > 0) {
+    jamMeta.textContent = `${j.jamCount} jams`;
+  } else {
+    jamMeta.textContent = j.enabled ? 'Enabled' : 'Disabled';
+  }
+}
+
+// ─── Connect / Disconnect ──────────────────────────────────────
 
 async function handleConnect() {
   const url = urlInput.value.trim();
-  if (!url) {
-    showError('Please enter a livestream URL.');
-    return;
-  }
+  if (!url) { showError('Please enter a livestream URL.'); return; }
 
   hideError();
   connecting = true;
   connectBtn.disabled = true;
-  connectBtn.textContent = 'Connecting...';
+  connectBtn.textContent = 'Connecting\u2026';
 
   try {
-    let data;
-    if (isElectron) {
-      data = await window.challachat.invoke('connect', url);
-    } else {
-      const res = await fetch('/api/connect', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ url }),
-      });
-      data = await res.json();
-    }
-
+    const data = await api('POST', '/api/connect', { url });
     if (!data.ok) {
       showError(data.error || 'Connection failed.');
     } else {
       hideError();
       urlInput.value = '';
     }
-
     await fetchStatus();
-  } catch (e) {
+  } catch {
     showError('Failed to connect. Is the server running?');
   } finally {
     connecting = false;
@@ -147,53 +207,88 @@ async function handleConnect() {
 
 async function handleDisconnect() {
   disconnectBtn.disabled = true;
-  disconnectBtn.textContent = 'Disconnecting...';
-
+  disconnectBtn.textContent = 'Disconnecting\u2026';
   try {
-    if (isElectron) {
-      await window.challachat.invoke('disconnect');
-    } else {
-      await fetch('/api/disconnect', { method: 'POST' });
-    }
+    await api('POST', '/api/disconnect');
     await fetchStatus();
-  } catch {
-    // ignore
-  } finally {
+  } catch { /* ignore */ }
+  finally {
     disconnectBtn.disabled = false;
     disconnectBtn.textContent = 'Disconnect';
   }
 }
 
-function handleCopy() {
+// ─── Poll interval ─────────────────────────────────────────────
+
+let pollDebounce = null;
+pollSlider.addEventListener('input', () => {
+  const ms = Number(pollSlider.value);
+  pollValue.textContent = formatPoll(ms);
+  pollDisplay.textContent = formatPoll(ms);
+  clearTimeout(pollDebounce);
+  pollDebounce = setTimeout(async () => {
+    try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms }); } catch {}
+  }, 300);
+});
+
+// ─── Settings toggles ──────────────────────────────────────────
+
+filterToggle.addEventListener('change', async () => {
+  try {
+    const data = await api('POST', '/api/filter/toggle', { active: filterToggle.checked });
+    updateFilterUI(data);
+  } catch { filterToggle.checked = !filterToggle.checked; }
+});
+
+filterReloadBtn.addEventListener('click', async () => {
+  filterReloadBtn.disabled = true;
+  try {
+    const data = await api('POST', '/api/filter/reload');
+    updateFilterUI(data);
+  } catch {}
+  finally { filterReloadBtn.disabled = false; }
+});
+
+loggerToggle.addEventListener('change', async () => {
+  try {
+    const data = await api('POST', '/api/logger/toggle', { enabled: loggerToggle.checked });
+    updateLoggerUI(data);
+  } catch { loggerToggle.checked = !loggerToggle.checked; }
+});
+
+jamToggle.addEventListener('change', async () => {
+  try {
+    const data = await api('POST', '/api/jam/toggle', { enabled: jamToggle.checked });
+    updateJamUI(data);
+  } catch { jamToggle.checked = !jamToggle.checked; }
+});
+
+// ─── Copy overlay URL ──────────────────────────────────────────
+
+copyBtn.addEventListener('click', () => {
   const text = overlayUrl.textContent;
   navigator.clipboard.writeText(text).then(() => {
-    const original = copyBtn.textContent;
-    copyBtn.textContent = '✓';
-    setTimeout(() => { copyBtn.textContent = original; }, 1500);
+    const orig = copyBtn.textContent;
+    copyBtn.textContent = '\u2713';
+    setTimeout(() => { copyBtn.textContent = orig; }, 1500);
   }).catch(() => {});
-}
+});
 
-// --- Event Listeners ---
+// ─── Key bindings ──────────────────────────────────────────────
 
 connectBtn.addEventListener('click', handleConnect);
 disconnectBtn.addEventListener('click', handleDisconnect);
-copyBtn.addEventListener('click', handleCopy);
+urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
 
-urlInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') handleConnect();
-});
+// ─── Real-time Electron events ─────────────────────────────────
 
-// --- Real-time events from Electron main process ---
 if (isElectron) {
-  // When capture status changes, refresh the UI immediately instead of
-  // waiting for the next poll tick.
-  window.challachat.on('capture-status', () => fetchStatus());
+  window.challachat.on('capture-status', () => { fetchStatus(); fetchSettings(); });
   window.challachat.on('capture-error', (error) => showError(error));
 }
 
-// --- Init ---
+// ─── Init ──────────────────────────────────────────────────────
 
 fetchStatus();
-// In Electron mode we still poll as a heartbeat for uptime counter updates,
-// but at a slower cadence since real-time events handle the important stuff.
-pollTimer = setInterval(fetchStatus, isElectron ? 5000 : 2000);
+fetchSettings();
+pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);
