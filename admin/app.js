@@ -1,8 +1,14 @@
 /**
  * ChallaChat Admin Panel
- * Simple control panel for managing the ChallaChat server.
- * Communicates with the Express backend via REST API.
+ *
+ * When running inside Electron the panel uses IPC (window.challachat.invoke /
+ * window.challachat.on) for zero-latency communication with the backend.
+ * Otherwise it falls back to REST API polling so the admin page also works
+ * when opened in a regular browser (terminal mode).
  */
+
+// --- Feature detect Electron ---
+const isElectron = !!(window.challachat && window.challachat.isElectron);
 
 // --- Elements ---
 const serverDot = document.getElementById('serverDot');
@@ -51,16 +57,20 @@ function setServerActive(active) {
   serverStatus.textContent = active ? 'Server running' : 'Starting...';
 }
 
-// --- Status Polling ---
+// --- Unified status fetch (IPC or HTTP) ---
 
 async function fetchStatus() {
   try {
-    const res = await fetch('/api/status');
-    if (!res.ok) return;
-    const data = await res.json();
-    updateUI(data);
+    let data;
+    if (isElectron) {
+      data = await window.challachat.invoke('get-status');
+    } else {
+      const res = await fetch('/api/status');
+      if (!res.ok) return;
+      data = await res.json();
+    }
+    if (data) updateUI(data);
   } catch {
-    // Server not ready yet
     setServerActive(false);
   }
 }
@@ -68,29 +78,22 @@ async function fetchStatus() {
 function updateUI(status) {
   setServerActive(true);
 
-  // Update overlay URL
   if (status.overlayUrl) {
     overlayUrl.textContent = status.overlayUrl;
   }
 
   if (status.isRunning) {
-    // Show capture status, hide connect form
     connectSection.classList.add('hidden');
     captureSection.classList.remove('hidden');
 
-    // Platform badge
     const p = status.platform || 'unknown';
     platformBadge.textContent = p;
     platformBadge.className = 'platform-badge ' + p;
 
-    // URL
     captureUrl.textContent = status.url || '';
-
-    // Stats
     messageCount.textContent = (status.messageCount || 0).toLocaleString();
     uptime.textContent = formatUptime(status.uptime || 0);
   } else {
-    // Show connect form, hide capture status
     if (!connecting) {
       connectSection.classList.remove('hidden');
     }
@@ -113,12 +116,17 @@ async function handleConnect() {
   connectBtn.textContent = 'Connecting...';
 
   try {
-    const res = await fetch('/api/connect', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ url }),
-    });
-    const data = await res.json();
+    let data;
+    if (isElectron) {
+      data = await window.challachat.invoke('connect', url);
+    } else {
+      const res = await fetch('/api/connect', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url }),
+      });
+      data = await res.json();
+    }
 
     if (!data.ok) {
       showError(data.error || 'Connection failed.');
@@ -127,7 +135,6 @@ async function handleConnect() {
       urlInput.value = '';
     }
 
-    // Refresh status immediately
     await fetchStatus();
   } catch (e) {
     showError('Failed to connect. Is the server running?');
@@ -143,7 +150,11 @@ async function handleDisconnect() {
   disconnectBtn.textContent = 'Disconnecting...';
 
   try {
-    await fetch('/api/disconnect', { method: 'POST' });
+    if (isElectron) {
+      await window.challachat.invoke('disconnect');
+    } else {
+      await fetch('/api/disconnect', { method: 'POST' });
+    }
     await fetchStatus();
   } catch {
     // ignore
@@ -172,7 +183,17 @@ urlInput.addEventListener('keydown', (e) => {
   if (e.key === 'Enter') handleConnect();
 });
 
+// --- Real-time events from Electron main process ---
+if (isElectron) {
+  // When capture status changes, refresh the UI immediately instead of
+  // waiting for the next poll tick.
+  window.challachat.on('capture-status', () => fetchStatus());
+  window.challachat.on('capture-error', (error) => showError(error));
+}
+
 // --- Init ---
 
 fetchStatus();
-pollTimer = setInterval(fetchStatus, 2000);
+// In Electron mode we still poll as a heartbeat for uptime counter updates,
+// but at a slower cadence since real-time events handle the important stuff.
+pollTimer = setInterval(fetchStatus, isElectron ? 5000 : 2000);

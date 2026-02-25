@@ -3,6 +3,7 @@ import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
+import { EventEmitter } from 'events';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
@@ -19,64 +20,25 @@ import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
 import type { ChatEvent, Platform } from '../capture/types';
 
-// Check if we're running as a Single Executable Application
-let sea: any = null;
-
-try {
-  sea = require('node:sea');
-} catch (error) {
-  // SEA module not available - running in development mode
+/**
+ * Typed events emitted by the App class.
+ * In headless (Electron) mode these replace console output;
+ * the Electron main process listens and forwards them over IPC.
+ */
+export interface AppEvents {
+  'server-ready': (port: number) => void;
+  'capture-status': (status: { status: string; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number }) => void;
+  'capture-error': (error: string) => void;
+  'log': (message: string) => void;
 }
 
-// Resolve static directory for both dev and SEA builds
+// Resolve static directories (overlay + admin)
 const __dirnameResolved = __dirname;
-const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
-const externalStatic = (() => {
-  try { return path.join(path.dirname(process.execPath), 'overlay'); } catch { return snapshotStatic; }
-})();
-
-// Helper function to get static files
-function getStaticFile(filePath: string): Buffer | string | null {
-  // Check if we're in optimized SEA mode with external static files
-  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_OVERLAY_DIR) {
-    const overlayDir = process.env.CHALLACHAT_OVERLAY_DIR;
-    const fullPath = path.join(overlayDir, filePath);
-    
-    if (fs.existsSync(fullPath)) {
-      return fs.readFileSync(fullPath);
-    } else {
-      return null;
-    }
-  } else if (sea && sea.isSea && sea.isSea()) {
-    // For embedded SEA, we need to add the overlay/ prefix to match the asset keys
-    const assetKey = `overlay/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
-    try {
-      // For text files (HTML, CSS, JS), get as UTF-8 string
-      // For binary files (images, audio), get as ArrayBuffer
-      const ext = path.extname(filePath).toLowerCase();
-      const isTextFile = ['.html', '.css', '.js', '.txt', '.json'].includes(ext);
-      
-      const asset = isTextFile ? sea.getAsset(assetKey, 'utf8') : sea.getAsset(assetKey);
-      return asset;
-    } catch (error) {
-      return null;
-    }
-  } else {
-    // Development mode - use file system
-    const fullPath = path.join(snapshotStatic, filePath);
-    if (fs.existsSync(fullPath)) {
-      return fs.readFileSync(fullPath);
-    }
-    const altPath = path.join(externalStatic, filePath);
-    if (fs.existsSync(altPath)) {
-      return fs.readFileSync(altPath);
-    }
-    return null;
-  }
-}
+const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
+const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 
 // HTTP server + overlay + SSE wiring
-class App {
+class App extends EventEmitter {
   private app = express();
   private server = http.createServer(this.app);
   private io = new SocketIOServer(this.server, { cors: { origin: '*', methods: ['GET','POST'] } });
@@ -136,6 +98,7 @@ class App {
   }
 
   constructor(options?: { headless?: boolean }) {
+  super();
   this.headless = options?.headless ?? false;
   this.tui = this.headless ? null : new TerminalUI(this.port);
   this.serverReadyPromise = new Promise<number>(resolve => { this.serverReadyResolve = resolve; });
@@ -153,115 +116,14 @@ class App {
   private setupServer() {
     this.app.use(express.json());
     
-    // Handle static files through SEA assets or filesystem at /overlay/ prefix
-    this.app.use('/overlay', (req: Request, res: Response) => {
-      const filePath = req.path.substring(1); // Remove leading slash
-      const file = getStaticFile(filePath);
-      
-      if (file) {
-        // Set appropriate content type based on file extension
-        const ext = path.extname(filePath).toLowerCase();
-        const contentType = {
-          '.html': 'text/html',
-          '.css': 'text/css',
-          '.js': 'application/javascript',
-          '.ico': 'image/x-icon',
-          '.mp3': 'audio/mpeg'
-        }[ext] || 'application/octet-stream';
-        
-        res.setHeader('Content-Type', contentType);
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Handle static files at root level (for HTML references like /styles.css)
-    this.app.get('/styles.css', (_req: Request, res: Response) => {
-      const file = getStaticFile('styles.css');
-      if (file) {
-        res.setHeader('Content-Type', 'text/css');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/app.js', (_req: Request, res: Response) => {
-      const file = getStaticFile('app.js');
-      if (file) {
-        res.setHeader('Content-Type', 'application/javascript');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/favicon.ico', (_req: Request, res: Response) => {
-      const file = getStaticFile('favicon.ico');
-      if (file) {
-        res.setHeader('Content-Type', 'image/x-icon');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/sounds/:filename', (req: Request, res: Response) => {
-      const filename = req.params.filename;
-      const file = getStaticFile(`sounds/${filename}`);
-      if (file) {
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Serve JS modules from /js/ folder
-    this.app.get('/js/:filename', (req: Request, res: Response) => {
-      const filename = req.params.filename;
-      const file = getStaticFile(`js/${filename}`);
-      if (file) {
-        res.setHeader('Content-Type', 'application/javascript');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Serve main pages
-    this.app.get('/', (_req: Request, res: Response) => {
-      const indexHtml = getStaticFile('index.html');
-      if (indexHtml) {
-        res.setHeader('Content-Type', 'text/html');
-        res.send(indexHtml);
-      } else {
-        res.status(500).send('Unable to load index.html');
-      }
-    });
-    
+    // Serve overlay static files directly from the filesystem
+    this.app.use(express.static(overlayStatic));
     this.app.get('/overlay', (_req: Request, res: Response) => {
-      const indexHtml = getStaticFile('index.html');
-      if (indexHtml) {
-        res.setHeader('Content-Type', 'text/html');
-        res.send(indexHtml);
-      } else {
-        res.status(500).send('Unable to load index.html');
-      }
+      res.sendFile(path.join(overlayStatic, 'index.html'));
     });
 
   this.app.get('/api/status', (_req: Request, res: Response) => {
-      res.json({
-        isRunning: this.isRunning,
-        platform: this.currentPlatform,
-        videoId: this.currentVideoId,
-        url: this.currentUrl,
-        messageCount: this.messageCount,
-        uptime: this.startTime ? Date.now() - this.startTime : 0,
-        pollIntervalMs: this.capture?.pollInterval || null,
-        overlayUrl: `http://localhost:${this.port}/`
-      });
+      res.json(this.getStatus());
     });
 
   this.app.get('/api/poll-interval', (_req: Request, res: Response) => {
@@ -477,8 +339,7 @@ class App {
     });
 
   // Serve admin control panel (static files from admin/ directory)
-  const adminDir = path.resolve(__dirnameResolved, '..', '..', 'admin');
-  this.app.use('/admin', express.static(adminDir));
+  this.app.use('/admin', express.static(adminStatic));
 
   // API: connect to a livestream URL
   this.app.post('/api/connect', async (req: Request, res: Response) => {
@@ -580,6 +441,8 @@ class App {
     }
     // Signal that the server is ready (used by Electron main process)
     this.serverReadyResolve(this.port);
+    this.emit('server-ready', this.port);
+    this.emit('log', `Server listening on port ${this.port}`);
   }
 
   // Detect platform from URL
@@ -647,8 +510,8 @@ class App {
       quiet: true,
       onMessage: (message) => this.onCaptureMessage(message),
       onDelete: (id) => this.onCaptureDelete(id),
-      onError: (err) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
+      onError: (err) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -662,7 +525,9 @@ class App {
     // Start logging if enabled (uses 'yt' platform identifier)
     startLogging('yt');
     this.tui?.render();
-    this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, platform: 'youtube', startedAt: this.startTime });
+    const captureStatus = { status: 'active' as const, videoId: this.currentVideoId, platform: 'youtube' as const, startedAt: this.startTime };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
@@ -677,8 +542,8 @@ class App {
       quiet: true,
       onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
       onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
+      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -691,7 +556,9 @@ class App {
     // Start logging if enabled (uses 'tw' platform identifier for Twitch)
     startLogging('tw');
     this.tui?.render();
-    this.io.emit('capture-status', { status: 'active', channel, platform: 'twitch', startedAt: this.startTime });
+    const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: this.startTime };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
@@ -727,8 +594,8 @@ class App {
       quiet: true,
       onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
       onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
+      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -741,7 +608,9 @@ class App {
     // Start logging if enabled (uses 'kk' platform identifier for Kick)
     startLogging('kk');
     this.tui?.render();
-    this.io.emit('capture-status', { status: 'active', channel, platform: 'kick', startedAt: this.startTime });
+    const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: this.startTime };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
@@ -843,7 +712,9 @@ class App {
     this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null; this.currentPlatform = null;
     try { this.tui?.disableMusicHotkeys(); } catch {}
     this.musicHotkeysEnabled = false;
-    this.io.emit('capture-status', { status: 'stopped', platform: null });
+    const stoppedStatus = { status: 'stopped' as const, platform: null };
+    this.io.emit('capture-status', stoppedStatus);
+    this.emit('capture-status', stoppedStatus);
   }
 
   // --- Public API (used by Electron main process and REST endpoints) ---
@@ -856,6 +727,20 @@ class App {
   /** Return the port the server is listening on. */
   getPort(): number {
     return this.port;
+  }
+
+  /** Return the current application status (mirrors /api/status). */
+  getStatus() {
+    return {
+      isRunning: this.isRunning,
+      platform: this.currentPlatform,
+      videoId: this.currentVideoId,
+      url: this.currentUrl,
+      messageCount: this.messageCount,
+      uptime: this.startTime ? Date.now() - this.startTime : 0,
+      pollIntervalMs: this.capture?.pollInterval || null,
+      overlayUrl: `http://localhost:${this.port}/`,
+    };
   }
 
   /** Connect to a livestream URL. Returns a result object. */

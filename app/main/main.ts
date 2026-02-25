@@ -1,12 +1,15 @@
 /**
  * ChallaChat — Electron Main Process
  *
- * Creates a BrowserWindow (the control panel) and starts the Express backend
- * in the same process.  The control panel communicates with the backend via
- * HTTP (same REST APIs the overlay uses), so no IPC is required for Phase 1.
+ * Creates a BrowserWindow that shows the control panel and starts the Express
+ * backend in the same process.  Communication uses IPC (ipcMain.handle) so
+ * the renderer never makes HTTP round-trips for control actions.
+ *
+ * The App class is an EventEmitter; we forward its events to the renderer
+ * via webContents.send so the UI updates in real-time.
  */
 
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 
 // Prevent server.ts from auto-instantiating when we require it
@@ -15,6 +18,14 @@ process.env.CHALLACHAT_ELECTRON = '1';
 let mainWindow: BrowserWindow | null = null;
 let appServer: any = null;
 
+/* ── Helper: send to renderer only when the window is alive ────────── */
+function sendToRenderer(channel: string, ...args: any[]) {
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    mainWindow.webContents.send(channel, ...args);
+  }
+}
+
+/* ── Window creation ───────────────────────────────────────────────── */
 async function createWindow(port: number) {
   mainWindow = new BrowserWindow({
     width: 520,
@@ -23,7 +34,7 @@ async function createWindow(port: number) {
     minHeight: 480,
     title: 'ChallaChat',
     backgroundColor: '#111827',
-    show: false, // show after ready-to-show to avoid flash
+    show: false,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
@@ -31,13 +42,9 @@ async function createWindow(port: number) {
     },
   });
 
-  // Hide the default menu bar
   mainWindow.setMenuBarVisibility(false);
 
-  // Show once the page is painted
-  mainWindow.once('ready-to-show', () => {
-    mainWindow?.show();
-  });
+  mainWindow.once('ready-to-show', () => mainWindow?.show());
 
   await mainWindow.loadURL(`http://localhost:${port}/admin`);
 
@@ -46,13 +53,47 @@ async function createWindow(port: number) {
   });
 }
 
+/* ── IPC handlers (invoke/handle pattern) ──────────────────────────── */
+function registerIpcHandlers() {
+  ipcMain.handle('get-status', () => {
+    if (!appServer) return null;
+    return appServer.getStatus();
+  });
+
+  ipcMain.handle('connect', async (_e: Electron.IpcMainInvokeEvent, url: string) => {
+    if (!appServer) return { error: 'Server not ready' };
+    return appServer.apiConnect(url);
+  });
+
+  ipcMain.handle('disconnect', async () => {
+    if (!appServer) return { error: 'Server not ready' };
+    return appServer.apiDisconnect();
+  });
+
+  ipcMain.handle('get-port', () => {
+    return appServer?.getPort() ?? null;
+  });
+}
+
+/* ── Wire App events → renderer ────────────────────────────────────── */
+function wireAppEvents() {
+  appServer.on('capture-status', (status: any) => sendToRenderer('capture-status', status));
+  appServer.on('capture-error', (error: string) => sendToRenderer('capture-error', error));
+  appServer.on('log', (msg: string) => sendToRenderer('log', msg));
+}
+
+/* ── Bootstrap ─────────────────────────────────────────────────────── */
 app.whenReady().then(async () => {
+  registerIpcHandlers();
+
   // Dynamic require so the env var is set before the module evaluates
   // eslint-disable-next-line @typescript-eslint/no-var-requires
   const { App } = require('../http/server');
   appServer = new App({ headless: true });
-  const port: number = await appServer.waitForReady();
 
+  wireAppEvents();
+
+  const port: number = await appServer.waitForReady();
   await createWindow(port);
 });
 
