@@ -90,8 +90,11 @@ class App {
   private startTime: number | null = null;
   private currentVideoId: string | null = null;
   private currentUrl: string | null = null;
-  private tui = new TerminalUI(this.port);
+  private headless: boolean;
+  private tui: TerminalUI | null = null;
   private musicHotkeysEnabled = false;
+  private serverReadyResolve!: (port: number) => void;
+  private serverReadyPromise: Promise<number>;
 
   private broadcastMusicControl(action: 'playPause' | 'prev' | 'next' | 'shuffle') {
     try {
@@ -110,10 +113,10 @@ class App {
     const current = refreshPlaylist();
     if (!current.playlist.length) return;
 
-    const ok = this.tui.enableMusicHotkeys((action) => {
+    const ok = this.tui?.enableMusicHotkeys((action) => {
       if (!this.isRunning) return;
       this.broadcastMusicControl(action);
-    });
+    }) ?? false;
 
     this.musicHotkeysEnabled = ok;
   }
@@ -132,13 +135,17 @@ class App {
     try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
   }
 
-  constructor() {
+  constructor(options?: { headless?: boolean }) {
+  this.headless = options?.headless ?? false;
+  this.tui = this.headless ? null : new TerminalUI(this.port);
+  this.serverReadyPromise = new Promise<number>(resolve => { this.serverReadyResolve = resolve; });
   this.setupServer();
-  this.setupTerminal();
+  if (!this.headless) this.setupTerminal();
   this.handleSignals();
-  // Show prompt immediately; bind server in background with retry
-  this.tui.showWelcome();
-  this.tui.prompt();
+  if (this.tui) {
+    this.tui.showWelcome();
+    this.tui.prompt();
+  }
   void this.ensureServerWithRetry();
   }
 
@@ -469,26 +476,49 @@ class App {
       socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', platform: this.currentPlatform, videoId: this.currentVideoId, messageCount: this.messageCount });
     });
 
+  // Serve admin control panel (static files from admin/ directory)
+  const adminDir = path.resolve(__dirnameResolved, '..', '..', 'admin');
+  this.app.use('/admin', express.static(adminDir));
+
+  // API: connect to a livestream URL
+  this.app.post('/api/connect', async (req: Request, res: Response) => {
+      const url = req.body?.url;
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ ok: false, error: 'Missing or invalid URL.' });
+        return;
+      }
+      const result = await this.apiConnect(url);
+      res.json(result);
+    });
+
+  // API: disconnect current capture
+  this.app.post('/api/disconnect', async (_req: Request, res: Response) => {
+      await this.apiDisconnect();
+      res.json({ ok: true });
+    });
+
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
   }
 
   // Wire terminal input handlers; actual prompt is shown after port bind
   private setupTerminal() {
+  if (!this.tui) return;
+  const tui = this.tui;
   // Do not prompt until we are successfully listening on a port
-    this.tui.onLine(async (line) => {
+    tui.onLine(async (line) => {
       const trimmed = line.trim();
-      if (!trimmed) { this.tui.prompt(); return; }
+      if (!trimmed) { tui.prompt(); return; }
       if (/^(quit|exit)$/i.test(trimmed)) { await this.shutdown(); return; }
       try {
         await this.ensureServer();
-        this.tui.showConnectingOnce();
+        tui.showConnectingOnce();
         await this.startScraping(trimmed);
       } catch (e: any) {
         console.log(`Error: ${e?.message || String(e)}`);
-        this.tui.prompt();
+        tui.prompt();
       }
     });
-    this.tui.onClose(() => { this.shutdown(); });
+    tui.onClose(() => { this.shutdown(); });
   }
 
   private handleSignals() {
@@ -533,7 +563,7 @@ class App {
         if (err?.code === 'EADDRINUSE') {
           console.log(`Port ${this.port} is in use. Trying ${this.port + 1}...`);
           this.port = Math.min(65535, this.port + 1);
-          this.tui.setPort(this.port);
+          this.tui?.setPort(this.port);
           this.pendingPortConfirmation = this.port;
           attempts++;
           if (attempts > 50) throw new Error('Failed to find a free port.');
@@ -542,12 +572,14 @@ class App {
         // Unknown error: show concise message, not stack
         console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}. Trying next port...`);
         this.port = Math.min(65535, this.port + 1);
-        this.tui.setPort(this.port);
+        this.tui?.setPort(this.port);
         this.pendingPortConfirmation = this.port;
         attempts++;
         if (attempts > 50) throw err;
       }
     }
+    // Signal that the server is ready (used by Electron main process)
+    this.serverReadyResolve(this.port);
   }
 
   // Detect platform from URL
@@ -616,7 +648,7 @@ class App {
       onMessage: (message) => this.onCaptureMessage(message),
       onDelete: (id) => this.onCaptureDelete(id),
       onError: (err) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -626,10 +658,10 @@ class App {
     this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
     this.messageCount = 0;
     this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
+    this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'yt' platform identifier)
     startLogging('yt');
-    this.tui.render();
+    this.tui?.render();
     this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, platform: 'youtube', startedAt: this.startTime });
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
@@ -646,7 +678,7 @@ class App {
       onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
       onDelete: (id: string) => this.onCaptureDelete(id),
       onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -655,10 +687,10 @@ class App {
     this.currentUrl = `https://www.twitch.tv/${channel}`;
     this.messageCount = 0;
     this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
+    this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'tw' platform identifier for Twitch)
     startLogging('tw');
-    this.tui.render();
+    this.tui?.render();
     this.io.emit('capture-status', { status: 'active', channel, platform: 'twitch', startedAt: this.startTime });
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
@@ -696,7 +728,7 @@ class App {
       onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
       onDelete: (id: string) => this.onCaptureDelete(id),
       onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await this.capture.start();
     this.isRunning = true;
@@ -705,10 +737,10 @@ class App {
     this.currentUrl = `https://kick.com/${channel}`;
     this.messageCount = 0;
     this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
+    this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'kk' platform identifier for Kick)
     startLogging('kk');
-    this.tui.render();
+    this.tui?.render();
     this.io.emit('capture-status', { status: 'active', channel, platform: 'kick', startedAt: this.startTime });
 
     // Enable terminal music hotkeys only after capture is active and music playlist exists.
@@ -809,15 +841,57 @@ class App {
     console.log(`Session duration: ${duration} seconds`);
     console.log(`Messages captured: ${this.messageCount}`);
     this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null; this.currentPlatform = null;
-    try { this.tui.disableMusicHotkeys(); } catch {}
+    try { this.tui?.disableMusicHotkeys(); } catch {}
     this.musicHotkeysEnabled = false;
     this.io.emit('capture-status', { status: 'stopped', platform: null });
   }
 
-  async shutdown() {
+  // --- Public API (used by Electron main process and REST endpoints) ---
+
+  /** Wait for the HTTP server to be listening. Resolves with the bound port. */
+  waitForReady(): Promise<number> {
+    return this.serverReadyPromise;
+  }
+
+  /** Return the port the server is listening on. */
+  getPort(): number {
+    return this.port;
+  }
+
+  /** Connect to a livestream URL. Returns a result object. */
+  async apiConnect(url: string): Promise<{ ok: boolean; platform?: string; videoId?: string; error?: string }> {
+    if (this.isRunning) {
+      return { ok: false, error: 'Already capturing. Disconnect first.' };
+    }
+    try {
+      await this.ensureServer();
+      await this.startScraping(url);
+      return { ok: true, platform: this.currentPlatform ?? undefined, videoId: this.currentVideoId ?? undefined };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || String(e) };
+    }
+  }
+
+  /** Disconnect the current capture session. */
+  async apiDisconnect(): Promise<void> {
     await this.shutdownCapture();
-    this.server.close(() => { console.log('Server closed. Goodbye!'); process.exit(0); });
+  }
+
+  async shutdown(): Promise<void> {
+    await this.shutdownCapture();
+    return new Promise<void>((resolve) => {
+      this.server.close(() => {
+        console.log('Server closed. Goodbye!');
+        if (!this.headless) process.exit(0);
+        resolve();
+      });
+    });
   }
 }
 
-new App();
+export { App };
+
+// Auto-start in standalone terminal mode (not when imported by Electron)
+if (!process.env.CHALLACHAT_ELECTRON) {
+  new App();
+}

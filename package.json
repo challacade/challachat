@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "description": "TypeScript version of the ChallaChat standalone app: local YouTube chat capture + overlay server",
+  "main": "dist/main/main.js",
   "type": "commonjs",
   "engines": {
     "node": ">=24"
@@ -11,6 +12,8 @@
     "dev": "tsx app/http/server.ts",
     "build": "tsc -p .",
     "start": "node dist/http/server.js",
+    "electron": "tsc -p . && electron .",
+    "electron:dev": "tsc -p . && electron .",
     "start:system": "bash ./scripts/start-on-system.sh",
     "start:system:win": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/windows/start-on-system.ps1",
     "typecheck": "tsc -p . --noEmit",
@@ -27,6 +30,8 @@
   "devDependencies": {
     "@types/express": "^4.17.21",
     "@types/node": "^24.0.0",
+    "electron": "^40.6.1",
+    "electron-builder": "^26.8.1",
     "postject": "^1.0.0-alpha.6",
     "rcedit": "^4.0.1",
     "tsx": "^4.16.2",

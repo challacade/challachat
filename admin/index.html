@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChallaChat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/styles.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+</head>
+<body>
+  <div class="app">
+    <header>
+      <h1>ChallaChat</h1>
+      <div class="server-status">
+        <span class="status-dot" id="serverDot"></span>
+        <span id="serverStatus">Starting...</span>
+      </div>
+    </header>
+
+    <main>
+      <!-- Connection Section -->
+      <section class="connect-section" id="connectSection">
+        <label for="urlInput">Livestream URL</label>
+        <div class="input-row">
+          <input
+            type="text"
+            id="urlInput"
+            placeholder="Paste a YouTube, Twitch, or Kick livestream URL..."
+            autocomplete="off"
+            spellcheck="false"
+          />
+          <button id="connectBtn" class="btn primary">Connect</button>
+        </div>
+        <div id="connectError" class="error hidden"></div>
+      </section>
+
+      <!-- Active Capture Status -->
+      <section class="capture-section hidden" id="captureSection">
+        <div class="capture-card">
+          <div class="capture-header">
+            <span id="platformBadge" class="platform-badge"></span>
+            <span id="captureUrl" class="capture-url"></span>
+          </div>
+          <div class="stats">
+            <div class="stat">
+              <span class="stat-label">Messages</span>
+              <span id="messageCount" class="stat-value">0</span>
+            </div>
+            <div class="stat">
+              <span class="stat-label">Uptime</span>
+              <span id="uptime" class="stat-value">0s</span>
+            </div>
+          </div>
+          <button id="disconnectBtn" class="btn danger">Disconnect</button>
+        </div>
+      </section>
+
+      <!-- OBS Overlay Info -->
+      <section class="overlay-section">
+        <h3>OBS Overlay URL</h3>
+        <div class="copy-row">
+          <code id="overlayUrl">http://localhost:5050</code>
+          <button id="copyBtn" class="btn icon" title="Copy URL">📋</button>
+        </div>
+        <p class="hint">Add this as a Browser Source in your streaming software.</p>
+      </section>
+    </main>
+
+    <footer>
+      <span>Visit <a href="https://challachat.com" target="_blank">challachat.com</a> for more information</span>
+    </footer>
+  </div>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>
