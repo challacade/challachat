@@ -16,17 +16,12 @@ jobs:
       version: ${{ steps.version.outputs.version }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: '24'
           cache: 'npm'
-      - name: Install dependencies
-        shell: pwsh
-        run: |
-          npm ci || npm install
-      - name: Build portable
-        shell: pwsh
-        run: npm run build:portable
       - name: Compute version and tag
         id: version
         shell: pwsh
@@ -35,24 +30,26 @@ jobs:
           if ($input.StartsWith('v')) { $tag = $input; $version = $input.Substring(1) } else { $tag = "v$input"; $version = $input }
           echo "tag=$tag" >> $env:GITHUB_OUTPUT
           echo "version=$version" >> $env:GITHUB_OUTPUT
-      - name: Install Inno Setup
+          git tag $tag
+      - name: Install dependencies
         shell: pwsh
-        run: choco install innosetup --no-progress -y
+        run: npm ci || npm install
+      - name: Build portable
+        shell: pwsh
+        run: .\scripts\windows\build-portable.ps1
       - name: Build installer
-        env:
-          CHALLACHAT_VERSION: ${{ steps.version.outputs.version }}
-        run: npm run build:installer
         shell: pwsh
+        run: .\scripts\windows\build-installer.ps1
       - name: Package portable zip
-        run: ./scripts/windows/package-zip.ps1 -SourcePath build/challachat-portable -OutputPath build/challachat-win-portable.zip -Overwrite
         shell: pwsh
+        run: Compress-Archive -Path 'build\electron\win-unpacked\*' -DestinationPath 'build\electron\ChallaChat-Portable.zip' -Force
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: challachat-windows-artifacts
           path: |
-            build/challachat-setup.exe
-            build/challachat-win-portable.zip
+            build/electron/ChallaChat-Setup.exe
+            build/electron/ChallaChat-Portable.zip
 
   release:
     needs: build-windows
@@ -72,16 +69,18 @@ jobs:
         run: |
           set -e
           git fetch origin main --tags --force
-          PREV=$(git describe --abbrev=0 --tags 2>/dev/null || echo "")
+          PREV=$(git describe --abbrev=0 --tags HEAD^ 2>/dev/null || echo "")
           TAG='${{ needs.build-windows.outputs.tag }}'
-          REPO_URL="https://github.com/${{ github.repository }}"
-          RANGE="origin/main"
-          if [ -n "$PREV" ]; then RANGE="$PREV..origin/main"; fi
+          if [ -n "$PREV" ]; then
+            RANGE="$PREV..origin/main"
+          else
+            RANGE="origin/main"
+          fi
           {
             if [ -n "$PREV" ]; then
-              echo "Changes since $PREV (main):"
+              echo "Changes since $PREV:"
             else
-              echo "Changes on main:"
+              echo "Initial release:"
             fi
             echo
             git log --first-parent --pretty=format:'- %s (%h)' $RANGE
