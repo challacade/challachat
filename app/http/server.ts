@@ -50,6 +50,7 @@ class App extends EventEmitter {
   private currentPlatform: Platform | null = null;
   private isRunning = false;
   private messageCount = 0;
+  private uniqueChatters = new Set<string>();
   private startTime: number | null = null;
   private currentVideoId: string | null = null;
   private currentUrl: string | null = null;
@@ -704,6 +705,7 @@ class App extends EventEmitter {
     // For creator/admin URLs, store a public-style URL so status display matches what viewers use.
     this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
     this.messageCount = 0;
+    this.uniqueChatters.clear();
     this.startTime = Date.now();
     this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'yt' platform identifier)
@@ -735,6 +737,7 @@ class App extends EventEmitter {
     this.currentVideoId = channel; // Use channel name as the identifier
     this.currentUrl = `https://www.twitch.tv/${channel}`;
     this.messageCount = 0;
+    this.uniqueChatters.clear();
     this.startTime = Date.now();
     this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'tw' platform identifier for Twitch)
@@ -787,6 +790,7 @@ class App extends EventEmitter {
     this.currentVideoId = channel; // Use channel name as the identifier
     this.currentUrl = `https://kick.com/${channel}`;
     this.messageCount = 0;
+    this.uniqueChatters.clear();
     this.startTime = Date.now();
     this.tui?.setUrl(this.currentUrl);
     // Start logging if enabled (uses 'kk' platform identifier for Kick)
@@ -803,6 +807,7 @@ class App extends EventEmitter {
   // Relay messages to SSE clients and overlay
   private onCaptureMessage(message: ChatEvent) {
     this.messageCount++;
+    if (message.author?.name) this.uniqueChatters.add(message.author.name);
 
     // Run chat commands (e.g. !jam) before censoring/broadcasting.
     try {
@@ -936,6 +941,7 @@ class App extends EventEmitter {
       videoId: this.currentVideoId,
       url: this.currentUrl,
       messageCount: this.messageCount,
+      chatters: this.uniqueChatters.size,
       uptime: this.startTime ? Date.now() - this.startTime : 0,
       pollIntervalMs: this.capture?.pollInterval || null,
       overlayUrl: `http://localhost:${this.port}/`,

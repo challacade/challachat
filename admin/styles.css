@@ -323,6 +323,8 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   align-items: center;
   gap: 8px;
   flex: 1;
+  min-width: 0;
+  overflow: hidden;
   margin-left: 14px;
   padding-left: 14px;
   border-left: 1px solid var(--border);
@@ -336,21 +338,10 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 .capture-poll-row input[type="range"] {
   flex: 1;
-  -webkit-appearance: none;
-  appearance: none;
+  min-width: 0;
   height: 4px;
-  background: var(--border);
-  border-radius: 2px;
-  outline: none;
-}
-.capture-poll-row input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--slider);
+  accent-color: var(--slider);
   cursor: pointer;
-  border: 2px solid var(--surface);
 }
 .capture-poll-value {
   font-size: 11px;

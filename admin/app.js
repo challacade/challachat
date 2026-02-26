@@ -21,6 +21,7 @@ const captureSection  = $('captureSection');
 const platformIcon    = $('platformIcon');
 const captureUrl      = $('captureUrl');
 const messageCount    = $('messageCount');
+const chatters        = $('chatters');
 const uptime          = $('uptime');
 const pollDisplay     = $('pollDisplay');
 const pollSlider      = $('pollSlider');
@@ -684,6 +685,7 @@ function updateUI(status) {
 
     captureUrl.textContent = status.url || '';
     messageCount.textContent = (status.messageCount || 0).toLocaleString();
+    chatters.textContent = (status.chatters || 0).toLocaleString();
     uptime.textContent = formatUptime(status.uptime || 0);
 
     if (status.pollIntervalMs) {
