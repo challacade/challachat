@@ -700,7 +700,6 @@ class App extends EventEmitter {
     if (this.connections.size >= MAX_CONNECTIONS) {
       throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
     }
-    this.sessionActive = true;
 
     // Prevent duplicate URLs
     for (const conn of this.connections.values()) {
@@ -998,6 +997,7 @@ class App extends EventEmitter {
     try {
       await this.ensureServer();
       const connId = await this.startScraping(url);
+      this.sessionActive = true;
       const conn = this.connections.get(connId);
       return { ok: true, connectionId: connId, platform: conn?.platform ?? undefined, videoId: conn?.videoId ?? undefined };
     } catch (e: any) {
