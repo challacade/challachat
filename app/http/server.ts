@@ -566,6 +566,15 @@ class App extends EventEmitter {
       res.json({ ok: true });
     });
 
+  // API: end session (disconnect all, return to welcome)
+  this.app.post('/api/end-session', async (_req: Request, res: Response) => {
+      await this.shutdownCapture(); // stop all connections
+      this.sessionActive = false;
+      this.demoMode = false;
+      this.sse.send('demo-mode', { enabled: false });
+      res.json({ ok: true });
+    });
+
   // API: toggle demo mode (overlay shows fake chat messages)
   this.app.post('/api/demo-mode', (req: Request, res: Response) => {
       const enabled = req.body?.enabled;

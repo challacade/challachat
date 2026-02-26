@@ -183,6 +183,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .input-row {
   display: flex;
   gap: 8px;
+  width: 100%;
 }
 
 .input-row input {
@@ -376,7 +377,16 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 
 /* ── Add connection card ──────────────────────────────────────── */
+#connectSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .add-connection-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
   padding: 12px 14px;
 }
 

@@ -28,6 +28,7 @@ const activeView      = $('activeView');
 const addConnectionCard = $('addConnectionCard');
 const addUrlInput     = $('addUrlInput');
 const addConnectBtn   = $('addConnectBtn');
+const closeServerLink = $('closeServerLink');
 // Settings
 const filterPathInput = $('filterPathInput');
 const filterBrowseBtn = $('filterBrowseBtn');
@@ -766,6 +767,13 @@ function updateUI(status) {
   // Show add-connection card whenever active view is visible and under max
   const showAddCard = isActive && connections.length < MAX_CONNECTIONS;
   addConnectionCard.classList.toggle('hidden', !showAddCard);
+
+  // Adjust placeholder based on whether connections exist
+  if (connections.length === 0) {
+    addUrlInput.placeholder = 'Enter a livestream URL…';
+  } else {
+    addUrlInput.placeholder = 'Add another livestream URL…';
+  }
 }
 
 // ─── Settings fetch ────────────────────────────────────────────
@@ -1264,6 +1272,13 @@ startWithoutConnecting.addEventListener('click', handleStartWithoutConnecting);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
 addConnectBtn.addEventListener('click', handleAddConnect);
 addUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConnectBtn.click(); });
+closeServerLink.addEventListener('click', async (e) => {
+  e.preventDefault();
+  try {
+    await api('POST', '/api/end-session');
+    await fetchStatus();
+  } catch {}
+});
 
 // ─── Real-time Electron events ─────────────────────────────────
 
