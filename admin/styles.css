@@ -589,21 +589,10 @@ footer {
 }
 .sound-item input[type="range"] {
   width: 100%;
-  -webkit-appearance: none;
-  appearance: none;
   height: 4px;
-  background: #484b5c;
-  border-radius: 2px;
-  outline: none;
-}
-.sound-item input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
+  accent-color: var(--accent, #7c83e7);
   cursor: pointer;
-  border: 2px solid var(--surface);
+  margin: 4px 0;
 }
 .sound-test {
   margin-top: 2px;

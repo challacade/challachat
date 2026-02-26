@@ -1089,32 +1089,32 @@ async function fetchSounds() {
     if (!data) return;
     if (typeof data.messageVolume === 'number') {
       msgVolSlider.value = data.messageVolume;
-      msgVolLabel.textContent = 'Message: ' + data.messageVolume.toFixed(2);
+      msgVolLabel.textContent = 'Message: ' + Math.round(data.messageVolume * 100) + '%';
     }
     if (typeof data.donationVolume === 'number') {
       donVolSlider.value = data.donationVolume;
-      donVolLabel.textContent = 'Donation: ' + data.donationVolume.toFixed(2);
+      donVolLabel.textContent = 'Donation: ' + Math.round(data.donationVolume * 100) + '%';
     }
     if (typeof data.memberVolume === 'number') {
       memVolSlider.value = data.memberVolume;
-      memVolLabel.textContent = 'Membership: ' + data.memberVolume.toFixed(2);
+      memVolLabel.textContent = 'Membership: ' + Math.round(data.memberVolume * 100) + '%';
     }
   } catch {}
 }
 
 msgVolSlider.addEventListener('input', () => {
   const val = Number(msgVolSlider.value);
-  msgVolLabel.textContent = 'Message: ' + val.toFixed(2);
+  msgVolLabel.textContent = 'Message: ' + Math.round(val * 100) + '%';
   sendSounds({ messageVolume: val });
 });
 donVolSlider.addEventListener('input', () => {
   const val = Number(donVolSlider.value);
-  donVolLabel.textContent = 'Donation: ' + val.toFixed(2);
+  donVolLabel.textContent = 'Donation: ' + Math.round(val * 100) + '%';
   sendSounds({ donationVolume: val });
 });
 memVolSlider.addEventListener('input', () => {
   const val = Number(memVolSlider.value);
-  memVolLabel.textContent = 'Membership: ' + val.toFixed(2);
+  memVolLabel.textContent = 'Membership: ' + Math.round(val * 100) + '%';
   sendSounds({ memberVolume: val });
 });
 
