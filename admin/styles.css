@@ -128,6 +128,11 @@ header {
 .page.active {
   display: flex;
 }
+.active-view {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
 
 /* ── Placeholder text (Appearance / Sound pages) ──────────────── */
 .placeholder-text {
@@ -364,12 +369,43 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 
 /* ── Overlay URL card ─────────────────────────────────────────── */
+.overlay-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.overlay-clipart {
+  width: 120px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.overlay-copy-group {
+  flex: 1;
+  min-width: 0;
+}
+.overlay-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+  white-space: nowrap;
+  margin: 0 0 8px 2px;
+}
+#copyBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 34px;
+  min-height: 28px;
+}
+#copyBtn svg {
+  display: block;
+  flex-shrink: 0;
+}
 .copy-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 .copy-row code {
   flex: 1;
   padding: 7px 10px;
@@ -379,12 +415,6 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   color: var(--accent);
   font-size: 13px;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
-}
-
-.hint {
-  margin-top: 6px;
-  font-size: 11px;
-  color: var(--text-dim);
 }
 
 /* ── Footer ───────────────────────────────────────────────────── */

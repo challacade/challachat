@@ -84,7 +84,21 @@
         </div>
 
         <!-- Active view (connected / demo) ----------------------- -->
-        <div id="activeView" class="hidden">
+        <div id="activeView" class="active-view hidden">
+
+          <!-- OBS Overlay URL -------------------------------------- -->
+          <section class="card overlay-card" id="overlayCard">
+            <div class="overlay-row">
+              <img src="img/stream.png" class="overlay-clipart" alt="" />
+              <div class="overlay-copy-group">
+                <label class="overlay-label">Overlay Browser Source</label>
+                <div class="copy-row">
+                  <code id="overlayUrl">http://localhost:5050</code>
+                  <button id="copyBtn" class="btn small primary" title="Copy URL"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                </div>
+              </div>
+            </div>
+          </section>
 
           <!-- Active capture --------------------------------------- -->
           <section class="card capture-card" id="captureSection">
@@ -114,16 +128,6 @@
               </div>
             </div>
             <span id="pollDisplay" class="hidden"></span>
-          </section>
-
-          <!-- OBS Overlay URL -------------------------------------- -->
-          <section class="card overlay-card" id="overlayCard">
-            <h3>OBS Browser Source</h3>
-            <div class="copy-row">
-              <code id="overlayUrl">http://localhost:5050</code>
-              <button id="copyBtn" class="btn small primary" title="Copy URL">📋</button>
-            </div>
-            <p class="hint">Add this URL as a Browser Source in OBS (or similar).</p>
           </section>
 
         </div>

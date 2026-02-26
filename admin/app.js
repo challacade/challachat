@@ -1109,9 +1109,9 @@ presetSelect.addEventListener('change', () => {
 copyBtn.addEventListener('click', () => {
   const text = overlayUrl.textContent;
   navigator.clipboard.writeText(text).then(() => {
-    const orig = copyBtn.textContent;
-    copyBtn.textContent = '\u2713';
-    setTimeout(() => { copyBtn.textContent = orig; }, 1500);
+    const orig = copyBtn.innerHTML;
+    copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
+    setTimeout(() => { copyBtn.innerHTML = orig; }, 1500);
   }).catch(() => {});
 });
 
