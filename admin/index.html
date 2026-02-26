@@ -72,6 +72,7 @@
             <button id="connectBtn" class="btn primary">Connect</button>
           </div>
           <div id="connectError" class="error hidden"></div>
+          <a href="#" id="demoModeLink" class="demo-link">Start in Demo Mode</a>
         </section>
 
         <!-- Active capture --------------------------------------- -->
@@ -107,7 +108,7 @@
         </section>
 
         <!-- OBS Overlay URL -------------------------------------- -->
-        <section class="card overlay-card">
+        <section class="card overlay-card hidden" id="overlayCard">
           <h3>OBS Browser Source</h3>
           <div class="copy-row">
             <code id="overlayUrl">http://localhost:5050</code>

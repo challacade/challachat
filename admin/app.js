@@ -28,6 +28,8 @@ const pollValue       = $('pollValue');
 const disconnectBtn   = $('disconnectBtn');
 const overlayUrl      = $('overlayUrl');
 const copyBtn         = $('copyBtn');
+const overlayCard     = $('overlayCard');
+const demoModeLink    = $('demoModeLink');
 // Settings
 const filterPathInput = $('filterPathInput');
 const filterBrowseBtn = $('filterBrowseBtn');
@@ -655,8 +657,19 @@ async function fetchStatus() {
 }
 
 function updateUI(status) {
-  setServerActive(true);
+  setServerActive(status.isRunning || status.demoMode);
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
+
+  // Show overlay card only when running or in demo mode
+  const showOverlay = status.isRunning || status.demoMode;
+  overlayCard.classList.toggle('hidden', !showOverlay);
+
+  // Update demo link text
+  if (status.demoMode && !status.isRunning) {
+    demoModeLink.textContent = 'Stop Demo Mode';
+  } else {
+    demoModeLink.textContent = 'Start in Demo Mode';
+  }
 
   if (status.isRunning) {
     connectSection.classList.add('hidden');
@@ -755,6 +768,16 @@ async function handleDisconnect() {
     disconnectBtn.disabled = false;
     disconnectBtn.textContent = 'Disconnect';
   }
+}
+
+async function handleDemoMode(e) {
+  e.preventDefault();
+  try {
+    const status = await api('GET', '/api/status');
+    const isDemo = status && status.demoMode;
+    await api('POST', '/api/demo-mode', { enabled: !isDemo });
+    await fetchStatus();
+  } catch {}
 }
 
 // ─── Poll interval ─────────────────────────────────────────────
@@ -1153,6 +1176,7 @@ testMemBtn.addEventListener('click', async () => {
 
 connectBtn.addEventListener('click', handleConnect);
 disconnectBtn.addEventListener('click', handleDisconnect);
+demoModeLink.addEventListener('click', handleDemoMode);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
 
 // ─── Real-time Electron events ─────────────────────────────────

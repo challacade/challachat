@@ -6,7 +6,8 @@
 import { state, isDemoSite, showToast } from './state.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
-  removeMessageById, updateMessageById 
+  removeMessageById, updateMessageById,
+  startDemoMode, stopDemoMode
 } from './messages.js';
 import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
 
@@ -118,6 +119,21 @@ export function startSSE() {
         state.songDisplay.songId = data.songId;
       }
       updateSongDisplayText();
+    } catch {}
+  });
+
+  // Demo mode toggle from admin UI
+  eventSource.addEventListener('demo-mode', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.enabled === 'boolean') {
+        state.demoMode = data.enabled;
+        if (data.enabled) {
+          startDemoMode();
+        } else {
+          stopDemoMode();
+        }
+      }
     } catch {}
   });
 

@@ -56,6 +56,7 @@ class App extends EventEmitter {
   private headless: boolean;
   private tui: TerminalUI | null = null;
   private musicHotkeysEnabled = false;
+  private demoMode = false;
 
   // Overlay appearance settings (admin-controlled, broadcast via SSE)
   private appearance: Record<string, number | string | boolean> = {
@@ -476,6 +477,9 @@ class App extends EventEmitter {
       res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
       res.write(`event: sounds\ndata: ${JSON.stringify(this.sounds)}\n\n`);
       res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
+      if (this.demoMode) {
+        res.write(`event: demo-mode\ndata: ${JSON.stringify({ enabled: true })}\n\n`);
+      }
       const np = getNowPlaying();
       if (np) {
         res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);
@@ -524,6 +528,18 @@ class App extends EventEmitter {
   this.app.post('/api/disconnect', async (_req: Request, res: Response) => {
       await this.apiDisconnect();
       res.json({ ok: true });
+    });
+
+  // API: toggle demo mode (overlay shows fake chat messages)
+  this.app.post('/api/demo-mode', (req: Request, res: Response) => {
+      const enabled = req.body?.enabled;
+      if (typeof enabled !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Missing enabled boolean.' });
+        return;
+      }
+      this.demoMode = enabled;
+      this.sse.send('demo-mode', { enabled });
+      res.json({ ok: true, demoMode: this.demoMode });
     });
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
@@ -915,6 +931,7 @@ class App extends EventEmitter {
   getStatus() {
     return {
       isRunning: this.isRunning,
+      demoMode: this.demoMode,
       platform: this.currentPlatform,
       videoId: this.currentVideoId,
       url: this.currentUrl,

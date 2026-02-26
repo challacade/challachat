@@ -224,6 +224,17 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   font-size: 12px;
 }
 
+/* ── Demo mode link ───────────────────────────────────────────── */
+.demo-link {
+  display: inline-block;
+  margin-top: 10px;
+  font-size: 12px;
+  color: #6b7280;
+  text-decoration: none;
+  transition: color .15s;
+}
+.demo-link:hover { color: var(--slider); }
+
 /* ── Platform badges ──────────────────────────────────────────── */
 .platform-badge {
   display: inline-flex;
