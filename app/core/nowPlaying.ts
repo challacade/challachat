@@ -1,6 +1,6 @@
 import path from 'path';
 import { getTrackByIndex } from './music';
-import { truncateSongId } from './settings';
+
 
 export type NowPlaying = {
   index: number;
@@ -28,8 +28,7 @@ export function setNowPlayingByIndex(index: number, songIdOverride?: string | nu
   }
 
   const override = typeof songIdOverride === 'string' ? songIdOverride.trim() : '';
-  const rawSongId = override ? override : computeSongIdFromPath(filePath);
-  const songId = truncateSongId(rawSongId);
+  const songId = override ? override : computeSongIdFromPath(filePath);
 
   const next: NowPlaying = {
     index,

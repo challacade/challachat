@@ -279,10 +279,17 @@ export function updateSongDisplayText() {
   const scrolling = songEl.classList.contains('scrolling') && !!display;
 
   if (!scrolling) {
-    // Static mode: plain text, no child spans
+    // Static mode: measure text and auto-truncate with "..." if too wide
+    // Clear any scrolling child spans
     textSpan.textContent = display;
     songEl.style.removeProperty('--marquee-shift');
     songEl.style.removeProperty('--marquee-duration');
+
+    if (display) {
+      requestAnimationFrame(() => {
+        autoFitSongText(songEl, textSpan, title);
+      });
+    }
     return;
   }
 
@@ -319,6 +326,43 @@ export function updateSongDisplayText() {
     void textSpan.offsetHeight;
     textSpan.style.animation = '';
   });
+}
+
+/**
+ * Measures the song text and truncates with "..." if it overflows the container.
+ * Uses a binary search on the title length for efficiency.
+ */
+function autoFitSongText(container, textSpan, title) {
+  const style = getComputedStyle(container);
+  const padL = parseFloat(style.paddingLeft) || 0;
+  const padR = parseFloat(style.paddingRight) || 0;
+  const availWidth = container.clientWidth - padL - padR;
+  // If the current text already fits, nothing to do
+  if (textSpan.scrollWidth <= availWidth) return;
+
+  // Binary search for the longest title substring that fits when wrapped as "♫ text… ♫"
+  let lo = 0;
+  let hi = title.length;
+  const wrap = (t) => `\u266b ${t}\u2026 \u266b`;  // ♫ text… ♫
+
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    textSpan.textContent = wrap(title.slice(0, mid));
+    if (textSpan.scrollWidth <= availWidth) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  // Apply the longest fitting version
+  if (lo === 0) {
+    textSpan.textContent = '\u266b \u2026 \u266b';  // nothing fits, just show ellipsis
+  } else if (lo >= title.length) {
+    textSpan.textContent = `\u266b ${title} \u266b`;
+  } else {
+    textSpan.textContent = wrap(title.slice(0, lo).trimEnd());
+  }
 }
 
 export function applyPreset(name) {

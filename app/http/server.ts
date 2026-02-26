@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, truncateSongId, updateSettings, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -251,7 +251,7 @@ class App extends EventEmitter {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
@@ -320,7 +320,7 @@ class App extends EventEmitter {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
 
@@ -345,8 +345,7 @@ class App extends EventEmitter {
       const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
       const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
       const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
-      const capped = truncateSongId(details);
-      const line = getDisableSongIdNotes() ? `   ${capped}  ` : `\u266b  ${capped}  \u266b`;
+      const line = getDisableSongIdNotes() ? `   ${details}  ` : `\u266b  ${details}  \u266b`;
 
       const writeResult = writeSongTxt(line);
       if (!writeResult.ok) {
