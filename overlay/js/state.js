@@ -209,7 +209,7 @@ export const state = {
   logEnabled: false,
   songDisplay: {
     position: 'none',  // 'none' | 'top' | 'bottom'
-    scroll: false,
+    scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
     songId: ''
   }
 };

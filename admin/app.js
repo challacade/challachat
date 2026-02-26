@@ -77,7 +77,8 @@ const musicVolIcon      = $('musicVolIcon');
 const musicPathInput    = $('musicPathInput');
 const musicBrowseBtn    = $('musicBrowseBtn');
 const songDisplaySelect = $('songDisplaySelect');
-const scrollSongToggle  = $('scrollSongToggle');
+const scrollSpeedSlider = $('scrollSpeedSlider');
+const scrollSpeedLabel  = $('scrollSpeedLabel');
 const writeSongFileToggle = $('writeSongFileToggle');
 // Navigation
 const navHome         = $('navHome');
@@ -210,7 +211,7 @@ const music = {
   isConfigured: false,
   songDisplay: 'none',
   writeSongFile: false,
-  scrollSongDisplay: false,
+  songScrollSpeed: 0,
   volume: 1,
 };
 
@@ -348,7 +349,7 @@ async function fetchMusicConfig() {
     // Display settings are included in the main music config response
     if (typeof data?.songDisplay === 'string') music.songDisplay = data.songDisplay;
     if (typeof data?.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
-    if (typeof data?.scrollSongDisplay === 'boolean') music.scrollSongDisplay = data.scrollSongDisplay;
+    if (typeof data?.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
     syncMusicDisplayUI();
   } catch {}
 }
@@ -523,7 +524,8 @@ musicBrowseBtn?.addEventListener('click', async () => {
 
 function syncMusicDisplayUI() {
   if (songDisplaySelect) songDisplaySelect.value = music.songDisplay || 'none';
-  if (scrollSongToggle) scrollSongToggle.checked = !!music.scrollSongDisplay;
+  if (scrollSpeedSlider) scrollSpeedSlider.value = String(music.songScrollSpeed || 0);
+  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll: ${Math.round((music.songScrollSpeed || 0) * 100)}%`;
   if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
 }
 
@@ -538,7 +540,7 @@ async function postMusicDisplaySettings(patch) {
     if (data) {
       if (typeof data.songDisplay === 'string') music.songDisplay = data.songDisplay;
       if (typeof data.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
-      if (typeof data.scrollSongDisplay === 'boolean') music.scrollSongDisplay = data.scrollSongDisplay;
+      if (typeof data.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
       syncMusicDisplayUI();
     }
   } catch {}
@@ -547,8 +549,13 @@ async function postMusicDisplaySettings(patch) {
 songDisplaySelect?.addEventListener('change', () => {
   postMusicDisplaySettings({ songDisplay: songDisplaySelect.value });
 });
-scrollSongToggle?.addEventListener('change', () => {
-  postMusicDisplaySettings({ scrollSongDisplay: scrollSongToggle.checked });
+scrollSpeedSlider?.addEventListener('input', () => {
+  const val = parseFloat(scrollSpeedSlider.value) || 0;
+  music.songScrollSpeed = val;
+  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll: ${Math.round(val * 100)}%`;
+});
+scrollSpeedSlider?.addEventListener('change', () => {
+  postMusicDisplaySettings({ songScrollSpeed: parseFloat(scrollSpeedSlider.value) || 0 });
 });
 writeSongFileToggle?.addEventListener('change', () => {
   music.writeSongFile = writeSongFileToggle.checked;

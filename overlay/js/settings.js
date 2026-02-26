@@ -257,7 +257,7 @@ export function applySongDisplay() {
   overlay?.classList.add(`song-display-${position}`);
 
   // Apply or remove scrolling
-  const scrolling = !!state.songDisplay?.scroll;
+  const scrolling = (state.songDisplay?.scrollSpeed || 0) > 0;
   songEl.classList.toggle('scrolling', scrolling);
 
   // Update song title
@@ -317,8 +317,10 @@ export function updateSongDisplayText() {
     const shift = textWidth + gap;
     secondary.style.marginLeft = `${gap}px`;
     songEl.style.setProperty('--marquee-shift', `${shift}px`);
-    // Constant scroll speed (px/s) for steady pacing
-    const speed = 60;
+    // Constant scroll speed (px/s) scaled by user's speed setting
+    const baseSpeed = 60;
+    const speedMult = state.songDisplay?.scrollSpeed || 1;
+    const speed = baseSpeed * speedMult;
     const duration = Math.max(5, shift / speed);
     songEl.style.setProperty('--marquee-duration', `${duration}s`);
     // Restart animation so new metrics apply immediately

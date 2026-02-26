@@ -14,8 +14,8 @@ export type AppSettings = {
   songDisplay?: string;
   /** Write the currently-playing song info to a text file. */
   writeSongFile?: boolean;
-  /** Scroll the song display text in marquee style. */
-  scrollSongDisplay?: boolean;
+  /** Scroll speed for the song display text (0 = off, 1 = 100% = 60px/s). */
+  songScrollSpeed?: number;
   /** Automatically shuffle the playlist when it first loads. */
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
@@ -108,7 +108,7 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; scrollSongDisplay: boolean } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number } {
   const { settings } = readSettings();
   return {
     musicPath: getMusicPath(),
@@ -117,7 +117,7 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     playlistLoop: getPlaylistLoop(),
     songDisplay: getSongDisplay(),
     writeSongFile: settings.writeSongFile === true,
-    scrollSongDisplay: settings.scrollSongDisplay === true
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0
   };
 }
 
@@ -127,12 +127,12 @@ export function getSongDisplay(): string {
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; scrollSongDisplay: boolean } {
+export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number } {
   const { settings } = readSettings();
   return {
     songDisplay: getSongDisplay(),
     writeSongFile: settings.writeSongFile === true,
-    scrollSongDisplay: settings.scrollSongDisplay === true
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0
   };
 }
 

@@ -206,8 +206,8 @@ class App extends EventEmitter {
       if (typeof req.body?.writeSongFile === 'boolean') {
         patch.writeSongFile = req.body.writeSongFile;
       }
-      if (typeof req.body?.scrollSongDisplay === 'boolean') {
-        patch.scrollSongDisplay = req.body.scrollSongDisplay;
+      if (typeof req.body?.songScrollSpeed === 'number') {
+        patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));
       }
       const result = updateSettings(patch);
       if (!result.ok) {

@@ -100,8 +100,8 @@ export function startSSE() {
       if (typeof data.songDisplay === 'string') {
         state.songDisplay.position = data.songDisplay;
       }
-      if (typeof data.scrollSongDisplay === 'boolean') {
-        state.songDisplay.scroll = data.scrollSongDisplay;
+      if (typeof data.songScrollSpeed === 'number') {
+        state.songDisplay.scrollSpeed = data.songScrollSpeed;
       }
       applySongDisplay();
     } catch {}
