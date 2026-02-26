@@ -9,8 +9,8 @@
   --bg:       #0f1117;
   --surface:  #1a1d27;
   --border:   #2a2d3a;
-  --text:     #e5e7eb;
-  --text-dim: #7c8093;
+  --text:     #f0f1f4;
+  --text-dim: #a8adb8;
   --accent:   #6366f1;
   --accent-h: #4f46e5;
   --green:    #22c55e;
@@ -494,7 +494,7 @@ footer {
 }
 .a-label {
   font-family: 'Inter Tight', 'Segoe UI', 'Roboto Condensed', sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   font-stretch: condensed;
   color: var(--text-dim);
@@ -552,7 +552,7 @@ footer {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   color: var(--text-dim);
   cursor: pointer;
@@ -568,21 +568,19 @@ footer {
 
 /* ── Sound card ───────────────────────────────────────────────── */
 .sound-card { padding: 12px 16px; }
-.sound-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+.sound-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
 }
-.sound-row + .sound-row { margin-top: 14px; }
 .sound-item {
-  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 .sound-label {
   font-family: 'Inter Tight', 'Segoe UI', 'Roboto Condensed', sans-serif;
-  font-size: 11px;
+  font-size: 13px;
   font-weight: 600;
   font-stretch: condensed;
   color: var(--text-dim);
@@ -608,6 +606,14 @@ footer {
   border: 2px solid var(--surface);
 }
 .sound-test {
-  flex-shrink: 0;
-  margin-top: 14px;
+  margin-top: 2px;
+}
+.btn.ghost.sound-test {
+  background: #3d4055;
+  border: 1px solid #5f6388;
+  color: var(--text);
+}
+.btn.ghost.sound-test:hover {
+  background: #4a4e66;
+  border-color: #6e72a0;
 }

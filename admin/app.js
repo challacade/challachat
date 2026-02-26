@@ -565,7 +565,7 @@ function updateAppearanceUI(a) {
   }
   if (typeof a.bgOpacity === 'number') {
     bgOpSlider.value = a.bgOpacity;
-    bgOpLabel.textContent = 'Background opacity: ' + a.bgOpacity.toFixed(2);
+    bgOpLabel.textContent = 'Back opacity: ' + a.bgOpacity.toFixed(2);
   }
   if (typeof a.messageGap === 'number') {
     gapSlider.value = a.messageGap;
@@ -626,7 +626,7 @@ bubbleOpSlider.addEventListener('input', () => {
 });
 bgOpSlider.addEventListener('input', () => {
   const val = Number(bgOpSlider.value);
-  bgOpLabel.textContent = 'Background opacity: ' + val.toFixed(2);
+  bgOpLabel.textContent = 'Back opacity: ' + val.toFixed(2);
   presetSelect.value = 'Custom';
   sendAppearance({ bgOpacity: val, preset: 'Custom' });
   updatePreview();

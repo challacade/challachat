@@ -28,10 +28,10 @@ function sendToRenderer(channel: string, ...args: any[]) {
 /* ── Window creation ───────────────────────────────────────────────── */
 async function createWindow(port: number) {
   mainWindow = new BrowserWindow({
-    width: 520,
-    height: 600,
-    minWidth: 420,
-    minHeight: 480,
+    width: 572,
+    height: 540,
+    minWidth: 460,
+    minHeight: 430,
     title: 'ChallaChat',
     backgroundColor: '#111827',
     show: false,
