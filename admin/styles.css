@@ -11,8 +11,9 @@
   --border:   #2a2d3a;
   --text:     #f0f1f4;
   --text-dim: #a8adb8;
-  --accent:   #6366f1;
-  --accent-h: #4f46e5;
+  --accent:   #4a5ad0;
+  --accent-h: #3b49b5;
+  --slider:   #5c6fe0;
   --green:    #22c55e;
   --amber:    #f59e0b;
   --red:      #ef4444;
@@ -210,13 +211,6 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .btn.danger:hover:not(:disabled) { background: #b91c1c; }
 
 .btn.small { padding: 5px 10px; font-size: 13px; border-radius: 6px; }
-.btn.ghost {
-  background: transparent;
-  border: 1px solid var(--border);
-  color: var(--text-dim);
-}
-.btn.ghost:hover { background: var(--border); color: var(--text); }
-
 .btn.full-width { width: 100%; }
 
 /* ── Error banner ─────────────────────────────────────────────── */
@@ -322,7 +316,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   width: 14px;
   height: 14px;
   border-radius: 50%;
-  background: var(--accent);
+  background: var(--slider);
   cursor: pointer;
   border: 2px solid var(--surface);
 }
@@ -436,7 +430,7 @@ footer {
 .a-toggle input[type="checkbox"] {
   width: 14px;
   height: 14px;
-  accent-color: var(--accent);
+  accent-color: var(--slider);
   cursor: pointer;
   margin: 0;
 }
@@ -475,33 +469,15 @@ footer {
 .sound-item input[type="range"] {
   width: 100%;
   height: 4px;
-  accent-color: var(--accent, #7c83e7);
+  accent-color: var(--slider);
   cursor: pointer;
   margin: 4px 0;
 }
 .sound-test {
   margin-top: 2px;
 }
-.btn.ghost.sound-test {
-  background: #3d4055;
-  border: 1px solid #5f6388;
-  color: var(--text);
-}
-.btn.ghost.sound-test:hover {
-  background: #4a4e66;
-  border-color: #6e72a0;
-}
 
-/* ── Music player card ────────────────────────────────────────── */
-.btn.ghost.music-action {
-  background: #3d4055;
-  border: 1px solid #5f6388;
-  color: var(--text);
-}
-.btn.ghost.music-action:hover {
-  background: #4a4e66;
-  border-color: #6e72a0;
-}
+/* ── Music player card ──────────────────────────────────────── */
 .music-card { padding: 14px 16px; }.music-now-playing {
   font-size: 13px;
   font-weight: 600;
@@ -530,7 +506,7 @@ footer {
 .music-vol-slider {
   flex: 1;
   height: 4px;
-  accent-color: var(--accent, #7c83e7);
+  accent-color: var(--slider);
   cursor: pointer;
 }
 .music-vol-label {
@@ -550,8 +526,8 @@ footer {
   width: 34px;
   height: 34px;
   border-radius: 50%;
-  border: 1px solid #5f6388;
-  background: #3d4055;
+  border: 1px solid #4a5590;
+  background: #1e2240;
   color: var(--text);
   cursor: pointer;
   display: flex;
@@ -563,8 +539,8 @@ footer {
   flex-shrink: 0;
 }
 .music-btn:hover {
-  background: #4a4e66;
-  border-color: #6e72a0;
+  background: #282e52;
+  border-color: #6070aa;
 }
 .music-path-row {
   display: flex;

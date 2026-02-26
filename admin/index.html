@@ -111,7 +111,7 @@
           <h3>OBS Browser Source</h3>
           <div class="copy-row">
             <code id="overlayUrl">http://localhost:5050</code>
-            <button id="copyBtn" class="btn small ghost" title="Copy URL">📋</button>
+            <button id="copyBtn" class="btn small primary" title="Copy URL">📋</button>
           </div>
           <p class="hint">Add this URL as a Browser Source in OBS (or similar).</p>
         </section>
@@ -200,8 +200,8 @@
           </div>
           <div class="music-path-row">
             <input type="text" class="music-path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
-            <button class="btn small ghost music-action" id="musicBrowseBtn">Browse</button>
-            <button class="btn small ghost music-action" id="musicShuffleBtn">Shuffle</button>
+            <button class="btn small primary" id="musicBrowseBtn">Browse</button>
+            <button class="btn small primary" id="musicShuffleBtn">Shuffle</button>
           </div>
           <div class="music-options">
               <select id="songDisplaySelect" class="music-select">
@@ -226,17 +226,17 @@
             <div class="sound-item">
               <div class="sound-label" id="msgVolLabel">Message: 100%</div>
               <input type="range" id="msgVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small ghost sound-test" id="testMsgBtn" title="Play sample message sound">Test</button>
+              <button class="btn small primary" id="testMsgBtn" title="Play sample message sound">Test</button>
             </div>
             <div class="sound-item">
               <div class="sound-label" id="donVolLabel">Donation: 100%</div>
               <input type="range" id="donVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small ghost sound-test" id="testDonBtn" title="Play sample donation sound">Test</button>
+              <button class="btn small primary" id="testDonBtn" title="Play sample donation sound">Test</button>
             </div>
             <div class="sound-item">
               <div class="sound-label" id="memVolLabel">Membership: 100%</div>
               <input type="range" id="memVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small ghost sound-test" id="testMemBtn" title="Play sample membership sound">Test</button>
+              <button class="btn small primary" id="testMemBtn" title="Play sample membership sound">Test</button>
             </div>
           </div>
         </section>
@@ -250,7 +250,7 @@
           <div class="filter-row">
             <label class="a-toggle has-sub"><input type="checkbox" id="filterToggle" /><span>Filter chat<small class="a-toggle-sub" id="filterMeta"></small></span></label>
             <input type="text" class="music-path-input" id="filterPathInput" placeholder="Path to censor CSV…" readonly />
-            <button class="btn small ghost music-action" id="filterBrowseBtn">Browse</button>
+            <button class="btn small primary" id="filterBrowseBtn">Browse</button>
           </div>
         </section>
 
