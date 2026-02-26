@@ -82,10 +82,10 @@ header {
   flex-shrink: 0;
 }
 
-.logo-icon {
-  width: 20px;
+.logo-img {
   height: 20px;
-  color: var(--accent);
+  width: auto;
+  object-fit: contain;
 }
 
 /* ── Nav tabs (circle icon buttons) ───────────────────────────── */
