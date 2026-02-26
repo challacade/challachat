@@ -30,6 +30,8 @@ const overlayUrl      = $('overlayUrl');
 const copyBtn         = $('copyBtn');
 const overlayCard     = $('overlayCard');
 const demoModeLink    = $('demoModeLink');
+const welcomeView     = $('welcomeView');
+const activeView      = $('activeView');
 // Settings
 const filterPathInput = $('filterPathInput');
 const filterBrowseBtn = $('filterBrowseBtn');
@@ -657,22 +659,22 @@ async function fetchStatus() {
 }
 
 function updateUI(status) {
-  setServerActive(status.isRunning || status.demoMode);
+  const isActive = status.isRunning || status.demoMode;
+  setServerActive(isActive);
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
 
-  // Show overlay card only when running or in demo mode
-  const showOverlay = status.isRunning || status.demoMode;
-  overlayCard.classList.toggle('hidden', !showOverlay);
+  // Toggle between welcome view and active view
+  welcomeView.classList.toggle('hidden', isActive);
+  activeView.classList.toggle('hidden', !isActive);
 
   // Update demo link text
-  if (status.demoMode && !status.isRunning) {
+  if (status.demoMode) {
     demoModeLink.textContent = 'Stop Demo Mode';
   } else {
     demoModeLink.textContent = 'Start in Demo Mode';
   }
 
   if (status.isRunning) {
-    connectSection.classList.add('hidden');
     captureSection.classList.remove('hidden');
 
     const p = status.platform || 'unknown';
@@ -689,7 +691,6 @@ function updateUI(status) {
       pollValue.textContent = formatPoll(status.pollIntervalMs);
     }
   } else {
-    if (!connecting) connectSection.classList.remove('hidden');
     captureSection.classList.add('hidden');
   }
 }

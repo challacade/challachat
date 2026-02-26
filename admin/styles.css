@@ -224,6 +224,33 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   font-size: 12px;
 }
 
+/* ── Welcome view ─────────────────────────────────────────────── */
+.welcome-platforms {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 18px;
+  padding: 8px 0 14px;
+}
+.platform-logo {
+  height: 50px;
+}
+.platform-logo.twitch {
+  height: 48px;
+  position: relative;
+  top: 2px;
+}
+.platform-logo.kick {
+  height: 42px;
+}
+
+.welcome-tagline {
+  text-align: center;
+  font-size: 12.5px;
+  color: var(--text-dim);
+  margin-bottom: 16px;
+}
+
 /* ── Demo mode link ───────────────────────────────────────────── */
 .demo-link {
   display: inline-block;
