@@ -79,6 +79,8 @@ const musicBrowseBtn    = $('musicBrowseBtn');
 const songDisplaySelect = $('songDisplaySelect');
 const scrollSpeedSlider = $('scrollSpeedSlider');
 const scrollSpeedLabel  = $('scrollSpeedLabel');
+const songTextSizeSlider = $('songTextSizeSlider');
+const songTextSizeLabel  = $('songTextSizeLabel');
 const writeSongFileToggle = $('writeSongFileToggle');
 // Navigation
 const navHome         = $('navHome');
@@ -212,6 +214,7 @@ const music = {
   songDisplay: 'none',
   writeSongFile: false,
   songScrollSpeed: 0,
+  songTextSize: 1,
   volume: 1,
 };
 
@@ -350,6 +353,7 @@ async function fetchMusicConfig() {
     if (typeof data?.songDisplay === 'string') music.songDisplay = data.songDisplay;
     if (typeof data?.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
     if (typeof data?.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
+    if (typeof data?.songTextSize === 'number') music.songTextSize = data.songTextSize;
     syncMusicDisplayUI();
   } catch {}
 }
@@ -525,7 +529,9 @@ musicBrowseBtn?.addEventListener('click', async () => {
 function syncMusicDisplayUI() {
   if (songDisplaySelect) songDisplaySelect.value = music.songDisplay || 'none';
   if (scrollSpeedSlider) scrollSpeedSlider.value = String(music.songScrollSpeed || 0);
-  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll: ${Math.round((music.songScrollSpeed || 0) * 100)}%`;
+  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll speed: ${Math.round((music.songScrollSpeed || 0) * 100)}%`;
+  if (songTextSizeSlider) songTextSizeSlider.value = String(music.songTextSize ?? 1);
+  if (songTextSizeLabel) songTextSizeLabel.textContent = `Text size: ${Math.round((music.songTextSize ?? 1) * 100)}%`;
   if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
 }
 
@@ -541,6 +547,7 @@ async function postMusicDisplaySettings(patch) {
       if (typeof data.songDisplay === 'string') music.songDisplay = data.songDisplay;
       if (typeof data.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
       if (typeof data.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
+      if (typeof data.songTextSize === 'number') music.songTextSize = data.songTextSize;
       syncMusicDisplayUI();
     }
   } catch {}
@@ -552,10 +559,18 @@ songDisplaySelect?.addEventListener('change', () => {
 scrollSpeedSlider?.addEventListener('input', () => {
   const val = parseFloat(scrollSpeedSlider.value) || 0;
   music.songScrollSpeed = val;
-  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll: ${Math.round(val * 100)}%`;
+  if (scrollSpeedLabel) scrollSpeedLabel.textContent = `Scroll speed: ${Math.round(val * 100)}%`;
 });
 scrollSpeedSlider?.addEventListener('change', () => {
   postMusicDisplaySettings({ songScrollSpeed: parseFloat(scrollSpeedSlider.value) || 0 });
+});
+songTextSizeSlider?.addEventListener('input', () => {
+  const val = parseFloat(songTextSizeSlider.value) || 0;
+  music.songTextSize = val;
+  if (songTextSizeLabel) songTextSizeLabel.textContent = `Text size: ${Math.round(val * 100)}%`;
+});
+songTextSizeSlider?.addEventListener('change', () => {
+  postMusicDisplaySettings({ songTextSize: parseFloat(songTextSizeSlider.value) || 0 });
 });
 writeSongFileToggle?.addEventListener('change', () => {
   music.writeSongFile = writeSongFileToggle.checked;

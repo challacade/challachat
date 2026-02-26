@@ -103,6 +103,9 @@ export function startSSE() {
       if (typeof data.songScrollSpeed === 'number') {
         state.songDisplay.scrollSpeed = data.songScrollSpeed;
       }
+      if (typeof data.songTextSize === 'number') {
+        state.songDisplay.textSize = data.songTextSize;
+      }
       applySongDisplay();
     } catch {}
   });

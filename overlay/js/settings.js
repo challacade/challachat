@@ -256,6 +256,10 @@ export function applySongDisplay() {
   songEl.classList.add(position);
   overlay?.classList.add(`song-display-${position}`);
 
+  // Apply song text size factor
+  const textSize = state.songDisplay?.textSize ?? 1;
+  songEl.style.setProperty('--song-text-scale', String(textSize));
+
   // Apply or remove scrolling
   const scrolling = (state.songDisplay?.scrollSpeed || 0) > 0;
   songEl.classList.toggle('scrolling', scrolling);

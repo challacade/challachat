@@ -422,7 +422,7 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   left: 0;
   right: 0;
   padding: calc(0.5rem * var(--scale)) calc(1rem * var(--scale));
-  font-size: calc(1.35rem * var(--scale));
+  font-size: calc(1.35rem * var(--scale) * var(--song-text-scale, 1));
   font-weight: 600;
   color: var(--text);
   background: var(--page-bg, transparent);

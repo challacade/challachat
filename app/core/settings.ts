@@ -16,6 +16,8 @@ export type AppSettings = {
   writeSongFile?: boolean;
   /** Scroll speed for the song display text (0 = off, 1 = 100% = 60px/s). */
   songScrollSpeed?: number;
+  /** Extra scale factor for song display text size (0–2, where 1 = 100%). */
+  songTextSize?: number;
   /** Automatically shuffle the playlist when it first loads. */
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
@@ -108,7 +110,7 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
   return {
     musicPath: getMusicPath(),
@@ -117,7 +119,8 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     playlistLoop: getPlaylistLoop(),
     songDisplay: getSongDisplay(),
     writeSongFile: settings.writeSongFile === true,
-    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
+    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
 }
 
@@ -127,12 +130,13 @@ export function getSongDisplay(): string {
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number } {
+export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
   return {
     songDisplay: getSongDisplay(),
     writeSongFile: settings.writeSongFile === true,
-    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
+    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
 }
 

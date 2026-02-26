@@ -209,6 +209,9 @@ class App extends EventEmitter {
       if (typeof req.body?.songScrollSpeed === 'number') {
         patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));
       }
+      if (typeof req.body?.songTextSize === 'number') {
+        patch.songTextSize = Math.max(0, Math.min(2, req.body.songTextSize));
+      }
       const result = updateSettings(patch);
       if (!result.ok) {
         res.status(500).json({ error: 'Failed to write settings' });
