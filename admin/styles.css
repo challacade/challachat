@@ -619,8 +619,16 @@ footer {
 }
 
 /* ── Music player card ────────────────────────────────────────── */
-.music-card { padding: 14px 16px; }
-.music-now-playing {
+.btn.ghost.music-action {
+  background: #3d4055;
+  border: 1px solid #5f6388;
+  color: var(--text);
+}
+.btn.ghost.music-action:hover {
+  background: #4a4e66;
+  border-color: #6e72a0;
+}
+.music-card { padding: 14px 16px; }.music-now-playing {
   font-size: 13px;
   font-weight: 600;
   color: var(--text);
@@ -642,6 +650,8 @@ footer {
   cursor: pointer;
   user-select: none;
   flex-shrink: 0;
+  min-width: 32px;
+  text-align: right;
 }
 .music-vol-slider {
   flex: 1;
@@ -659,22 +669,26 @@ footer {
 .music-controls {
   display: flex;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 12px;
 }
-.btn.ghost.music-btn {
-  width: 38px;
-  height: 32px;
+.music-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #5f6388;
+  background: #3d4055;
+  color: var(--text);
+  cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 15px;
-  padding: 0;
-  background: #3d4055;
-  border: 1px solid #5f6388;
-  color: var(--text);
+  font-size: 12px;
+  padding: 0 0 2px 0;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
 }
-.btn.ghost.music-btn:hover {
+.music-btn:hover {
   background: #4a4e66;
   border-color: #6e72a0;
 }
@@ -684,16 +698,18 @@ footer {
 }
 .music-path-input {
   flex: 1;
-  background: var(--surface);
+  padding: 9px 12px;
+  background: var(--bg);
   border: 1px solid var(--border);
-  border-radius: 6px;
-  color: var(--text);
-  font-size: 11px;
-  padding: 5px 8px;
-  outline: none;
+  border-radius: 8px;
+  color: #f9fafb;
+  font-size: 13px;
   font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
   min-width: 0;
 }
+.music-path-input::placeholder { color: #555a6e; }
 .music-path-input:focus {
   border-color: var(--accent);
 }
