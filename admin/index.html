@@ -193,6 +193,18 @@
             <input type="text" class="music-path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
             <button class="btn small ghost" id="musicBrowseBtn">Browse</button>
           </div>
+          <div class="music-options">
+            <div class="music-option-row">
+              <label class="a-label" for="songDisplaySelect">Song display</label>
+              <select id="songDisplaySelect" class="music-select">
+                <option value="none">None</option>
+                <option value="top">Top</option>
+                <option value="bottom">Bottom</option>
+              </select>
+            </div>
+            <label class="a-toggle"><input type="checkbox" id="scrollSongToggle" /><span>Scroll song text</span></label>
+            <label class="a-toggle"><input type="checkbox" id="writeSongFileToggle" /><span>Write song to file</span></label>
+          </div>
         </section>
 
         <!-- ── Sound effects ────────────────────────────────── -->

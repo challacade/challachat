@@ -237,6 +237,56 @@ export function applyTheme() {
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 }
 
+export function applySongDisplay() {
+  const overlay = elements.overlay;
+  const songEl = elements.songDisplayOverlay;
+  const position = state.songDisplay?.position || 'none';
+
+  // Update overlay classes for message gap
+  overlay?.classList.remove('song-display-top', 'song-display-bottom');
+
+  if (position === 'none' || !songEl) {
+    songEl?.classList.add('hidden');
+    songEl?.classList.remove('top', 'bottom');
+    return;
+  }
+
+  // Show the song display and position it
+  songEl.classList.remove('hidden', 'top', 'bottom');
+  songEl.classList.add(position);
+  overlay?.classList.add(`song-display-${position}`);
+
+  // Apply or remove scrolling
+  const scrolling = !!state.songDisplay?.scroll;
+  songEl.classList.toggle('scrolling', scrolling);
+
+  // Update song title
+  updateSongDisplayText();
+}
+
+export function updateSongDisplayText() {
+  const songEl = elements.songDisplayOverlay;
+  if (!songEl) return;
+
+  const position = state.songDisplay?.position || 'none';
+  if (position === 'none') return;
+
+  const title = state.songDisplay?.songId || '';
+  const display = title ? `\u266b ${title} \u266b` : '';
+  const textSpan = songEl.querySelector('.song-display-text');
+  if (textSpan) {
+    textSpan.textContent = display;
+    if (songEl.classList.contains('scrolling') && display) {
+      // Duration accounts for the full travel: 100% parent width (padding) + 100% text width
+      const chars = display.length;
+      const duration = Math.max(10, chars * 0.45 + 5);
+      songEl.style.setProperty('--marquee-duration', `${duration}s`);
+    }
+  } else {
+    songEl.textContent = display;
+  }
+}
+
 export function applyPreset(name) {
   if (!name || name === 'Custom' || !PRESETS[name]) return;
   const preset = PRESETS[name];

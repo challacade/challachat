@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, updateSettings, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, truncateSongId, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -193,6 +193,32 @@ class App extends EventEmitter {
       res.json(getMusicSettingsStatus());
     });
 
+  this.app.get('/api/music/display-settings', (_req: Request, res: Response) => {
+      res.json(getMusicDisplaySettings());
+    });
+
+  this.app.post('/api/music/display-settings', (req: Request, res: Response) => {
+      const patch: Record<string, unknown> = {};
+      if (typeof req.body?.songDisplay === 'string') {
+        const val = req.body.songDisplay;
+        patch.songDisplay = ['none', 'top', 'bottom'].includes(val) ? val : 'none';
+      }
+      if (typeof req.body?.writeSongFile === 'boolean') {
+        patch.writeSongFile = req.body.writeSongFile;
+      }
+      if (typeof req.body?.scrollSongDisplay === 'boolean') {
+        patch.scrollSongDisplay = req.body.scrollSongDisplay;
+      }
+      const result = updateSettings(patch);
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      const current = getMusicDisplaySettings();
+      this.sse.send('music-settings', current);
+      res.json({ ok: true, ...current });
+    });
+
   this.app.post('/api/music/path', (req: Request, res: Response) => {
       const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
       const result = updateSettings({ musicPath: musicPath || undefined });
@@ -229,6 +255,10 @@ class App extends EventEmitter {
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
+      // Broadcast to overlay so it can update song display
+      if (now) {
+        this.sse.send('now-playing', { songId: now.songId, index: now.index });
+      }
     });
 
   this.app.get('/api/jam', (_req: Request, res: Response) => {
@@ -427,6 +457,11 @@ class App extends EventEmitter {
       // Send current appearance immediately so overlay gets the latest on connect
       res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
       res.write(`event: sounds\ndata: ${JSON.stringify(this.sounds)}\n\n`);
+      res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
+      const np = getNowPlaying();
+      if (np) {
+        res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);
+      }
       this.sse.add(res);
     });
 

@@ -8,7 +8,7 @@ import {
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById 
 } from './messages.js';
-import { applyTheme } from './settings.js';
+import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
 
 // ================================
 // SSE Connection
@@ -91,6 +91,31 @@ export function startSSE() {
     } catch {
       // ignore
     }
+  });
+
+  // Music display settings from admin UI
+  eventSource.addEventListener('music-settings', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.songDisplay === 'string') {
+        state.songDisplay.position = data.songDisplay;
+      }
+      if (typeof data.scrollSongDisplay === 'boolean') {
+        state.songDisplay.scroll = data.scrollSongDisplay;
+      }
+      applySongDisplay();
+    } catch {}
+  });
+
+  // Now-playing song title from admin music player
+  eventSource.addEventListener('now-playing', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.songId === 'string') {
+        state.songDisplay.songId = data.songId;
+      }
+      updateSongDisplayText();
+    } catch {}
   });
 
   eventSource.addEventListener('end', () => {

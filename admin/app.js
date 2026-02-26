@@ -73,6 +73,9 @@ const musicNextBtn      = $('musicNextBtn');
 const musicShuffleBtn   = $('musicShuffleBtn');
 const musicPathInput    = $('musicPathInput');
 const musicBrowseBtn    = $('musicBrowseBtn');
+const songDisplaySelect = $('songDisplaySelect');
+const scrollSongToggle  = $('scrollSongToggle');
+const writeSongFileToggle = $('writeSongFileToggle');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -201,6 +204,9 @@ const music = {
   playlistLoop: true,
   autoShuffle: false,
   isConfigured: false,
+  songDisplay: 'none',
+  writeSongFile: false,
+  scrollSongDisplay: false,
 };
 
 function shuffleArray(arr) {
@@ -277,6 +283,11 @@ function syncMusicUI() {
       void ensureMetaLoaded(snap).then(() => {
         if (serverIndexAtPos(music.index) === snap) {
           musicNowPlaying.textContent = displayTitle(music.index);
+          // Re-notify server with metadata title (initial post may have used filename fallback)
+          void postJsonQuiet('/api/music/nowplaying', { index: snap, songId: displayTitle(music.index) });
+          if (music.writeSongFile) {
+            void postJsonQuiet('/api/music/songfile', { index: snap, songId: displayTitle(music.index) });
+          }
         }
       });
     }
@@ -289,6 +300,10 @@ function syncMusicUI() {
   // Notify server of now-playing
   const si = serverIndexAtPos(music.index);
   void postJsonQuiet('/api/music/nowplaying', { index: si, songId: displayTitle(music.index) });
+  // Write song file if enabled
+  if (music.writeSongFile && music.playlist.length) {
+    void postJsonQuiet('/api/music/songfile', { index: si, songId: displayTitle(music.index) });
+  }
 }
 
 async function postJsonQuiet(url, body) {
@@ -325,6 +340,11 @@ async function fetchMusicConfig() {
     music.playlistLoop = data?.playlistLoop !== false;
     music.autoShuffle = data?.autoShuffle === true;
     if (musicPathInput) musicPathInput.value = mPath || '';
+    // Display settings are included in the main music config response
+    if (typeof data?.songDisplay === 'string') music.songDisplay = data.songDisplay;
+    if (typeof data?.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
+    if (typeof data?.scrollSongDisplay === 'boolean') music.scrollSongDisplay = data.scrollSongDisplay;
+    syncMusicDisplayUI();
   } catch {}
 }
 
@@ -455,6 +475,40 @@ musicBrowseBtn?.addEventListener('click', async () => {
 
 // SSE music-control events (from terminal hotkeys)
 // Handled in startAdminSSE below
+
+function syncMusicDisplayUI() {
+  if (songDisplaySelect) songDisplaySelect.value = music.songDisplay || 'none';
+  if (scrollSongToggle) scrollSongToggle.checked = !!music.scrollSongDisplay;
+  if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
+}
+
+async function postMusicDisplaySettings(patch) {
+  try {
+    const resp = await fetch('/api/music/display-settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    const data = await resp.json();
+    if (data) {
+      if (typeof data.songDisplay === 'string') music.songDisplay = data.songDisplay;
+      if (typeof data.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
+      if (typeof data.scrollSongDisplay === 'boolean') music.scrollSongDisplay = data.scrollSongDisplay;
+      syncMusicDisplayUI();
+    }
+  } catch {}
+}
+
+songDisplaySelect?.addEventListener('change', () => {
+  postMusicDisplaySettings({ songDisplay: songDisplaySelect.value });
+});
+scrollSongToggle?.addEventListener('change', () => {
+  postMusicDisplaySettings({ scrollSongDisplay: scrollSongToggle.checked });
+});
+writeSongFileToggle?.addEventListener('change', () => {
+  music.writeSongFile = writeSongFileToggle.checked;
+  postMusicDisplaySettings({ writeSongFile: writeSongFileToggle.checked });
+});
 
 // ─── Helpers ───────────────────────────────────────────────────
 

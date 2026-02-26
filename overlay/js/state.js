@@ -23,6 +23,7 @@ export const elements = {
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
+  songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -205,7 +206,12 @@ export const state = {
   preset: 'Dark',
   startedAt: null,
   demoMode: false,
-  logEnabled: false
+  logEnabled: false,
+  songDisplay: {
+    position: 'none',  // 'none' | 'top' | 'bottom'
+    scroll: false,
+    songId: ''
+  }
 };
 
 // ================================

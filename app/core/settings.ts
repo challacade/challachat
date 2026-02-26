@@ -10,6 +10,12 @@ export type AppSettings = {
   enableMusicHotkeys?: boolean;
   /** Minimum jam count required before the jam finale system message is sent when the song changes. */
   jamCountMinimum?: number;
+  /** Song display position on the overlay: 'none', 'top', or 'bottom'. */
+  songDisplay?: string;
+  /** Write the currently-playing song info to a text file. */
+  writeSongFile?: boolean;
+  /** Scroll the song display text in marquee style. */
+  scrollSongDisplay?: boolean;
   /** Automatically shuffle the playlist when it first loads. */
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
@@ -102,12 +108,31 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; scrollSongDisplay: boolean } {
+  const { settings } = readSettings();
   return {
     musicPath: getMusicPath(),
     settingsPath: getSettingsPath(),
     autoShuffle: getAutoShuffle(),
-    playlistLoop: getPlaylistLoop()
+    playlistLoop: getPlaylistLoop(),
+    songDisplay: getSongDisplay(),
+    writeSongFile: settings.writeSongFile === true,
+    scrollSongDisplay: settings.scrollSongDisplay === true
+  };
+}
+
+export function getSongDisplay(): string {
+  const { settings } = readSettings();
+  const val = typeof settings.songDisplay === 'string' ? settings.songDisplay : 'none';
+  return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
+}
+
+export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; scrollSongDisplay: boolean } {
+  const { settings } = readSettings();
+  return {
+    songDisplay: getSongDisplay(),
+    writeSongFile: settings.writeSongFile === true,
+    scrollSongDisplay: settings.scrollSongDisplay === true
   };
 }
 

@@ -671,3 +671,32 @@ footer {
 .music-path-input:focus {
   border-color: var(--accent);
 }
+.music-options {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+.music-option-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.music-option-row .a-label {
+  margin: 0;
+  white-space: nowrap;
+}
+.music-select {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 4px 8px;
+  outline: none;
+  font-family: inherit;
+}
+.music-select:focus {
+  border-color: var(--accent);
+}
