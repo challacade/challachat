@@ -78,9 +78,9 @@ function registerIpcHandlers() {
     return appServer.apiConnect(url);
   });
 
-  ipcMain.handle('disconnect', async () => {
+  ipcMain.handle('disconnect', async (_e: Electron.IpcMainInvokeEvent, connectionId?: string) => {
     if (!appServer) return { error: 'Server not ready' };
-    return appServer.apiDisconnect();
+    return appServer.apiDisconnect(connectionId);
   });
 
   ipcMain.handle('get-port', () => {

@@ -17,16 +17,7 @@ const urlInput      = $('urlInput');
 const connectBtn    = $('connectBtn');
 const connectError  = $('connectError');
 const connectSection  = $('connectSection');
-const captureSection  = $('captureSection');
-const platformIcon    = $('platformIcon');
-const captureUrl      = $('captureUrl');
-const messageCount    = $('messageCount');
-const chatters        = $('chatters');
-const uptime          = $('uptime');
-const pollDisplay     = $('pollDisplay');
-const pollSlider      = $('pollSlider');
-const pollValue       = $('pollValue');
-const disconnectBtn   = $('disconnectBtn');
+const connectionsContainer = $('connectionsContainer');
 const overlayUrl      = $('overlayUrl');
 const copyBtn         = $('copyBtn');
 const overlayCard     = $('overlayCard');
@@ -662,6 +653,83 @@ async function fetchStatus() {
   }
 }
 
+// ─── Dynamic connection cards ──────────────────────────────────
+
+const MAX_CONNECTIONS = 5;
+const connectionCards = new Map(); // connectionId → DOM element
+
+const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/k.png' };
+
+function createConnectionCard(conn) {
+  const card = document.createElement('section');
+  card.className = 'card capture-card';
+  card.dataset.connId = conn.id;
+
+  const iconSrc = PLATFORM_ICONS[conn.platform] || '';
+  card.innerHTML = `
+    <div class="capture-header">
+      <img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />
+      <span class="capture-url">${conn.url || ''}</span>
+      <button class="btn small danger conn-disconnect-btn">Disconnect</button>
+    </div>
+    <div class="capture-detail-row">
+      <div class="capture-stat">
+        <span class="capture-stat-value conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</span>
+        <span class="capture-stat-label">Messages</span>
+      </div>
+      <div class="capture-stat">
+        <span class="capture-stat-value conn-chatters">${(conn.chatters || 0).toLocaleString()}</span>
+        <span class="capture-stat-label">Chatters</span>
+      </div>
+      <div class="capture-stat">
+        <span class="capture-stat-value conn-uptime">${formatUptime(conn.uptime || 0)}</span>
+        <span class="capture-stat-label">Uptime</span>
+      </div>
+      <div class="capture-poll-row">
+        <label>Frequency</label>
+        <input type="range" class="conn-poll-slider" min="100" max="5000" step="100" value="${conn.pollIntervalMs || 1000}" />
+        <span class="capture-poll-value conn-poll-value">${formatPoll(conn.pollIntervalMs || 1000)}</span>
+      </div>
+    </div>`;
+
+  // Wire disconnect
+  card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
+
+  // Wire poll slider
+  let sliderDebounce = null;
+  const slider = card.querySelector('.conn-poll-slider');
+  const pollVal = card.querySelector('.conn-poll-value');
+  slider.addEventListener('input', () => {
+    const ms = Number(slider.value);
+    pollVal.textContent = formatPoll(ms);
+    clearTimeout(sliderDebounce);
+    sliderDebounce = setTimeout(async () => {
+      try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms, connectionId: conn.id }); } catch {}
+    }, 300);
+  });
+
+  connectionCards.set(conn.id, card);
+  connectionsContainer.appendChild(card);
+  return card;
+}
+
+function updateConnectionCard(card, conn) {
+  card.querySelector('.conn-msg-count').textContent = (conn.messageCount || 0).toLocaleString();
+  card.querySelector('.conn-chatters').textContent = (conn.chatters || 0).toLocaleString();
+  card.querySelector('.conn-uptime').textContent = formatUptime(conn.uptime || 0);
+  // Only update slider if user isn't actively dragging it
+  const slider = card.querySelector('.conn-poll-slider');
+  if (document.activeElement !== slider && conn.pollIntervalMs) {
+    slider.value = conn.pollIntervalMs;
+    card.querySelector('.conn-poll-value').textContent = formatPoll(conn.pollIntervalMs);
+  }
+}
+
+function removeConnectionCard(connId) {
+  const card = connectionCards.get(connId);
+  if (card) { card.remove(); connectionCards.delete(connId); }
+}
+
 function updateUI(status) {
   const isActive = status.isRunning || status.demoMode;
   setServerActive(isActive);
@@ -678,27 +746,35 @@ function updateUI(status) {
     demoModeLink.textContent = 'Start in Demo Mode';
   }
 
-  if (status.isRunning) {
-    captureSection.classList.remove('hidden');
-    addConnectionCard.classList.remove('hidden');
+  const connections = status.connections || [];
 
-    const p = status.platform || 'unknown';
-    const iconMap = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/k.png' };
-    platformIcon.src = iconMap[p] || '';
-    platformIcon.style.display = iconMap[p] ? '' : 'none';
+  // Build set of current connection IDs
+  const activeIds = new Set(connections.map(c => c.id));
 
-    captureUrl.textContent = status.url || '';
-    messageCount.textContent = (status.messageCount || 0).toLocaleString();
-    chatters.textContent = (status.chatters || 0).toLocaleString();
-    uptime.textContent = formatUptime(status.uptime || 0);
+  // Remove cards for connections that no longer exist
+  for (const [id] of connectionCards) {
+    if (!activeIds.has(id)) removeConnectionCard(id);
+  }
 
-    if (status.pollIntervalMs) {
-      pollDisplay.textContent = formatPoll(status.pollIntervalMs);
-      pollSlider.value = status.pollIntervalMs;
-      pollValue.textContent = formatPoll(status.pollIntervalMs);
+  // Create or update cards for each connection
+  for (const conn of connections) {
+    const existing = connectionCards.get(conn.id);
+    if (existing) {
+      updateConnectionCard(existing, conn);
+    } else {
+      createConnectionCard(conn);
     }
+  }
+
+  // Show/hide add-connection card (visible when running and under max)
+  if (status.isRunning && connections.length < MAX_CONNECTIONS) {
+    addConnectionCard.classList.remove('hidden');
   } else {
-    captureSection.classList.add('hidden');
+    addConnectionCard.classList.add('hidden');
+  }
+
+  // If demo mode only (no real connections), hide add card
+  if (!status.isRunning && status.demoMode) {
     addConnectionCard.classList.add('hidden');
   }
 }
@@ -766,17 +842,32 @@ async function handleConnect() {
   }
 }
 
-async function handleDisconnect() {
-  disconnectBtn.disabled = true;
-  disconnectBtn.textContent = 'Disconnecting\u2026';
+async function handleAddConnect() {
+  const url = addUrlInput.value.trim();
+  if (!url) return;
+  addConnectBtn.disabled = true;
+  addConnectBtn.textContent = 'Connecting\u2026';
   try {
-    await api('POST', '/api/disconnect');
+    const data = await api('POST', '/api/connect', { url });
+    if (data.ok) {
+      addUrlInput.value = '';
+    } else {
+      alert(data.error || 'Connection failed.');
+    }
+    await fetchStatus();
+  } catch {
+    alert('Failed to connect.');
+  } finally {
+    addConnectBtn.disabled = false;
+    addConnectBtn.textContent = 'Connect';
+  }
+}
+
+async function handleConnectionDisconnect(connectionId) {
+  try {
+    await api('POST', '/api/disconnect', { connectionId });
     await fetchStatus();
   } catch { /* ignore */ }
-  finally {
-    disconnectBtn.disabled = false;
-    disconnectBtn.textContent = 'Disconnect';
-  }
 }
 
 async function handleDemoMode(e) {
@@ -791,16 +882,7 @@ async function handleDemoMode(e) {
 
 // ─── Poll interval ─────────────────────────────────────────────
 
-let pollDebounce = null;
-pollSlider.addEventListener('input', () => {
-  const ms = Number(pollSlider.value);
-  pollValue.textContent = formatPoll(ms);
-  pollDisplay.textContent = formatPoll(ms);
-  clearTimeout(pollDebounce);
-  pollDebounce = setTimeout(async () => {
-    try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms }); } catch {}
-  }, 300);
-});
+// (poll interval is now per-connection, handled inside createConnectionCard)
 
 // ─── Settings toggles ──────────────────────────────────────────
 
@@ -1184,15 +1266,9 @@ testMemBtn.addEventListener('click', async () => {
 // ─── Key bindings ──────────────────────────────────────────────
 
 connectBtn.addEventListener('click', handleConnect);
-disconnectBtn.addEventListener('click', handleDisconnect);
 demoModeLink.addEventListener('click', handleDemoMode);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
-addConnectBtn.addEventListener('click', () => {
-  // Placeholder: will connect a second stream once multi-connection is implemented
-  const url = addUrlInput.value.trim();
-  if (!url) return;
-  addUrlInput.value = '';
-});
+addConnectBtn.addEventListener('click', handleAddConnect);
 addUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConnectBtn.click(); });
 
 // ─── Real-time Electron events ─────────────────────────────────

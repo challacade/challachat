@@ -38,6 +38,21 @@ const __dirnameResolved = __dirname;
 const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
 const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 
+// Per-connection state
+interface Connection {
+  id: string;
+  capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture;
+  platform: Platform;
+  url: string;
+  videoId: string | null;
+  messageCount: number;
+  chatters: Set<string>;
+  startTime: number;
+  pollIntervalMs: number;
+}
+
+const MAX_CONNECTIONS = 5;
+
 // HTTP server + overlay + SSE wiring
 class App extends EventEmitter {
   private app = express();
@@ -46,18 +61,18 @@ class App extends EventEmitter {
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
-  private capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture | null = null;
-  private currentPlatform: Platform | null = null;
-  private isRunning = false;
-  private messageCount = 0;
-  private uniqueChatters = new Set<string>();
-  private startTime: number | null = null;
-  private currentVideoId: string | null = null;
-  private currentUrl: string | null = null;
+  private connections = new Map<string, Connection>();
   private headless: boolean;
   private tui: TerminalUI | null = null;
   private musicHotkeysEnabled = false;
   private demoMode = false;
+  private nextConnId = 1;
+
+  /** True when at least one capture connection is active. */
+  private get isRunning(): boolean { return this.connections.size > 0; }
+
+  /** Generate a unique connection ID. */
+  private generateConnId(): string { return `conn_${this.nextConnId++}`; }
 
   // Overlay appearance settings (admin-controlled, broadcast via SSE)
   private appearance: Record<string, number | string | boolean> = {
@@ -158,13 +173,17 @@ class App extends EventEmitter {
       res.json(this.getStatus());
     });
 
-  this.app.get('/api/poll-interval', (_req: Request, res: Response) => {
-      res.json({ pollIntervalMs: this.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
+  this.app.get('/api/poll-interval', (req: Request, res: Response) => {
+      const connId = String(req.query.connectionId || '');
+      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
+      res.json({ pollIntervalMs: conn?.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
     });
   this.app.post('/api/poll-interval', (req: Request, res: Response) => {
+      const connId = String(req.body?.connectionId || '');
+      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
       const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-      if (this.capture) this.capture.setPollInterval(next);
-      res.json({ ok: true, pollIntervalMs: this.capture?.pollInterval || next });
+      if (conn) conn.capture.setPollInterval(next);
+      res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
     });
 
   this.app.get('/api/filter', (_req: Request, res: Response) => {
@@ -200,8 +219,10 @@ class App extends EventEmitter {
       if (typeof enabled === 'boolean') {
         setLogEnabled(enabled);
         // If enabling and currently capturing, start logging immediately
-        if (enabled && this.isRunning && this.currentVideoId) {
-          startLogging('yt');
+        if (enabled && this.isRunning) {
+          const firstConn = this.connections.values().next().value;
+          const platformPrefix = firstConn?.platform === 'kick' ? 'kk' : firstConn?.platform === 'twitch' ? 'tw' : 'yt';
+          startLogging(platformPrefix);
         }
       }
       res.json({ ok: true, ...getLoggerStatus() });
@@ -489,7 +510,8 @@ class App extends EventEmitter {
     });
 
   this.io.on('connection', (socket: Socket) => {
-      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', platform: this.currentPlatform, videoId: this.currentVideoId, messageCount: this.messageCount });
+      const conns = Array.from(this.connections.values());
+      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', connections: conns.map(c => ({ id: c.id, platform: c.platform, videoId: c.videoId, messageCount: c.messageCount })) });
     });
 
   // Sound settings (admin-controlled)
@@ -525,9 +547,14 @@ class App extends EventEmitter {
       res.json(result);
     });
 
-  // API: disconnect current capture
-  this.app.post('/api/disconnect', async (_req: Request, res: Response) => {
-      await this.apiDisconnect();
+  // API: disconnect a specific capture connection
+  this.app.post('/api/disconnect', async (req: Request, res: Response) => {
+      const connectionId = req.body?.connectionId;
+      if (!connectionId || typeof connectionId !== 'string') {
+        res.status(400).json({ ok: false, error: 'Missing connectionId.' });
+        return;
+      }
+      await this.apiDisconnect(connectionId);
       res.json({ ok: true });
     });
 
@@ -668,8 +695,15 @@ class App extends EventEmitter {
   }
 
   // Start capture for the provided livestream URL (YouTube or Twitch)
-  private async startScraping(url: string) {
-    if (this.isRunning) { console.log('Already capturing. Use "stop" first to change streams.'); return; }
+  private async startScraping(url: string): Promise<string> {
+    if (this.connections.size >= MAX_CONNECTIONS) {
+      throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
+    }
+
+    // Prevent duplicate URLs
+    for (const conn of this.connections.values()) {
+      if (conn.url === url) throw new Error('Already connected to this URL.');
+    }
 
     const platform = this.detectPlatform(url);
     if (!platform) {
@@ -677,78 +711,73 @@ class App extends EventEmitter {
     }
 
     if (platform === 'youtube') {
-      await this.startYouTubeCapture(url);
+      return this.startYouTubeCapture(url);
     } else if (platform === 'twitch') {
-      await this.startTwitchCapture(url);
-    } else if (platform === 'kick') {
-      await this.startKickCapture(url);
+      return this.startTwitchCapture(url);
+    } else {
+      return this.startKickCapture(url);
     }
   }
 
   // Start YouTube-specific capture
-  private async startYouTubeCapture(url: string) {
+  private async startYouTubeCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const isStudioUrl = /^https?:\/\/studio\.youtube\.com\//i.test(String(url || ''));
     const videoId = this.extractVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
-    this.capture = new YouTubeChatCapture(videoId, {
+    const capture = new YouTubeChatCapture(videoId, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message) => this.onCaptureMessage(message),
+      onMessage: (message) => this.onCaptureMessage(connId, message),
       onDelete: (id) => this.onCaptureDelete(id),
       onError: (err) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
       onStatusChange: (status) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'youtube';
-    this.currentVideoId = videoId;
-    // For creator/admin URLs, store a public-style URL so status display matches what viewers use.
-    this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
-    this.messageCount = 0;
-    this.uniqueChatters.clear();
-    this.startTime = Date.now();
-    this.tui?.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'yt' platform identifier)
+    await capture.start();
+    const displayUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'youtube', url: displayUrl,
+      videoId, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('yt');
     this.tui?.render();
-    const captureStatus = { status: 'active' as const, videoId: this.currentVideoId, platform: 'youtube' as const, startedAt: this.startTime };
+    const captureStatus = { status: 'active' as const, videoId, platform: 'youtube' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
+    return connId;
   }
 
   // Start Twitch-specific capture
-  private async startTwitchCapture(url: string) {
+  private async startTwitchCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const channel = this.extractTwitchChannel(url);
     if (!channel) throw new Error('Invalid Twitch URL. Please provide a valid Twitch channel URL.');
-    this.capture = new TwitchChatCapture(channel, {
+    const capture = new TwitchChatCapture(channel, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
       onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
       onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'twitch';
-    this.currentVideoId = channel; // Use channel name as the identifier
-    this.currentUrl = `https://www.twitch.tv/${channel}`;
-    this.messageCount = 0;
-    this.uniqueChatters.clear();
-    this.startTime = Date.now();
-    this.tui?.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'tw' platform identifier for Twitch)
+    await capture.start();
+    const displayUrl = `https://www.twitch.tv/${channel}`;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'twitch', url: displayUrl,
+      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('tw');
     this.tui?.render();
-    const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: this.startTime };
+    const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
+    return connId;
   }
 
   // Extract Kick channel name from URL
@@ -773,41 +802,42 @@ class App extends EventEmitter {
   }
 
   // Start Kick-specific capture
-  private async startKickCapture(url: string) {
+  private async startKickCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const channel = this.extractKickChannel(url);
     if (!channel) throw new Error('Invalid Kick URL. Please provide a valid Kick channel URL.');
-    this.capture = new KickChatCapture(channel, {
+    const capture = new KickChatCapture(channel, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
       onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
       onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'kick';
-    this.currentVideoId = channel; // Use channel name as the identifier
-    this.currentUrl = `https://kick.com/${channel}`;
-    this.messageCount = 0;
-    this.uniqueChatters.clear();
-    this.startTime = Date.now();
-    this.tui?.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'kk' platform identifier for Kick)
+    await capture.start();
+    const displayUrl = `https://kick.com/${channel}`;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'kick', url: displayUrl,
+      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('kk');
     this.tui?.render();
-    const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: this.startTime };
+    const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
     try { this.tryEnableMusicHotkeys(); } catch {}
+    return connId;
   }
 
   // Relay messages to SSE clients and overlay
-  private onCaptureMessage(message: ChatEvent) {
-    this.messageCount++;
-    if (message.author?.name) this.uniqueChatters.add(message.author.name);
+  private onCaptureMessage(connId: string, message: ChatEvent) {
+    const conn = this.connections.get(connId);
+    if (conn) {
+      conn.messageCount++;
+      if (message.author?.name) conn.chatters.add(message.author.name);
+    }
 
     // Run chat commands (e.g. !jam) before censoring/broadcasting.
     try {
@@ -902,20 +932,28 @@ class App extends EventEmitter {
     return `https://www.youtube.com/live/${videoId}`;
   }
 
-  // Gracefully stop the capture and summarize the session
-  private async shutdownCapture() {
-    if (!this.isRunning) return;
-    try { await this.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture: ${e?.message || e}`); }
-    // Stop logging when capture ends
-    stopLogging();
-    const duration = Math.round(((Date.now() - (this.startTime || Date.now())) / 1000));
-    console.log('Chat capture stopped');
-    console.log(`Session duration: ${duration} seconds`);
-    console.log(`Messages captured: ${this.messageCount}`);
-    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null; this.currentPlatform = null;
-    try { this.tui?.disableMusicHotkeys(); } catch {}
-    this.musicHotkeysEnabled = false;
-    const stoppedStatus = { status: 'stopped' as const, platform: null };
+  // Gracefully stop one (or all) capture connections
+  private async shutdownCapture(connectionId?: string) {
+    if (connectionId) {
+      const conn = this.connections.get(connectionId);
+      if (!conn) return;
+      try { await conn.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture ${connectionId}: ${e?.message || e}`); }
+      const duration = Math.round((Date.now() - (conn.startTime || Date.now())) / 1000);
+      console.log(`Connection ${connectionId} stopped (${conn.platform} – ${duration}s, ${conn.messageCount} msgs)`);
+      this.connections.delete(connectionId);
+    } else {
+      // Stop all
+      for (const [id, conn] of this.connections) {
+        try { await conn.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture ${id}: ${e?.message || e}`); }
+      }
+      this.connections.clear();
+    }
+    if (this.connections.size === 0) {
+      stopLogging();
+      try { this.tui?.disableMusicHotkeys(); } catch {}
+      this.musicHotkeysEnabled = false;
+    }
+    const stoppedStatus = { status: this.isRunning ? 'active' as const : 'stopped' as const, connectionId: connectionId ?? null };
     this.io.emit('capture-status', stoppedStatus);
     this.emit('capture-status', stoppedStatus);
   }
@@ -934,37 +972,39 @@ class App extends EventEmitter {
 
   /** Return the current application status (mirrors /api/status). */
   getStatus() {
+    const connections = Array.from(this.connections.values()).map(c => ({
+      id: c.id,
+      platform: c.platform,
+      url: c.url,
+      videoId: c.videoId,
+      messageCount: c.messageCount,
+      chatters: c.chatters.size,
+      uptime: c.startTime ? Date.now() - c.startTime : 0,
+      pollIntervalMs: c.pollIntervalMs,
+    }));
     return {
       isRunning: this.isRunning,
       demoMode: this.demoMode,
-      platform: this.currentPlatform,
-      videoId: this.currentVideoId,
-      url: this.currentUrl,
-      messageCount: this.messageCount,
-      chatters: this.uniqueChatters.size,
-      uptime: this.startTime ? Date.now() - this.startTime : 0,
-      pollIntervalMs: this.capture?.pollInterval || null,
+      connections,
       overlayUrl: `http://localhost:${this.port}/`,
     };
   }
 
-  /** Connect to a livestream URL. Returns a result object. */
-  async apiConnect(url: string): Promise<{ ok: boolean; platform?: string; videoId?: string; error?: string }> {
-    if (this.isRunning) {
-      return { ok: false, error: 'Already capturing. Disconnect first.' };
-    }
+  /** Connect to a livestream URL. Returns a result object with connectionId. */
+  async apiConnect(url: string): Promise<{ ok: boolean; connectionId?: string; platform?: string; videoId?: string; error?: string }> {
     try {
       await this.ensureServer();
-      await this.startScraping(url);
-      return { ok: true, platform: this.currentPlatform ?? undefined, videoId: this.currentVideoId ?? undefined };
+      const connId = await this.startScraping(url);
+      const conn = this.connections.get(connId);
+      return { ok: true, connectionId: connId, platform: conn?.platform ?? undefined, videoId: conn?.videoId ?? undefined };
     } catch (e: any) {
       return { ok: false, error: e?.message || String(e) };
     }
   }
 
-  /** Disconnect the current capture session. */
-  async apiDisconnect(): Promise<void> {
-    await this.shutdownCapture();
+  /** Disconnect a specific capture connection, or all if no id given. */
+  async apiDisconnect(connectionId?: string): Promise<void> {
+    await this.shutdownCapture(connectionId);
   }
 
   async shutdown(): Promise<void> {
