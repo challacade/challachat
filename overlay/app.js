@@ -10,7 +10,6 @@
 // ================================
 
 import { state, elements, isDemoSite } from './js/state.js';
-import { toggleJam, ensureMusicPlaylistLoaded, fetchMusicSettings, musicPlayer } from './js/music.js';
 import { startDemoMode, adjustMessageAlignment } from './js/messages.js';
 import {
   setupMouseDetection,
@@ -21,13 +20,11 @@ import {
   loadFromUrl,
   syncUi,
   bindUi,
-  syncMusicSettingsButtonVisibility,
   fetchPollIntervalFromServer,
   fetchCensorFilterStatus,
   fetchLoggerStatus,
   toggleLogger,
   buildCustomPresetDropdown,
-  buildSongDisplayDropdown,
   syncCustomPresetDropdown
 } from './js/settings.js';
 import { startSSE } from './js/sse.js';
@@ -38,12 +35,6 @@ import { startSSE } from './js/sse.js';
 
 function start() {
   state.startedAt = Date.now();
-  
-  // Fetch music configuration early so the Music UI can be hidden when not configured.
-  const musicSettingsPromise = (async () => {
-    try { await fetchMusicSettings(); } catch {}
-    try { syncMusicSettingsButtonVisibility(); } catch {}
-  })();
   
   // Setup mouse detection for settings buttons
   setupMouseDetection();
@@ -86,11 +77,6 @@ function start() {
   syncUi();
   bindUi();
   
-  // Enable jam if previously enabled
-  if (state.music.enableJam) {
-    try { toggleJam(true); } catch {}
-  }
-  
   // Start demo mode if enabled
   if (state.demoMode) {
     startDemoMode();
@@ -99,12 +85,6 @@ function start() {
   // Fetch settings from server (non-blocking)
   try { fetchPollIntervalFromServer(); } catch {}
   try { fetchCensorFilterStatus(); } catch {}
-  // Music settings already requested above; don't eagerly load playlist unless music is configured.
-  void musicSettingsPromise.then(() => {
-    if (musicPlayer?.isConfigured) {
-      try { ensureMusicPlaylistLoaded(); } catch {}
-    }
-  });
   
   // Restore logger state
   try {
@@ -119,7 +99,6 @@ function start() {
   try {
     buildCustomPresetDropdown();
     syncCustomPresetDropdown();
-    buildSongDisplayDropdown();
   } catch {}
   
   // Start SSE connection

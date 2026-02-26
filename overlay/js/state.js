@@ -13,7 +13,6 @@ export const elements = {
   toast: document.getElementById('toast'),
   settings: document.getElementById('settings'),
   settingsBtn: document.getElementById('settingsBtn'),
-  musicSettingsBtn: document.getElementById('musicSettingsBtn'),
 
 
 
@@ -24,20 +23,6 @@ export const elements = {
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
-  musicSettings: document.getElementById('musicSettings'),
-  musicPathDisplay: document.getElementById('musicPathDisplay'),
-  musicCurrentTitle: document.getElementById('musicCurrentTitle'),
-  musicVolume: document.getElementById('musicVolume'),
-  musicPrevBtn: document.getElementById('musicPrevBtn'),
-  musicPlayBtn: document.getElementById('musicPlayBtn'),
-  musicNextBtn: document.getElementById('musicNextBtn'),
-  musicShuffleBtn: document.getElementById('musicShuffleBtn'),
-  musicWriteSongFile: document.getElementById('musicWriteSongFile'),
-  musicEnableJam: document.getElementById('musicEnableJam'),
-  musicSongDisplay: document.getElementById('musicSongDisplay'),
-  songDisplaySelect: document.getElementById('songDisplaySelect'),
-  scrollSongDisplay: document.getElementById('scrollSongDisplay'),
-  songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
   censorStatus: document.getElementById('censorStatus'),
@@ -217,14 +202,6 @@ export const state = {
     donation: { volume: 1 },
     member: { volume: 1 },
   },
-  music: {
-    volume: 1,
-    index: 0,
-    writeSongFile: false,
-    enableJam: false,
-    songDisplay: 'none',  // 'none' | 'top' | 'bottom'
-    scrollSongDisplay: false
-  },
   preset: 'Dark',
   startedAt: null,
   demoMode: false,
@@ -267,7 +244,6 @@ export function saveToLocal() {
     preset: state.preset || 'Custom',
     demoMode: state.demoMode,
     sounds: state.sounds,
-    music: state.music,
     logEnabled: state.logEnabled
   };
   try {

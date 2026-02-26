@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -191,6 +191,23 @@ class App extends EventEmitter {
 
   this.app.get('/api/music', (_req: Request, res: Response) => {
       res.json(getMusicSettingsStatus());
+    });
+
+  this.app.post('/api/music/path', (req: Request, res: Response) => {
+      const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
+      const result = updateSettings({ musicPath: musicPath || undefined });
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      // Refresh playlist with the new path
+      const current = refreshPlaylist();
+      res.json({
+        ok: true,
+        musicPath: musicPath || null,
+        playlist: current.playlist,
+        count: current.playlist.length
+      });
     });
 
   this.app.get('/api/music/nowplaying', (_req: Request, res: Response) => {

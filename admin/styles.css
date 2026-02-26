@@ -617,3 +617,57 @@ footer {
   background: #4a4e66;
   border-color: #6e72a0;
 }
+
+/* ── Music player card ────────────────────────────────────────── */
+.music-card { padding: 14px 16px; }
+.music-now-playing {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 10px;
+}
+.music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.btn.ghost.music-btn {
+  width: 38px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 15px;
+  padding: 0;
+  background: #3d4055;
+  border: 1px solid #5f6388;
+  color: var(--text);
+}
+.btn.ghost.music-btn:hover {
+  background: #4a4e66;
+  border-color: #6e72a0;
+}
+.music-path-row {
+  display: flex;
+  gap: 8px;
+}
+.music-path-input {
+  flex: 1;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 11px;
+  padding: 5px 8px;
+  outline: none;
+  font-family: inherit;
+  min-width: 0;
+}
+.music-path-input:focus {
+  border-color: var(--accent);
+}

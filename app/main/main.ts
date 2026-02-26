@@ -9,7 +9,7 @@
  * via webContents.send so the UI updates in real-time.
  */
 
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 import path from 'path';
 
 // Prevent server.ts from auto-instantiating when we require it
@@ -72,6 +72,16 @@ function registerIpcHandlers() {
 
   ipcMain.handle('get-port', () => {
     return appServer?.getPort() ?? null;
+  });
+
+  ipcMain.handle('pick-folder', async () => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openDirectory'],
+      title: 'Select Music Folder',
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return result.filePaths[0];
   });
 }
 

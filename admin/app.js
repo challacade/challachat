@@ -65,6 +65,14 @@ const memVolLabel       = $('memVolLabel');
 const testMsgBtn        = $('testMsgBtn');
 const testDonBtn        = $('testDonBtn');
 const testMemBtn        = $('testMemBtn');
+// Music
+const musicNowPlaying   = $('musicNowPlaying');
+const musicPrevBtn      = $('musicPrevBtn');
+const musicPlayBtn      = $('musicPlayBtn');
+const musicNextBtn      = $('musicNextBtn');
+const musicShuffleBtn   = $('musicShuffleBtn');
+const musicPathInput    = $('musicPathInput');
+const musicBrowseBtn    = $('musicBrowseBtn');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -167,10 +175,286 @@ function startAdminSSE() {
       }
     } catch {}
   });
+  es.addEventListener('music-control', (event) => {
+    try {
+      const data = JSON.parse(event.data);
+      const action = data?.action;
+      if (action === 'playPause') musicTogglePlayPause().catch(() => {});
+      else if (action === 'prev') musicPrev().catch(() => {});
+      else if (action === 'next') musicNext().catch(() => {});
+      else if (action === 'shuffle') musicShuffle().catch(() => {});
+    } catch {}
+  });
   es.addEventListener('error', () => {
     // Auto-reconnect is built into EventSource
   });
 }
+
+// ─── Music player ──────────────────────────────────────────────
+
+const music = {
+  playlist: [],    // array of file paths from server
+  meta: [],        // array of { title, artist } per server index
+  order: [],       // shuffle-aware index mapping
+  index: 0,        // position in order[]
+  audio: null,     // HTMLAudioElement
+  playlistLoop: true,
+  autoShuffle: false,
+  isConfigured: false,
+};
+
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
+
+function serverIndexAtPos(pos) {
+  const p = Number(pos) || 0;
+  if (Array.isArray(music.order) && music.order.length) {
+    const si = music.order[p];
+    if (Number.isFinite(si)) return si;
+  }
+  return p;
+}
+
+function resetMusicOrder() {
+  music.order = Array.from({ length: music.playlist.length }, (_, i) => i);
+}
+
+function trackTitleFromPath(filePath) {
+  if (!filePath || typeof filePath !== 'string') return '';
+  const parts = filePath.split(/[/\\]+/);
+  const fn = parts[parts.length - 1] || '';
+  return fn.replace(/\.[^.]+$/, '');
+}
+
+async function fetchTrackMeta(serverIndex) {
+  const resp = await fetch(`/api/music/track/${serverIndex}/meta`, { cache: 'no-store' });
+  if (!resp.ok) throw new Error('HTTP error');
+  return resp.json();
+}
+
+async function ensureMetaLoaded(serverIndex) {
+  if (!music.playlist.length) return;
+  if (!Array.isArray(music.meta) || music.meta.length !== music.playlist.length) {
+    music.meta = Array.from({ length: music.playlist.length });
+  }
+  if (music.meta[serverIndex] !== undefined) return;
+  music.meta[serverIndex] = null;
+  try {
+    const data = await fetchTrackMeta(serverIndex);
+    const title = typeof data?.title === 'string' ? data.title.trim() : '';
+    const artist = typeof data?.artist === 'string' ? data.artist.trim() : '';
+    music.meta[serverIndex] = { title: title || null, artist: artist || null };
+  } catch {
+    music.meta[serverIndex] = null;
+  }
+}
+
+function displayTitle(pos) {
+  if (!music.playlist.length) return '(no tracks)';
+  const si = serverIndexAtPos(pos);
+  const cached = Array.isArray(music.meta) ? music.meta[si] : undefined;
+  if (cached && typeof cached === 'object') {
+    const t = (cached.title || '').trim();
+    const a = (cached.artist || '').trim();
+    if (t && a) return `${t} - ${a}`;
+    if (t) return t;
+  }
+  return trackTitleFromPath(music.playlist[si]) || '(unknown)';
+}
+
+function syncMusicUI() {
+  // Title
+  if (musicNowPlaying) {
+    musicNowPlaying.textContent = displayTitle(music.index);
+    // Lazy-load ID3 meta then update
+    if (music.playlist.length) {
+      const snap = serverIndexAtPos(music.index);
+      void ensureMetaLoaded(snap).then(() => {
+        if (serverIndexAtPos(music.index) === snap) {
+          musicNowPlaying.textContent = displayTitle(music.index);
+        }
+      });
+    }
+  }
+  // Play/Pause button
+  if (musicPlayBtn) {
+    const playing = !!(music.audio && !music.audio.paused);
+    musicPlayBtn.textContent = playing ? '⏸' : '▶';
+  }
+  // Notify server of now-playing
+  const si = serverIndexAtPos(music.index);
+  void postJsonQuiet('/api/music/nowplaying', { index: si, songId: displayTitle(music.index) });
+}
+
+async function postJsonQuiet(url, body) {
+  try {
+    await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  } catch {}
+}
+
+function setMusicIndex(i) {
+  if (!music.playlist.length) { music.index = 0; syncMusicUI(); return; }
+  music.index = Math.max(0, Math.min(music.playlist.length - 1, Number(i) || 0));
+  syncMusicUI();
+}
+
+async function loadMusicPlaylist() {
+  try {
+    const resp = await fetch('/api/music/playlist', { cache: 'no-store' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const list = Array.isArray(data?.playlist) ? data.playlist : [];
+    music.playlist = list;
+    music.meta = Array.from({ length: list.length });
+    resetMusicOrder();
+  } catch {}
+}
+
+async function fetchMusicConfig() {
+  try {
+    const resp = await fetch('/api/music', { cache: 'no-store' });
+    if (!resp.ok) return;
+    const data = await resp.json();
+    const mPath = typeof data?.musicPath === 'string' ? data.musicPath.trim() : '';
+    music.isConfigured = !!mPath;
+    music.playlistLoop = data?.playlistLoop !== false;
+    music.autoShuffle = data?.autoShuffle === true;
+    if (musicPathInput) musicPathInput.value = mPath || '';
+  } catch {}
+}
+
+async function initMusic() {
+  await fetchMusicConfig();
+  if (!music.isConfigured) { syncMusicUI(); return; }
+  await loadMusicPlaylist();
+  if (music.autoShuffle && music.playlist.length > 1) {
+    shuffleArray(music.order);
+  }
+  setMusicIndex(0);
+}
+
+async function playMusicAt(pos) {
+  const si = serverIndexAtPos(pos);
+  const trackPath = music.playlist[si];
+  if (!trackPath) return;
+
+  setMusicIndex(pos);
+
+  if (!music.audio) {
+    music.audio = new Audio();
+    music.audio.preload = 'auto';
+    music.audio.addEventListener('play', () => syncMusicUI());
+    music.audio.addEventListener('pause', () => syncMusicUI());
+    music.audio.addEventListener('ended', async () => {
+      let next = music.index + 1;
+      if (next >= music.playlist.length) {
+        if (music.playlistLoop && music.playlist.length > 0) {
+          next = 0;
+        } else {
+          syncMusicUI();
+          return;
+        }
+      }
+      try { await playMusicAt(next); } catch { setMusicIndex(next); }
+    });
+  }
+
+  // Lazy-load meta then re-sync
+  void ensureMetaLoaded(si).then(() => syncMusicUI());
+
+  music.audio.src = `/api/music/track/${si}`;
+  music.audio.volume = 1;
+  await music.audio.play();
+}
+
+async function musicTogglePlayPause() {
+  if (!music.playlist.length) {
+    await loadMusicPlaylist();
+    if (!music.playlist.length) return;
+  }
+  if (music.audio && !music.audio.paused) {
+    music.audio.pause();
+    return;
+  }
+  if (music.audio && music.audio.paused && music.audio.src) {
+    const wants = `/api/music/track/${serverIndexAtPos(music.index)}`;
+    if (music.audio.src.includes(wants)) {
+      await music.audio.play();
+      return;
+    }
+  }
+  await playMusicAt(music.index);
+}
+
+async function musicPrev() {
+  if (!music.playlist.length) return;
+  const prev = music.index - 1;
+  if (prev < 0) return;
+  const wasPlaying = !!(music.audio && !music.audio.paused);
+  setMusicIndex(prev);
+  if (wasPlaying) await playMusicAt(prev);
+}
+
+async function musicNext() {
+  if (!music.playlist.length) return;
+  const next = music.index + 1;
+  if (next >= music.playlist.length) return;
+  const wasPlaying = !!(music.audio && !music.audio.paused);
+  setMusicIndex(next);
+  if (wasPlaying) await playMusicAt(next);
+}
+
+async function musicShuffle() {
+  if (!music.playlist.length) return;
+  const wasPlaying = !!(music.audio && !music.audio.paused);
+  resetMusicOrder();
+  shuffleArray(music.order);
+  setMusicIndex(0);
+  if (wasPlaying) await playMusicAt(0);
+}
+
+// Music control bindings
+musicPlayBtn?.addEventListener('click', () => musicTogglePlayPause().catch(() => {}));
+musicPrevBtn?.addEventListener('click', () => musicPrev().catch(() => {}));
+musicNextBtn?.addEventListener('click', () => musicNext().catch(() => {}));
+musicShuffleBtn?.addEventListener('click', () => musicShuffle().catch(() => {}));
+
+// Browse folder (Electron IPC)
+musicBrowseBtn?.addEventListener('click', async () => {
+  let folder = null;
+  if (isElectron) {
+    folder = await window.challachat.invoke('pick-folder');
+  }
+  if (!folder) return;
+  musicPathInput.value = folder;
+  // Save to server settings + reload playlist
+  try {
+    const resp = await fetch('/api/music/path', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ musicPath: folder }),
+    });
+    const data = await resp.json();
+    if (data?.ok) {
+      music.isConfigured = true;
+      music.playlist = Array.isArray(data.playlist) ? data.playlist : [];
+      music.meta = Array.from({ length: music.playlist.length });
+      resetMusicOrder();
+      if (music.autoShuffle && music.playlist.length > 1) {
+        shuffleArray(music.order);
+      }
+      setMusicIndex(0);
+    }
+  } catch {}
+});
+
+// SSE music-control events (from terminal hotkeys)
+// Handled in startAdminSSE below
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -771,5 +1055,6 @@ fetchSettings();
 fetchSounds();
 initPreview().then(() => fetchAppearance());
 initAdminAudio().catch(() => {});
+initMusic().catch(() => {});
 startAdminSSE();
 pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);

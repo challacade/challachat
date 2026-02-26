@@ -83,6 +83,19 @@ export function readSettings(): { settings: AppSettings; exists: boolean; path: 
   }
 }
 
+export function updateSettings(patch: Partial<AppSettings>): { ok: boolean; settings: AppSettings } {
+  const { settings } = readSettings();
+  const merged: AppSettings = { ...settings, ...patch };
+  const settingsPath = getSettingsPath();
+  ensureSettingsDirExists();
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2), { encoding: 'utf-8' });
+    return { ok: true, settings: merged };
+  } catch {
+    return { ok: false, settings };
+  }
+}
+
 export function getMusicPath(): string | null {
   const { settings } = readSettings();
   const value = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';

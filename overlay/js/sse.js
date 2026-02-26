@@ -1,10 +1,9 @@
 /**
  * ChallaChat Overlay - Server-Sent Events
- * SSE connection handling for chat events and music control
+ * SSE connection handling for chat events
  */
 
 import { state, isDemoSite, showToast } from './state.js';
-import { musicTogglePlayPause, musicPrev, musicNext, musicShuffle } from './music.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById 
@@ -46,32 +45,6 @@ export function startSSE() {
         }
       });
     } catch {}
-  });
-
-  // Remote music control (from terminal hotkeys)
-  eventSource.addEventListener('music-control', (event) => {
-    try {
-      const data = JSON.parse(event.data || '{}');
-      const action = data?.action;
-      if (action === 'playPause') {
-        void musicTogglePlayPause();
-        return;
-      }
-      if (action === 'prev') {
-        void musicPrev();
-        return;
-      }
-      if (action === 'next') {
-        void musicNext();
-        return;
-      }
-      if (action === 'shuffle') {
-        void musicShuffle();
-        return;
-      }
-    } catch {
-      // ignore
-    }
   });
 
   // Appearance updates from admin UI

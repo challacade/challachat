@@ -180,6 +180,22 @@
       <!-- ═══ SOUND PAGE ══════════════════════════════════════ -->
       <div class="page" id="pageSound">
 
+        <!-- ── Music player ─────────────────────────────────── -->
+        <section class="card music-card">
+          <div class="music-now-playing" id="musicNowPlaying">(no track)</div>
+          <div class="music-controls">
+            <button class="btn small ghost music-btn" id="musicPrevBtn" title="Previous track">⏮</button>
+            <button class="btn small ghost music-btn" id="musicPlayBtn" title="Play / Pause">▶</button>
+            <button class="btn small ghost music-btn" id="musicNextBtn" title="Next track">⏭</button>
+            <button class="btn small ghost music-btn" id="musicShuffleBtn" title="Shuffle">🔀</button>
+          </div>
+          <div class="music-path-row">
+            <input type="text" class="music-path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
+            <button class="btn small ghost" id="musicBrowseBtn">Browse</button>
+          </div>
+        </section>
+
+        <!-- ── Sound effects ────────────────────────────────── -->
         <section class="card sound-card">
           <div class="sound-grid">
             <div class="sound-item">
