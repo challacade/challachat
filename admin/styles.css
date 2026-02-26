@@ -517,6 +517,9 @@ footer {
 .sound-test {
   margin-top: 2px;
 }
+.sound-item .btn.small {
+  margin-top: 4px;
+}
 
 /* ── Music player card ──────────────────────────────────────── */
 .music-card { padding: 14px 16px; }.music-now-playing {
