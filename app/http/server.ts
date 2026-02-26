@@ -559,6 +559,13 @@ class App extends EventEmitter {
       res.json({ ok: true });
     });
 
+  // API: start session without connecting (shows active view with add-connection card)
+  this.app.post('/api/start-session', async (_req: Request, res: Response) => {
+      await this.ensureServer();
+      this.sessionActive = true;
+      res.json({ ok: true });
+    });
+
   // API: toggle demo mode (overlay shows fake chat messages)
   this.app.post('/api/demo-mode', (req: Request, res: Response) => {
       const enabled = req.body?.enabled;

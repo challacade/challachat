@@ -21,7 +21,8 @@ const connectionsContainer = $('connectionsContainer');
 const overlayUrl      = $('overlayUrl');
 const copyBtn         = $('copyBtn');
 const overlayCard     = $('overlayCard');
-const demoModeLink    = $('demoModeLink');
+const demoModeToggle  = $('demoModeToggle');
+const startWithoutConnecting = $('startWithoutConnecting');
 const welcomeView     = $('welcomeView');
 const activeView      = $('activeView');
 const addConnectionCard = $('addConnectionCard');
@@ -739,12 +740,8 @@ function updateUI(status) {
   welcomeView.classList.toggle('hidden', isActive);
   activeView.classList.toggle('hidden', !isActive);
 
-  // Update demo link text
-  if (status.demoMode) {
-    demoModeLink.textContent = 'Stop Demo Mode';
-  } else {
-    demoModeLink.textContent = 'Start in Demo Mode';
-  }
+  // Update demo mode toggle
+  demoModeToggle.checked = !!status.demoMode;
 
   const connections = status.connections || [];
 
@@ -862,12 +859,10 @@ async function handleConnectionDisconnect(connectionId) {
   } catch { /* ignore */ }
 }
 
-async function handleDemoMode(e) {
+async function handleStartWithoutConnecting(e) {
   e.preventDefault();
   try {
-    const status = await api('GET', '/api/status');
-    const isDemo = status && status.demoMode;
-    await api('POST', '/api/demo-mode', { enabled: !isDemo });
+    await api('POST', '/api/start-session');
     await fetchStatus();
   } catch {}
 }
@@ -911,6 +906,13 @@ jamToggle.addEventListener('change', async () => {
     const data = await api('POST', '/api/jam/toggle', { enabled: jamToggle.checked });
     updateJamUI(data);
   } catch { jamToggle.checked = !jamToggle.checked; }
+});
+
+demoModeToggle.addEventListener('change', async () => {
+  try {
+    await api('POST', '/api/demo-mode', { enabled: demoModeToggle.checked });
+    await fetchStatus();
+  } catch { demoModeToggle.checked = !demoModeToggle.checked; }
 });
 
 // ─── Appearance ────────────────────────────────────────────────
@@ -1258,7 +1260,7 @@ testMemBtn.addEventListener('click', async () => {
 // ─── Key bindings ──────────────────────────────────────────────
 
 connectBtn.addEventListener('click', handleConnect);
-demoModeLink.addEventListener('click', handleDemoMode);
+startWithoutConnecting.addEventListener('click', handleStartWithoutConnecting);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
 addConnectBtn.addEventListener('click', handleAddConnect);
 addUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConnectBtn.click(); });

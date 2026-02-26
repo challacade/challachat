@@ -267,13 +267,15 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* ── Demo mode link ───────────────────────────────────────────── */
 .demo-link {
-  display: block;
+  display: inline-block;
   margin-top: 10px;
   font-size: 12px;
   color: #6b7280;
   text-align: center;
   text-decoration: none;
   transition: color .15s;
+  width: auto;
+  align-self: center;
 }
 .demo-link:hover { color: var(--slider); }
 
