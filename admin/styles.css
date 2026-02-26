@@ -246,14 +246,23 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 .platform-logo {
   height: 50px;
+  filter: drop-shadow(0 0 8px rgba(255, 255, 255, 0.3));
+  animation: float 3s ease-in-out infinite;
 }
 .platform-logo.twitch {
   height: 48px;
   position: relative;
   top: 2px;
+  animation-delay: -1.5s;
 }
 .platform-logo.kick {
   height: 42px;
+  animation-delay: -1.5s;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
 }
 
 .welcome-tagline {
