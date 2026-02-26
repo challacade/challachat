@@ -368,6 +368,11 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   min-width: 0;
 }
 
+/* ── Add connection card ──────────────────────────────────────── */
+.add-connection-card {
+  padding: 12px 14px;
+}
+
 /* ── Overlay URL card ─────────────────────────────────────────── */
 .overlay-row {
   display: flex;

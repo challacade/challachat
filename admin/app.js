@@ -33,6 +33,9 @@ const overlayCard     = $('overlayCard');
 const demoModeLink    = $('demoModeLink');
 const welcomeView     = $('welcomeView');
 const activeView      = $('activeView');
+const addConnectionCard = $('addConnectionCard');
+const addUrlInput     = $('addUrlInput');
+const addConnectBtn   = $('addConnectBtn');
 // Settings
 const filterPathInput = $('filterPathInput');
 const filterBrowseBtn = $('filterBrowseBtn');
@@ -677,6 +680,7 @@ function updateUI(status) {
 
   if (status.isRunning) {
     captureSection.classList.remove('hidden');
+    addConnectionCard.classList.remove('hidden');
 
     const p = status.platform || 'unknown';
     const iconMap = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/k.png' };
@@ -695,6 +699,7 @@ function updateUI(status) {
     }
   } else {
     captureSection.classList.add('hidden');
+    addConnectionCard.classList.add('hidden');
   }
 }
 
@@ -1182,6 +1187,13 @@ connectBtn.addEventListener('click', handleConnect);
 disconnectBtn.addEventListener('click', handleDisconnect);
 demoModeLink.addEventListener('click', handleDemoMode);
 urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
+addConnectBtn.addEventListener('click', () => {
+  // Placeholder: will connect a second stream once multi-connection is implemented
+  const url = addUrlInput.value.trim();
+  if (!url) return;
+  addUrlInput.value = '';
+});
+addUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConnectBtn.click(); });
 
 // ─── Real-time Electron events ─────────────────────────────────
 
