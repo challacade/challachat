@@ -9,7 +9,7 @@
  * via webContents.send so the UI updates in real-time.
  */
 
-import { app, BrowserWindow, dialog, ipcMain } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
 import path from 'path';
 
 // Prevent server.ts from auto-instantiating when we require it
@@ -47,6 +47,19 @@ async function createWindow(port: number) {
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
   await mainWindow.loadURL(`http://localhost:${port}/admin`);
+
+  // Open external links in the user's default browser instead of Electron
+  mainWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (url.startsWith('http://localhost')) return { action: 'allow' };
+    shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (!url.startsWith(`http://localhost:${port}`)) {
+      event.preventDefault();
+      shell.openExternal(url);
+    }
+  });
 
   mainWindow.on('closed', () => {
     mainWindow = null;

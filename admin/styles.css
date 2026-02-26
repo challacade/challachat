@@ -32,7 +32,7 @@ body {
   user-select: none;
 }
 
-a { color: var(--accent); text-decoration: none; }
+a { color: #8b9cf7; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
 /* ── App shell ────────────────────────────────────────────────── */
@@ -230,7 +230,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   justify-content: center;
   align-items: center;
   gap: 18px;
-  padding: 8px 0 14px;
+  padding: 10px 0 20px;
 }
 .platform-logo {
   height: 50px;
@@ -246,17 +246,22 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 .welcome-tagline {
   text-align: center;
-  font-size: 12.5px;
+  font-size: 14px;
+  font-weight: 500;
   color: var(--text-dim);
-  margin-bottom: 16px;
+  margin-bottom: 20px;
+}
+.welcome-tagline.welcome-sub {
+  margin-top: -12px;
 }
 
 /* ── Demo mode link ───────────────────────────────────────────── */
 .demo-link {
-  display: inline-block;
+  display: block;
   margin-top: 10px;
   font-size: 12px;
   color: #6b7280;
+  text-align: center;
   text-decoration: none;
   transition: color .15s;
 }
@@ -496,10 +501,8 @@ footer {
   gap: 8px;
 }
 .sound-label {
-  font-family: 'Inter Tight', 'Segoe UI', 'Roboto Condensed', sans-serif;
   font-size: 13px;
   font-weight: 600;
-  font-stretch: condensed;
   color: var(--text-dim);
   letter-spacing: 0.01em;
   white-space: nowrap;
