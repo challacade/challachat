@@ -462,64 +462,11 @@ footer {
 /* ── Utilities ────────────────────────────────────────────────── */
 .hidden { display: none !important; }
 
-.a-item select {
-  width: 100%;
-  padding: 4px 6px;
-  background: #3a3d4a;
-  color: var(--text);
-  border: 1px solid #555870;
-  border-radius: 4px;
-  font-size: 11px;
-  font-family: inherit;
-  cursor: pointer;
-  outline: none;
-}
-.a-item select:focus {
-  border-color: var(--accent);
-}
-/* ── Appearance grid ──────────────────────────────────────────── */
-.appearance-card { padding: 12px 16px; }
-.appearance-card .appearance-grid + .appearance-grid { margin-top: 14px; }
-.appearance-card .appearance-grid:nth-child(2) + .appearance-grid { margin-top: 18px; }
-.appearance-card .appearance-grid:nth-child(3) + .appearance-grid { margin-top: 20px; }
-.appearance-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.a-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.a-label {
-  font-family: 'Inter Tight', 'Segoe UI', 'Roboto Condensed', sans-serif;
-  font-size: 13px;
-  font-weight: 600;
-  font-stretch: condensed;
-  color: var(--text-dim);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-.a-item input[type="range"] {
-  width: 100%;
-  -webkit-appearance: none;
-  appearance: none;
-  height: 4px;
-  background: #484b5c;
-  border-radius: 2px;
-  outline: none;
-}
-.a-item input[type="range"]::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 14px;
-  height: 14px;
-  border-radius: 50%;
-  background: var(--accent);
-  cursor: pointer;
-  border: 2px solid var(--surface);
-}
-.a-item input[type="color"] {
+/* ── Appearance grid spacing ───────────────────────────────────── */
+.sound-card .sound-grid + .sound-grid { margin-top: 14px; }
+.sound-card .sound-grid:nth-child(2) + .sound-grid { margin-top: 18px; }
+.sound-card .sound-grid:nth-child(3) + .sound-grid { margin-top: 20px; }
+.sound-item input[type="color"] {
   -webkit-appearance: none;
   appearance: none;
   width: 100%;
@@ -531,12 +478,22 @@ footer {
   cursor: pointer;
   padding: 2px;
 }
-.a-item input[type="color"]::-webkit-color-swatch-wrapper {
+.sound-item input[type="color"]::-webkit-color-swatch-wrapper {
   padding: 0;
 }
-.a-item input[type="color"]::-webkit-color-swatch {
+.sound-item input[type="color"]::-webkit-color-swatch {
   border: none;
   border-radius: 3px;
+}
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 220px;
+}
+.preset-row .music-select {
+  flex: 1;
+  min-width: 0;
 }
 .toggle-row {
   margin-top: 20px !important;
@@ -563,7 +520,7 @@ footer {
   height: 14px;
   accent-color: var(--accent);
   cursor: pointer;
-  margin: 0 0 0 4px;
+  margin: 0;
 }
 
 /* ── Sound card ───────────────────────────────────────────────── */

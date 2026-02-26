@@ -962,15 +962,15 @@ function updateAppearanceUI(a) {
   }
   if (typeof a.textOpacity === 'number') {
     textOpSlider.value = a.textOpacity;
-    textOpLabel.textContent = 'Text opacity: ' + a.textOpacity.toFixed(2);
+    textOpLabel.textContent = 'Text opacity: ' + Math.round(a.textOpacity * 100) + '%';
   }
   if (typeof a.bubbleOpacity === 'number') {
     bubbleOpSlider.value = a.bubbleOpacity;
-    bubbleOpLabel.textContent = 'Bubble opacity: ' + a.bubbleOpacity.toFixed(2);
+    bubbleOpLabel.textContent = 'Bubble opacity: ' + Math.round(a.bubbleOpacity * 100) + '%';
   }
   if (typeof a.bgOpacity === 'number') {
     bgOpSlider.value = a.bgOpacity;
-    bgOpLabel.textContent = 'Back opacity: ' + a.bgOpacity.toFixed(2);
+    bgOpLabel.textContent = 'Back opacity: ' + Math.round(a.bgOpacity * 100) + '%';
   }
   if (typeof a.messageGap === 'number') {
     gapSlider.value = a.messageGap;
@@ -1017,21 +1017,21 @@ scaleSlider.addEventListener('input', () => {
 });
 textOpSlider.addEventListener('input', () => {
   const val = Number(textOpSlider.value);
-  textOpLabel.textContent = 'Text opacity: ' + val.toFixed(2);
+  textOpLabel.textContent = 'Text opacity: ' + Math.round(val * 100) + '%';
   presetSelect.value = 'Custom';
   sendAppearance({ textOpacity: val, preset: 'Custom' });
   updatePreview();
 });
 bubbleOpSlider.addEventListener('input', () => {
   const val = Number(bubbleOpSlider.value);
-  bubbleOpLabel.textContent = 'Bubble opacity: ' + val.toFixed(2);
+  bubbleOpLabel.textContent = 'Bubble opacity: ' + Math.round(val * 100) + '%';
   presetSelect.value = 'Custom';
   sendAppearance({ bubbleOpacity: val, preset: 'Custom' });
   updatePreview();
 });
 bgOpSlider.addEventListener('input', () => {
   const val = Number(bgOpSlider.value);
-  bgOpLabel.textContent = 'Back opacity: ' + val.toFixed(2);
+  bgOpLabel.textContent = 'Back opacity: ' + Math.round(val * 100) + '%';
   presetSelect.value = 'Custom';
   sendAppearance({ bgOpacity: val, preset: 'Custom' });
   updatePreview();
