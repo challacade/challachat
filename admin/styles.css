@@ -15,7 +15,7 @@
   --accent-h: #3b49b5;
   --slider:   #5c6fe0;
   --green:    #22c55e;
-  --amber:    #f59e0b;
+  --amber:    #bab678;
   --red:      #ef4444;
   --red-bg:   #450a0a;
   --red-bdr:  #7f1d1d;
@@ -65,12 +65,6 @@ header {
   object-fit: contain;
   margin: -6px 0;
 }
-.logo-group .status-dot {
-  width: 7px;
-  height: 7px;
-  flex-shrink: 0;
-}
-
 /* ── Nav tabs (circle icon buttons) ───────────────────────────── */
 .nav-tabs {
   display: flex;
@@ -108,17 +102,6 @@ header {
   border-color: var(--accent);
   box-shadow: 0 0 10px rgba(99,102,241,0.35);
 }
-
-/* ── Server status dot ────────────────────────────────────────── */
-.status-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--amber);
-  transition: background 0.3s;
-}
-.status-dot.active { background: var(--green); }
-.status-dot.error  { background: var(--red);   }
 
 /* ── Pages ────────────────────────────────────────────────────── */
 .page {

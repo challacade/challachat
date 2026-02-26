@@ -12,7 +12,7 @@ const isElectron = !!(window.challachat && window.challachat.isElectron);
 
 // ─── DOM refs ──────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
-const serverDot     = $('serverDot');
+const logoImg       = $('logoImg');
 const urlInput      = $('urlInput');
 const connectBtn    = $('connectBtn');
 const connectError  = $('connectError');
@@ -605,7 +605,7 @@ function hideError() {
 }
 
 function setServerActive(active) {
-  serverDot.className = 'status-dot' + (active ? ' active' : '');
+  logoImg.src = active ? 'img/challachat-active.png' : 'img/challachat.png';
 }
 
 // ─── Page navigation ───────────────────────────────────────────
