@@ -375,7 +375,9 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   gap: 14px;
 }
 .overlay-clipart {
-  width: 120px;
+  width: 144px;
+  margin-left: 16px;
+  margin-right: 16px;
   flex-shrink: 0;
   object-fit: contain;
 }
@@ -384,11 +386,12 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   min-width: 0;
 }
 .overlay-label {
+  display: block;
   font-size: 13px;
   font-weight: 600;
   color: var(--text-dim);
   white-space: nowrap;
-  margin: 0 0 8px 2px;
+  margin: 0 0 4px 2px;
 }
 #copyBtn {
   display: inline-flex;
@@ -412,9 +415,15 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 6px;
-  color: var(--accent);
+  color: #8b9cf7;
   font-size: 13px;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+}
+.hint {
+  margin-top: 6px;
+  margin-left: 2px;
+  font-size: 11px;
+  color: var(--text-dim);
 }
 
 /* ── Footer ───────────────────────────────────────────────────── */
