@@ -8,9 +8,9 @@ import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
-import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
+import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, updateSettings, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -139,6 +139,12 @@ class App extends EventEmitter {
   // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
+
+    // If a custom filter path is saved, load from it
+    const { settings } = readSettings();
+    if (settings.filterPath) {
+      loadFilterFromPath(settings.filterPath);
+    }
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -162,16 +168,26 @@ class App extends EventEmitter {
   this.app.get('/api/filter', (_req: Request, res: Response) => {
       res.json(getFilterStatus());
     });
-  this.app.post('/api/filter/reload', (_req: Request, res: Response) => {
-      const success = reloadFilter();
-      res.json({ ok: success, ...getFilterStatus() });
-    });
   this.app.post('/api/filter/toggle', (req: Request, res: Response) => {
       const active = req.body?.active;
       if (typeof active === 'boolean') {
         setFilterActive(active);
       }
       res.json({ ok: true, ...getFilterStatus() });
+    });
+
+  this.app.post('/api/filter/path', (req: Request, res: Response) => {
+      const filterPath = req.body?.filterPath;
+      if (typeof filterPath === 'string' && filterPath.trim().length > 0) {
+        const trimmed = filterPath.trim();
+        const success = loadFilterFromPath(trimmed);
+        if (success) {
+          updateSettings({ filterPath: trimmed });
+        }
+        res.json({ ok: success, ...getFilterStatus() });
+      } else {
+        res.json({ ok: false, error: 'No path provided', ...getFilterStatus() });
+      }
     });
 
   this.app.get('/api/logger', (_req: Request, res: Response) => {

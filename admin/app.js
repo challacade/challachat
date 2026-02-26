@@ -29,13 +29,12 @@ const disconnectBtn   = $('disconnectBtn');
 const overlayUrl      = $('overlayUrl');
 const copyBtn         = $('copyBtn');
 // Settings
+const filterPathInput = $('filterPathInput');
+const filterBrowseBtn = $('filterBrowseBtn');
 const filterToggle    = $('filterToggle');
-const filterReloadBtn = $('filterReloadBtn');
 const filterMeta      = $('filterMeta');
 const loggerToggle    = $('loggerToggle');
-const loggerMeta      = $('loggerMeta');
 const jamToggle       = $('jamToggle');
-const jamMeta         = $('jamMeta');
 // Appearance
 const scaleSlider     = $('scaleSlider');
 const scaleLabel      = $('scaleLabel');
@@ -701,30 +700,19 @@ async function fetchSettings() {
 
 function updateFilterUI(f) {
   if (!f) return;
+  filterPathInput.value = f.path || '';
   filterToggle.checked = f.active;
-  filterMeta.textContent = f.loaded
-    ? `${f.wordCount} words loaded`
-    : 'No word list loaded';
+  filterMeta.textContent = `(${f.wordCount || 0} words)`;
 }
 
 function updateLoggerUI(l) {
   if (!l) return;
   loggerToggle.checked = l.enabled;
-  if (l.logging) {
-    loggerMeta.textContent = `Logging (${l.messageCount} msgs)`;
-  } else {
-    loggerMeta.textContent = l.enabled ? 'Enabled, waiting for capture' : 'Disabled';
-  }
 }
 
 function updateJamUI(j) {
   if (!j) return;
   jamToggle.checked = j.enabled;
-  if (j.enabled && j.jamCount > 0) {
-    jamMeta.textContent = `${j.jamCount} jams`;
-  } else {
-    jamMeta.textContent = j.enabled ? 'Enabled' : 'Disabled';
-  }
 }
 
 // ─── Connect / Disconnect ──────────────────────────────────────
@@ -784,20 +772,25 @@ pollSlider.addEventListener('input', () => {
 
 // ─── Settings toggles ──────────────────────────────────────────
 
+filterBrowseBtn.addEventListener('click', async () => {
+  const filePath = isElectron
+    ? await window.challachat.invoke('pick-file', {
+        title: 'Select censor CSV',
+        filters: [{ name: 'CSV Files', extensions: ['csv'] }],
+      })
+    : null;
+  if (!filePath) return;
+  try {
+    const data = await api('POST', '/api/filter/path', { filterPath: filePath });
+    updateFilterUI(data);
+  } catch {}
+});
+
 filterToggle.addEventListener('change', async () => {
   try {
     const data = await api('POST', '/api/filter/toggle', { active: filterToggle.checked });
     updateFilterUI(data);
   } catch { filterToggle.checked = !filterToggle.checked; }
-});
-
-filterReloadBtn.addEventListener('click', async () => {
-  filterReloadBtn.disabled = true;
-  try {
-    const data = await api('POST', '/api/filter/reload');
-    updateFilterUI(data);
-  } catch {}
-  finally { filterReloadBtn.disabled = false; }
 });
 
 loggerToggle.addEventListener('change', async () => {

@@ -4,6 +4,8 @@ import os from 'os';
 
 export type AppSettings = {
   musicPath?: string;
+  /** Path to the censor CSV file (user-selected). */
+  filterPath?: string;
   /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
 
   /** Enable terminal-driven music hotkeys (m, <, >, ?) for controlling the overlay music player. */

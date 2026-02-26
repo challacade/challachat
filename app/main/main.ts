@@ -83,6 +83,17 @@ function registerIpcHandlers() {
     if (result.canceled || !result.filePaths.length) return null;
     return result.filePaths[0];
   });
+
+  ipcMain.handle('pick-file', async (_event, options?: { title?: string; filters?: { name: string; extensions: string[] }[] }) => {
+    if (!mainWindow) return null;
+    const result = await dialog.showOpenDialog(mainWindow, {
+      properties: ['openFile'],
+      title: options?.title ?? 'Select File',
+      filters: options?.filters,
+    });
+    if (result.canceled || !result.filePaths.length) return null;
+    return result.filePaths[0];
+  });
 }
 
 /* ── Wire App events → renderer ────────────────────────────────────── */

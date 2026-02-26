@@ -240,47 +240,19 @@
       <!-- ═══ SETTINGS PAGE ═══════════════════════════════════ -->
       <div class="page" id="pageSettings">
 
-        <section class="card settings-card">
+        <section class="card sound-card">
+          <div class="filter-row">
+            <label class="a-toggle has-sub"><input type="checkbox" id="filterToggle" /><span>Filter chat<small class="a-toggle-sub" id="filterMeta"></small></span></label>
+            <input type="text" class="music-path-input" id="filterPathInput" placeholder="Path to censor CSV…" readonly />
+            <button class="btn small ghost music-action" id="filterBrowseBtn">Browse</button>
+          </div>
+        </section>
+
+        <section class="card sound-card">
           <h3>General</h3>
-
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Chat filter</span>
-              <span class="setting-meta" id="filterMeta">—</span>
-            </div>
-            <div class="setting-actions">
-              <button id="filterReloadBtn" class="btn small ghost" title="Reload word list">↻</button>
-              <label class="toggle">
-                <input type="checkbox" id="filterToggle" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Chat logger</span>
-              <span class="setting-meta" id="loggerMeta">—</span>
-            </div>
-            <div class="setting-actions">
-              <label class="toggle">
-                <input type="checkbox" id="loggerToggle" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
-          </div>
-
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="setting-label">Jam mode</span>
-              <span class="setting-meta" id="jamMeta">—</span>
-            </div>
-            <div class="setting-actions">
-              <label class="toggle">
-                <input type="checkbox" id="jamToggle" />
-                <span class="toggle-slider"></span>
-              </label>
-            </div>
+          <div class="sound-grid">
+            <label class="a-toggle"><input type="checkbox" id="loggerToggle" /><span>Chat logger</span></label>
+            <label class="a-toggle"><input type="checkbox" id="jamToggle" /><span>Jam mode</span></label>
           </div>
         </section>
 

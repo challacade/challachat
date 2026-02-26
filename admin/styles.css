@@ -354,76 +354,15 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 
 /* ── Settings card ────────────────────────────────────────────── */
-.settings-card {
-  display: flex;
-  flex-direction: column;
-  gap: 0;
-}
-.settings-card h3 { margin-bottom: 6px; }
-
-.setting-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 0;
-}
-.setting-row + .setting-row {
-  border-top: 1px solid var(--border);
-}
-
-.setting-info {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.setting-label {
-  font-size: 13px;
-  font-weight: 500;
-  color: var(--text);
-}
-.setting-meta {
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-.setting-actions {
+/* ── Settings: filter row ─────────────────────────────────────── */
+.filter-row {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-/* ── Toggle switch ────────────────────────────────────────────── */
-.toggle {
-  position: relative;
-  display: inline-block;
-  width: 38px;
-  height: 22px;
-  cursor: pointer;
-}
-.toggle input { opacity: 0; width: 0; height: 0; }
-.toggle-slider {
-  position: absolute;
-  inset: 0;
-  background: var(--border);
-  border-radius: 22px;
-  transition: background 0.2s;
-}
-.toggle-slider::before {
-  content: '';
-  position: absolute;
-  left: 3px;
-  top: 3px;
-  width: 16px;
-  height: 16px;
-  background: #fff;
-  border-radius: 50%;
-  transition: transform 0.2s;
-}
-.toggle input:checked + .toggle-slider {
-  background: var(--accent);
-}
-.toggle input:checked + .toggle-slider::before {
-  transform: translateX(16px);
+.filter-row .music-path-input {
+  flex: 1;
+  min-width: 0;
 }
 
 /* ── Overlay URL card ─────────────────────────────────────────── */
@@ -519,6 +458,16 @@ footer {
   accent-color: var(--accent);
   cursor: pointer;
   margin: 0;
+}
+.a-toggle.has-sub {
+  align-items: center;
+}
+.a-toggle-sub {
+  display: block;
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-dim);
+  line-height: 1.2;
 }
 
 /* ── Sound card ───────────────────────────────────────────────── */
