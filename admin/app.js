@@ -71,6 +71,9 @@ const musicPrevBtn      = $('musicPrevBtn');
 const musicPlayBtn      = $('musicPlayBtn');
 const musicNextBtn      = $('musicNextBtn');
 const musicShuffleBtn   = $('musicShuffleBtn');
+const musicVolSlider    = $('musicVolSlider');
+const musicVolLabel     = $('musicVolLabel');
+const musicVolIcon      = $('musicVolIcon');
 const musicPathInput    = $('musicPathInput');
 const musicBrowseBtn    = $('musicBrowseBtn');
 const songDisplaySelect = $('songDisplaySelect');
@@ -201,12 +204,14 @@ const music = {
   order: [],       // shuffle-aware index mapping
   index: 0,        // position in order[]
   audio: null,     // HTMLAudioElement
+  gainNode: null,  // GainNode for volume amplification
   playlistLoop: true,
   autoShuffle: false,
   isConfigured: false,
   songDisplay: 'none',
   writeSongFile: false,
   scrollSongDisplay: false,
+  volume: 1,
 };
 
 function shuffleArray(arr) {
@@ -368,6 +373,12 @@ async function playMusicAt(pos) {
   if (!music.audio) {
     music.audio = new Audio();
     music.audio.preload = 'auto';
+    // Set up Web Audio gain node for volume amplification (>100%)
+    const actx = new (window.AudioContext || window.webkitAudioContext)();
+    const source = actx.createMediaElementSource(music.audio);
+    music.gainNode = actx.createGain();
+    source.connect(music.gainNode);
+    music.gainNode.connect(actx.destination);
     music.audio.addEventListener('play', () => syncMusicUI());
     music.audio.addEventListener('pause', () => syncMusicUI());
     music.audio.addEventListener('ended', async () => {
@@ -388,7 +399,7 @@ async function playMusicAt(pos) {
   void ensureMetaLoaded(si).then(() => syncMusicUI());
 
   music.audio.src = `/api/music/track/${si}`;
-  music.audio.volume = 1;
+  applyMusicVolume();
   await music.audio.play();
 }
 
@@ -443,6 +454,40 @@ musicPlayBtn?.addEventListener('click', () => musicTogglePlayPause().catch(() =>
 musicPrevBtn?.addEventListener('click', () => musicPrev().catch(() => {}));
 musicNextBtn?.addEventListener('click', () => musicNext().catch(() => {}));
 musicShuffleBtn?.addEventListener('click', () => musicShuffle().catch(() => {}));
+
+// Volume slider
+let musicVolBeforeMute = 1;
+musicVolSlider?.addEventListener('input', () => {
+  const vol = parseFloat(musicVolSlider.value);
+  music.volume = vol;
+  if (music.audio) applyMusicVolume();
+  syncMusicVolUI();
+});
+musicVolIcon?.addEventListener('click', () => {
+  if (music.volume > 0) {
+    musicVolBeforeMute = music.volume;
+    music.volume = 0;
+  } else {
+    music.volume = musicVolBeforeMute || 1;
+  }
+  if (music.audio) applyMusicVolume();
+  if (musicVolSlider) musicVolSlider.value = music.volume;
+  syncMusicVolUI();
+});
+
+function syncMusicVolUI() {
+  const v = music.volume;
+  if (musicVolLabel) musicVolLabel.textContent = `${Math.round(v * 100)}%`;
+  if (musicVolIcon) {
+    musicVolIcon.textContent = v === 0 ? '\uD83D\uDD07' : v < 0.5 ? '\uD83D\uDD09' : '\uD83D\uDD0A';
+  }
+}
+
+function applyMusicVolume() {
+  if (music.gainNode) {
+    music.gainNode.gain.value = music.volume;
+  }
+}
 
 // Browse folder (Electron IPC)
 musicBrowseBtn?.addEventListener('click', async () => {

@@ -183,6 +183,11 @@
         <!-- ── Music player ─────────────────────────────────── -->
         <section class="card music-card">
           <div class="music-now-playing" id="musicNowPlaying">(no track)</div>
+          <div class="music-volume-row">
+            <span class="music-vol-icon" id="musicVolIcon" title="Mute / Unmute">🔊</span>
+            <input type="range" id="musicVolSlider" class="music-vol-slider" min="0" max="2" step="0.01" value="1" />
+            <span class="music-vol-label" id="musicVolLabel">100%</span>
+          </div>
           <div class="music-controls">
             <button class="btn small ghost music-btn" id="musicPrevBtn" title="Previous track">⏮</button>
             <button class="btn small ghost music-btn" id="musicPlayBtn" title="Play / Pause">▶</button>

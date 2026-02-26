@@ -630,6 +630,32 @@ footer {
   text-overflow: ellipsis;
   margin-bottom: 10px;
 }
+.music-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 8px;
+  padding: 0 2px;
+}
+.music-vol-icon {
+  font-size: 14px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.music-vol-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent, #7c83e7);
+  cursor: pointer;
+}
+.music-vol-label {
+  font-size: 11px;
+  color: var(--text-dim, #b3b5c6);
+  min-width: 32px;
+  text-align: right;
+  flex-shrink: 0;
+}
 .music-controls {
   display: flex;
   justify-content: center;
