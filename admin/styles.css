@@ -436,11 +436,11 @@ footer {
   margin-top: 20px !important;
 }
 .preview-host {
-  margin-top: 20px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
   overflow: hidden;
   min-height: 40px;
+}
+.preview-card {
+  padding: 0 !important;
 }
 .a-toggle {
   display: flex;
