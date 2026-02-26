@@ -18,7 +18,7 @@ const connectBtn    = $('connectBtn');
 const connectError  = $('connectError');
 const connectSection  = $('connectSection');
 const captureSection  = $('captureSection');
-const platformBadge   = $('platformBadge');
+const platformIcon    = $('platformIcon');
 const captureUrl      = $('captureUrl');
 const messageCount    = $('messageCount');
 const uptime          = $('uptime');
@@ -678,8 +678,9 @@ function updateUI(status) {
     captureSection.classList.remove('hidden');
 
     const p = status.platform || 'unknown';
-    platformBadge.textContent = p;
-    platformBadge.className = 'platform-badge ' + p;
+    const iconMap = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/k.png' };
+    platformIcon.src = iconMap[p] || '';
+    platformIcon.style.display = iconMap[p] ? '' : 'none';
 
     captureUrl.textContent = status.url || '';
     messageCount.textContent = (status.messageCount || 0).toLocaleString();

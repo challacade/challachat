@@ -87,35 +87,29 @@
         <div id="activeView" class="hidden">
 
           <!-- Active capture --------------------------------------- -->
-          <section class="card" id="captureSection">
+          <section class="card capture-card" id="captureSection">
             <div class="capture-header">
-              <span id="platformBadge" class="platform-badge"></span>
+              <img id="platformIcon" class="capture-platform-icon" src="img/youtube.png" alt="" />
               <span id="captureUrl" class="capture-url"></span>
+              <button id="disconnectBtn" class="btn small danger">Disconnect</button>
             </div>
 
-            <div class="stats-row">
-              <div class="stat">
-                <span class="stat-value" id="messageCount">0</span>
-                <span class="stat-label">Messages</span>
+            <div class="capture-detail-row">
+              <div class="capture-stat">
+                <span class="capture-stat-value" id="messageCount">0</span>
+                <span class="capture-stat-label">Messages</span>
               </div>
-              <div class="stat">
-                <span class="stat-value" id="uptime">0s</span>
-                <span class="stat-label">Uptime</span>
+              <div class="capture-stat">
+                <span class="capture-stat-value" id="uptime">0s</span>
+                <span class="capture-stat-label">Uptime</span>
               </div>
-              <div class="stat">
-                <span class="stat-value" id="pollDisplay">1 s</span>
-                <span class="stat-label">Poll Rate</span>
+              <div class="capture-poll-row">
+                <label for="pollSlider">Frequency</label>
+                <input type="range" id="pollSlider" min="100" max="5000" step="100" value="1000" />
+                <span id="pollValue" class="capture-poll-value">1.0 s</span>
               </div>
             </div>
-
-            <!-- Poll interval slider (only visible while capturing) -->
-            <div class="slider-row">
-              <label for="pollSlider">Poll interval</label>
-              <input type="range" id="pollSlider" min="100" max="5000" step="100" value="1000" />
-              <span id="pollValue" class="slider-value">1.0 s</span>
-            </div>
-
-            <button id="disconnectBtn" class="btn danger full-width">Disconnect</button>
+            <span id="pollDisplay" class="hidden"></span>
           </section>
 
           <!-- OBS Overlay URL -------------------------------------- -->
