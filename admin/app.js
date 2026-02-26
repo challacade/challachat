@@ -766,17 +766,9 @@ function updateUI(status) {
     }
   }
 
-  // Show add-connection card when session is active and under max (even with 0 connections)
-  if (status.sessionActive && connections.length < MAX_CONNECTIONS) {
-    addConnectionCard.classList.remove('hidden');
-  } else {
-    addConnectionCard.classList.add('hidden');
-  }
-
-  // If demo mode only (no session started), hide add card
-  if (!status.sessionActive && status.demoMode) {
-    addConnectionCard.classList.add('hidden');
-  }
+  // Show add-connection card whenever active view is visible and under max
+  const showAddCard = isActive && connections.length < MAX_CONNECTIONS;
+  addConnectionCard.classList.toggle('hidden', !showAddCard);
 }
 
 // ─── Settings fetch ────────────────────────────────────────────
