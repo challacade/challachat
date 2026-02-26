@@ -629,7 +629,7 @@ async function api(method, path, body) {
     // IPC calls — map REST paths to IPC channels
     if (path === '/api/status')          return window.challachat.invoke('get-status');
     if (path === '/api/connect')         return window.challachat.invoke('connect', body?.url);
-    if (path === '/api/disconnect')      return window.challachat.invoke('disconnect');
+    if (path === '/api/disconnect')      return window.challachat.invoke('disconnect', body?.connectionId);
     // Settings go through REST even in Electron (served on localhost)
     // Fall through to fetch
   }
@@ -731,7 +731,7 @@ function removeConnectionCard(connId) {
 }
 
 function updateUI(status) {
-  const isActive = status.isRunning || status.demoMode;
+  const isActive = status.sessionActive || status.demoMode;
   setServerActive(isActive);
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
 
@@ -766,15 +766,15 @@ function updateUI(status) {
     }
   }
 
-  // Show/hide add-connection card (visible when running and under max)
-  if (status.isRunning && connections.length < MAX_CONNECTIONS) {
+  // Show add-connection card when session is active and under max (even with 0 connections)
+  if (status.sessionActive && connections.length < MAX_CONNECTIONS) {
     addConnectionCard.classList.remove('hidden');
   } else {
     addConnectionCard.classList.add('hidden');
   }
 
-  // If demo mode only (no real connections), hide add card
-  if (!status.isRunning && status.demoMode) {
+  // If demo mode only (no session started), hide add card
+  if (!status.sessionActive && status.demoMode) {
     addConnectionCard.classList.add('hidden');
   }
 }

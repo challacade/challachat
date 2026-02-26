@@ -66,6 +66,7 @@ class App extends EventEmitter {
   private tui: TerminalUI | null = null;
   private musicHotkeysEnabled = false;
   private demoMode = false;
+  private sessionActive = false;
   private nextConnId = 1;
 
   /** True when at least one capture connection is active. */
@@ -699,6 +700,7 @@ class App extends EventEmitter {
     if (this.connections.size >= MAX_CONNECTIONS) {
       throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
     }
+    this.sessionActive = true;
 
     // Prevent duplicate URLs
     for (const conn of this.connections.values()) {
@@ -984,6 +986,7 @@ class App extends EventEmitter {
     }));
     return {
       isRunning: this.isRunning,
+      sessionActive: this.sessionActive,
       demoMode: this.demoMode,
       connections,
       overlayUrl: `http://localhost:${this.port}/`,
