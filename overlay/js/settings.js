@@ -274,17 +274,51 @@ export function updateSongDisplayText() {
   const title = state.songDisplay?.songId || '';
   const display = title ? `\u266b ${title} \u266b` : '';
   const textSpan = songEl.querySelector('.song-display-text');
-  if (textSpan) {
+  if (!textSpan) { songEl.textContent = display; return; }
+
+  const scrolling = songEl.classList.contains('scrolling') && !!display;
+
+  if (!scrolling) {
+    // Static mode: plain text, no child spans
     textSpan.textContent = display;
-    if (songEl.classList.contains('scrolling') && display) {
-      // Duration accounts for the full travel: 100% parent width (padding) + 100% text width
-      const chars = display.length;
-      const duration = Math.max(10, chars * 0.45 + 5);
-      songEl.style.setProperty('--marquee-duration', `${duration}s`);
-    }
-  } else {
-    songEl.textContent = display;
+    songEl.style.removeProperty('--marquee-shift');
+    songEl.style.removeProperty('--marquee-duration');
+    return;
   }
+
+  // Scrolling mode: two inner spans for seamless loop
+  let primary = textSpan.querySelector('.song-primary');
+  let secondary = textSpan.querySelector('.song-secondary');
+  if (!primary || !secondary) {
+    textSpan.textContent = '';
+    primary = document.createElement('span');
+    primary.className = 'song-primary';
+    secondary = document.createElement('span');
+    secondary.className = 'song-secondary';
+    textSpan.appendChild(primary);
+    textSpan.appendChild(secondary);
+  }
+  primary.textContent = display;
+  secondary.textContent = display;
+
+  // Measure after paint so offsetWidth is accurate
+  requestAnimationFrame(() => {
+    const textWidth = primary.offsetWidth;
+    const containerPad = parseFloat(getComputedStyle(songEl).paddingLeft) || 0;
+    const buffer = containerPad + 10; // ensure text is fully offscreen right
+    const gap = Math.max(80, window.innerWidth * 0.25) + buffer;
+    const shift = textWidth + gap;
+    secondary.style.marginLeft = `${gap}px`;
+    songEl.style.setProperty('--marquee-shift', `${shift}px`);
+    // Constant scroll speed (px/s) for steady pacing
+    const speed = 60;
+    const duration = Math.max(5, shift / speed);
+    songEl.style.setProperty('--marquee-duration', `${duration}s`);
+    // Restart animation so new metrics apply immediately
+    textSpan.style.animation = 'none';
+    void textSpan.offsetHeight;
+    textSpan.style.animation = '';
+  });
 }
 
 export function applyPreset(name) {
