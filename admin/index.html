@@ -14,12 +14,19 @@
   <div class="app">
     <!-- ── Header ───────────────────────────────────────────── -->
     <header>
-      <button class="nav-home active" id="navHome" data-page="home" title="Home">
+      <div class="logo-group">
         <img class="logo-img" src="challachat.png" alt="ChallaChat" />
         <span class="status-dot" id="serverDot"></span>
-      </button>
+      </div>
 
       <nav class="nav-tabs">
+        <button class="nav-tab active" id="navHome" data-page="home" title="Home">
+          <!-- House icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </button>
         <button class="nav-tab" id="navAppearance" data-page="appearance" title="Appearance">
           <!-- Palette icon -->
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
