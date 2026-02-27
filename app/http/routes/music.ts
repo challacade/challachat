@@ -7,6 +7,13 @@ import { getNowPlaying, setNowPlayingByIndex } from '../../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../../core/jam';
 import type { RouteContext } from './context';
 
+/** Broadcast a jam-finale system message if a finale was triggered. */
+function announceJamFinale(ctx: RouteContext, finale: ReturnType<typeof onNowPlayingUpdated>) {
+  if (!finale) return;
+  const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
+  ctx.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
+}
+
 /** Routes: /api/music/*, /api/jam/* */
 export function createMusicRouter(ctx: RouteContext): Router {
   const router = Router();
@@ -93,11 +100,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
     }
     const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
     const now = setNowPlayingByIndex(idx, songId);
-    const finale = onNowPlayingUpdated(now);
-    if (finale) {
-      const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
-      ctx.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
-    }
+    announceJamFinale(ctx, onNowPlayingUpdated(now));
     res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     if (now) {
       ctx.sse.send('now-playing', { songId: now.songId, index: now.index });
@@ -144,11 +147,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
 
     const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
     const now = setNowPlayingByIndex(idx, songId);
-    const finale = onNowPlayingUpdated(now);
-    if (finale) {
-      const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
-      ctx.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
-    }
+    announceJamFinale(ctx, onNowPlayingUpdated(now));
 
     const filePath = getTrackByIndex(idx);
     if (!filePath) {

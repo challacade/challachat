@@ -155,8 +155,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const last = segments[segments.length - 1];
           if (last && last.t === 'text') last.text += text; else segments.push({ t: 'text', text });
         };
-        const parseSrcSetInner = (srcset?: string) => { if (!srcset) return ''; const first = String(srcset).split(',')[0].trim(); return first.split(' ')[0].trim(); };
-        const normalizeSizeInner = (url: string) => (url || '').replace(/=s\d+-/g, '=s64-');
+        // Reuse outer-scope parseSrcSet / normalizeSize (same browser evaluate closure)
         const walker = document.createTreeWalker(messageElement, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, null);
         let n = walker.currentNode as any;
         while (n) {
@@ -167,8 +166,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
               const alt = el.getAttribute('alt') || '';
               const src = el.getAttribute('src') || '';
               const srcset = el.getAttribute('srcset') || '';
-              const chosen = src.startsWith('http') ? src : parseSrcSetInner(srcset);
-              const url = normalizeSizeInner(chosen || src);
+              const chosen = src.startsWith('http') ? src : parseSrcSet(srcset);
+              const url = normalizeSize(chosen || src);
               if (url) segments.push({ t: 'emote', url, alt });
             }
           }
