@@ -29,16 +29,6 @@ function parseCSV(content: string): Set<string> {
   return words;
 }
 
-// Reload the filter from the currently loaded path
-export function reloadFilter(): boolean {
-  if (!loadedPath) return false;
-  const savedPath = loadedPath;
-  badWords.clear();
-  filterLoaded = false;
-  loadedPath = null;
-  return loadFilterFromPath(savedPath);
-}
-
 // Load filter from a specific file path (user-selected)
 export function loadFilterFromPath(filePath: string): boolean {
   try {

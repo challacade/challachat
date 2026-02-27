@@ -99,8 +99,7 @@ const pages = {
 
 const navButtons = [navHome, navAppearance, navSound, navSettings];
 
-let pollTimer = null;
-let connecting = false;
+
 
 // ─── Audio system ──────────────────────────────────────────────
 
@@ -831,7 +830,6 @@ async function handleConnect() {
   if (!url) { showError('Please enter a livestream URL.'); return; }
 
   hideError();
-  connecting = true;
   connectBtn.disabled = true;
   connectBtn.textContent = 'Connecting\u2026';
 
@@ -847,7 +845,6 @@ async function handleConnect() {
   } catch {
     showError('Failed to connect. Is the server running?');
   } finally {
-    connecting = false;
     connectBtn.disabled = false;
     connectBtn.textContent = 'Connect';
   }
@@ -1270,4 +1267,4 @@ initPreview().then(() => fetchAppearance());
 initAdminAudio().catch(() => {});
 initMusic().catch(() => {});
 startAdminSSE();
-pollTimer = setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);
+setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);

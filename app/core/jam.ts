@@ -42,11 +42,6 @@ export function isJamEnabled(): boolean {
   return jamEnabled;
 }
 
-export function setJamThreshold(next: number): void {
-  const n = Math.max(1, Math.floor(Number(next) || JAM_THRESHOLD));
-  threshold = Number.isFinite(n) ? n : JAM_THRESHOLD;
-}
-
 function ensureTrackingForSong(now: NowPlaying): void {
   const key = makeSongKey(now);
   if (currentSongKey !== key) {

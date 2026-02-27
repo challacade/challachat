@@ -11,7 +11,7 @@ import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/cens
 import { startLogging, stopLogging, logMessage, setLogEnabled } from '../core/logger';
 import { readSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getNowPlaying } from '../core/nowPlaying';
-import { onNowPlayingUpdated, setJamEnabled } from '../core/jam';
+import { setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
@@ -29,7 +29,7 @@ import { createSettingsRouter } from './routes/settings';
  * In headless (Electron) mode these replace console output;
  * the Electron main process listens and forwards them over IPC.
  */
-export interface AppEvents {
+interface AppEvents {
   'server-ready': (port: number) => void;
   'capture-status': (status: { status: string; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number }) => void;
   'capture-error': (error: string) => void;

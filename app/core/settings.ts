@@ -68,12 +68,8 @@ function ensureSettingsDirExists(): string {
   return settingsDir;
 }
 
-export function getSettingsPath(): string {
+function getSettingsPath(): string {
   return path.join(getSettingsDir(), 'settings.json');
-}
-
-export function getSongTxtPath(): string {
-  return path.join(getSettingsDir(), 'song.txt');
 }
 
 export function writeSongTxt(line: string): { ok: boolean; path: string } {
@@ -147,7 +143,7 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
   };
 }
 
-export function getSongDisplay(): string {
+function getSongDisplay(): string {
   const { settings } = readSettings();
   const val = typeof settings.songDisplay === 'string' ? settings.songDisplay : 'none';
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
@@ -163,12 +159,12 @@ export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile:
   };
 }
 
-export function getAutoShuffle(): boolean {
+function getAutoShuffle(): boolean {
   const { settings } = readSettings();
   return (settings as any)?.autoShuffle === true;
 }
 
-export function getPlaylistLoop(): boolean {
+function getPlaylistLoop(): boolean {
   const { settings } = readSettings();
   // Default to true if not explicitly set to false
   return (settings as any)?.playlistLoop !== false;

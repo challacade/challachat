@@ -133,11 +133,6 @@ export function setLogEnabled(enabled: boolean): void {
   }
 }
 
-// Check if logging is enabled
-export function isLogEnabled(): boolean {
-  return logEnabled;
-}
-
 // Get logger status for API
 export function getLoggerStatus(): {
   enabled: boolean;

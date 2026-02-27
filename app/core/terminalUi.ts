@@ -10,7 +10,7 @@ const ANSI = {
   white: '\x1b[37m'
 };
 
-export interface RecentMessage { name: string; text: string }
+interface RecentMessage { name: string; text: string }
 
 // Terminal UI: handles prompts and the one-time status header
 export class TerminalUI {
