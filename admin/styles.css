@@ -598,7 +598,7 @@ footer {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 12px;
+  margin-bottom: 18px;
 }
 .music-btn {
   width: 32px;
@@ -626,7 +626,7 @@ footer {
 }
 .music-path-input {
   flex: 1;
-  padding: 8px 12px;
+  padding: 6px 12px;
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -642,7 +642,7 @@ footer {
   border-color: var(--accent);
 }
 .music-options {
-  margin-top: 20px;
+  margin-top: 21px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px 14px;
