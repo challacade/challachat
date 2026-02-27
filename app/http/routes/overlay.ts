@@ -7,6 +7,31 @@ import type { RouteContext } from './context';
 export function createOverlayRouter(ctx: RouteContext): Router {
   const router = Router();
 
+  // ── Appearance schema: defines validation rules for each known key ──
+
+  type Rule =
+    | { type: 'number'; min: number; max: number }
+    | { type: 'color' }
+    | { type: 'boolean' }
+    | { type: 'enum'; values: string[] };
+
+  const appearanceRules: Record<string, Rule> = {
+    scale:         { type: 'number', min: 0.5, max: 3 },
+    textOpacity:   { type: 'number', min: 0, max: 1 },
+    bubbleOpacity: { type: 'number', min: 0, max: 1 },
+    bgOpacity:     { type: 'number', min: 0, max: 1 },
+    messageGap:    { type: 'number', min: 0, max: 1.5 },
+    textColor:     { type: 'color' },
+    bubbleColor:   { type: 'color' },
+    bgColor:       { type: 'color' },
+    showBubbles:   { type: 'boolean' },
+    showAvatars:   { type: 'boolean' },
+    showBadges:    { type: 'boolean' },
+    preset:        { type: 'enum', values: ['Dark', 'Light', 'Transparent', 'Custom'] },
+  };
+
+  const hexColorRe = /^#[0-9a-fA-F]{6}$/;
+
   // ── Appearance ──
 
   router.get('/appearance', (_req: Request, res: Response) => {
@@ -19,42 +44,23 @@ export function createOverlayRouter(ctx: RouteContext): Router {
       res.status(400).json({ error: 'Invalid body' });
       return;
     }
-    // Merge only known keys
-    if (typeof body.scale === 'number') {
-      ctx.appearance.scale = Math.max(0.5, Math.min(3, body.scale));
-    }
-    if (typeof body.textOpacity === 'number') {
-      ctx.appearance.textOpacity = Math.max(0, Math.min(1, body.textOpacity));
-    }
-    if (typeof body.bubbleOpacity === 'number') {
-      ctx.appearance.bubbleOpacity = Math.max(0, Math.min(1, body.bubbleOpacity));
-    }
-    if (typeof body.bgOpacity === 'number') {
-      ctx.appearance.bgOpacity = Math.max(0, Math.min(1, body.bgOpacity));
-    }
-    if (typeof body.messageGap === 'number') {
-      ctx.appearance.messageGap = Math.max(0, Math.min(1.5, body.messageGap));
-    }
-    if (typeof body.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.textColor)) {
-      ctx.appearance.textColor = body.textColor;
-    }
-    if (typeof body.bubbleColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bubbleColor)) {
-      ctx.appearance.bubbleColor = body.bubbleColor;
-    }
-    if (typeof body.bgColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bgColor)) {
-      ctx.appearance.bgColor = body.bgColor;
-    }
-    if (typeof body.showBubbles === 'boolean') {
-      ctx.appearance.showBubbles = body.showBubbles;
-    }
-    if (typeof body.showAvatars === 'boolean') {
-      ctx.appearance.showAvatars = body.showAvatars;
-    }
-    if (typeof body.showBadges === 'boolean') {
-      ctx.appearance.showBadges = body.showBadges;
-    }
-    if (typeof body.preset === 'string' && ['Dark', 'Light', 'Transparent', 'Custom'].includes(body.preset)) {
-      ctx.appearance.preset = body.preset;
+    for (const [key, rule] of Object.entries(appearanceRules)) {
+      const val = body[key];
+      if (val === undefined) continue;
+      switch (rule.type) {
+        case 'number':
+          if (typeof val === 'number') ctx.appearance[key] = Math.max(rule.min, Math.min(rule.max, val));
+          break;
+        case 'color':
+          if (typeof val === 'string' && hexColorRe.test(val)) ctx.appearance[key] = val;
+          break;
+        case 'boolean':
+          if (typeof val === 'boolean') ctx.appearance[key] = val;
+          break;
+        case 'enum':
+          if (typeof val === 'string' && rule.values.includes(val)) ctx.appearance[key] = val;
+          break;
+      }
     }
     ctx.sse.send('appearance', ctx.appearance);
     updateSettings(ctx.appearance as any);

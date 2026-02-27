@@ -1079,47 +1079,29 @@ async function fetchAppearance() {
 }
 
 function updateAppearanceUI(a) {
-  if (typeof a.scale === 'number') {
-    scaleSlider.value = a.scale;
-    scaleLabel.textContent = 'Scale: ' + a.scale.toFixed(2);
+  // Slider controls: { key, slider, label, format }
+  const sliders = [
+    { key: 'scale',         slider: scaleSlider,    label: scaleLabel,    format: v => 'Scale: ' + v.toFixed(2) },
+    { key: 'textOpacity',   slider: textOpSlider,   label: textOpLabel,   format: v => 'Text opacity: ' + Math.round(v * 100) + '%' },
+    { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
+    { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
+    { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
+  ];
+  for (const { key, slider, label, format } of sliders) {
+    if (typeof a[key] === 'number') {
+      slider.value = a[key];
+      label.textContent = format(a[key]);
+    }
   }
-  if (typeof a.textOpacity === 'number') {
-    textOpSlider.value = a.textOpacity;
-    textOpLabel.textContent = 'Text opacity: ' + Math.round(a.textOpacity * 100) + '%';
+  // Color pickers
+  for (const [key, picker] of [['textColor', textColorPicker], ['bubbleColor', bubbleColorPicker], ['bgColor', bgColorPicker]]) {
+    if (typeof a[key] === 'string') picker.value = a[key];
   }
-  if (typeof a.bubbleOpacity === 'number') {
-    bubbleOpSlider.value = a.bubbleOpacity;
-    bubbleOpLabel.textContent = 'Bubble opacity: ' + Math.round(a.bubbleOpacity * 100) + '%';
+  // Toggles
+  for (const [key, toggle] of [['showBubbles', showBubblesToggle], ['showAvatars', showAvatarsToggle], ['showBadges', showBadgesToggle]]) {
+    if (typeof a[key] === 'boolean') toggle.checked = a[key];
   }
-  if (typeof a.bgOpacity === 'number') {
-    bgOpSlider.value = a.bgOpacity;
-    bgOpLabel.textContent = 'Back opacity: ' + Math.round(a.bgOpacity * 100) + '%';
-  }
-  if (typeof a.messageGap === 'number') {
-    gapSlider.value = a.messageGap;
-    gapLabel.textContent = 'Vertical gap: ' + a.messageGap.toFixed(2);
-  }
-  if (typeof a.textColor === 'string') {
-    textColorPicker.value = a.textColor;
-  }
-  if (typeof a.bubbleColor === 'string') {
-    bubbleColorPicker.value = a.bubbleColor;
-  }
-  if (typeof a.bgColor === 'string') {
-    bgColorPicker.value = a.bgColor;
-  }
-  if (typeof a.showBubbles === 'boolean') {
-    showBubblesToggle.checked = a.showBubbles;
-  }
-  if (typeof a.showAvatars === 'boolean') {
-    showAvatarsToggle.checked = a.showAvatars;
-  }
-  if (typeof a.showBadges === 'boolean') {
-    showBadgesToggle.checked = a.showBadges;
-  }
-  if (typeof a.preset === 'string') {
-    presetSelect.value = a.preset;
-  }
+  if (typeof a.preset === 'string') presetSelect.value = a.preset;
   updatePreview();
 }
 
@@ -1131,71 +1113,49 @@ function sendAppearance(patch) {
   }, 150);
 }
 
-scaleSlider.addEventListener('input', () => {
-  const val = Number(scaleSlider.value);
-  scaleLabel.textContent = 'Scale: ' + val.toFixed(2);
-  presetSelect.value = 'Custom';
-  sendAppearance({ scale: val, preset: 'Custom' });
-  updatePreview();
+// Data-driven appearance listeners — sliders
+[
+  { key: 'scale',         slider: scaleSlider,    label: scaleLabel,    format: v => 'Scale: ' + v.toFixed(2) },
+  { key: 'textOpacity',   slider: textOpSlider,   label: textOpLabel,   format: v => 'Text opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
+].forEach(({ key, slider, label, format }) => {
+  slider.addEventListener('input', () => {
+    const val = Number(slider.value);
+    label.textContent = format(val);
+    presetSelect.value = 'Custom';
+    sendAppearance({ [key]: val, preset: 'Custom' });
+    updatePreview();
+  });
 });
-textOpSlider.addEventListener('input', () => {
-  const val = Number(textOpSlider.value);
-  textOpLabel.textContent = 'Text opacity: ' + Math.round(val * 100) + '%';
-  presetSelect.value = 'Custom';
-  sendAppearance({ textOpacity: val, preset: 'Custom' });
-  updatePreview();
+
+// Data-driven appearance listeners — color pickers
+[
+  ['textColor',   textColorPicker],
+  ['bubbleColor', bubbleColorPicker],
+  ['bgColor',     bgColorPicker],
+].forEach(([key, picker]) => {
+  picker.addEventListener('input', () => {
+    presetSelect.value = 'Custom';
+    sendAppearance({ [key]: picker.value, preset: 'Custom' });
+    updatePreview();
+  });
 });
-bubbleOpSlider.addEventListener('input', () => {
-  const val = Number(bubbleOpSlider.value);
-  bubbleOpLabel.textContent = 'Bubble opacity: ' + Math.round(val * 100) + '%';
-  presetSelect.value = 'Custom';
-  sendAppearance({ bubbleOpacity: val, preset: 'Custom' });
-  updatePreview();
+
+// Data-driven appearance listeners — toggles
+[
+  ['showBubbles', showBubblesToggle],
+  ['showAvatars', showAvatarsToggle],
+  ['showBadges',  showBadgesToggle],
+].forEach(([key, toggle]) => {
+  toggle.addEventListener('change', () => {
+    presetSelect.value = 'Custom';
+    sendAppearance({ [key]: toggle.checked, preset: 'Custom' });
+    updatePreview();
+  });
 });
-bgOpSlider.addEventListener('input', () => {
-  const val = Number(bgOpSlider.value);
-  bgOpLabel.textContent = 'Back opacity: ' + Math.round(val * 100) + '%';
-  presetSelect.value = 'Custom';
-  sendAppearance({ bgOpacity: val, preset: 'Custom' });
-  updatePreview();
-});
-gapSlider.addEventListener('input', () => {
-  const val = Number(gapSlider.value);
-  gapLabel.textContent = 'Vertical gap: ' + val.toFixed(2);
-  presetSelect.value = 'Custom';
-  sendAppearance({ messageGap: val, preset: 'Custom' });
-  updatePreview();
-});
-textColorPicker.addEventListener('input', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ textColor: textColorPicker.value, preset: 'Custom' });
-  updatePreview();
-});
-bubbleColorPicker.addEventListener('input', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ bubbleColor: bubbleColorPicker.value, preset: 'Custom' });
-  updatePreview();
-});
-bgColorPicker.addEventListener('input', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ bgColor: bgColorPicker.value, preset: 'Custom' });
-  updatePreview();
-});
-showBubblesToggle.addEventListener('change', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ showBubbles: showBubblesToggle.checked, preset: 'Custom' });
-  updatePreview();
-});
-showAvatarsToggle.addEventListener('change', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ showAvatars: showAvatarsToggle.checked, preset: 'Custom' });
-  updatePreview();
-});
-showBadgesToggle.addEventListener('change', () => {
-  presetSelect.value = 'Custom';
-  sendAppearance({ showBadges: showBadgesToggle.checked, preset: 'Custom' });
-  updatePreview();
-});
+
 presetSelect.addEventListener('change', () => {
   const name = presetSelect.value;
   const p = PRESETS[name];
