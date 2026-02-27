@@ -228,7 +228,7 @@ section h2 {
 }
 
 .main-product .product-icon img {
-    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4)) drop-shadow(0 0 24px rgba(139, 92, 246, 0.2));
+    filter: drop-shadow(0 0 12px rgba(125, 193, 245, 0.5)) drop-shadow(0 0 24px rgba(200, 220, 255, 0.25));
 }
 
 .product-card h3 {
