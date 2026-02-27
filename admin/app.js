@@ -702,7 +702,7 @@ function createConnectionCard(conn) {
         <span class="capture-stat-label">Uptime</span>
       </div>
       <div class="capture-poll-row">
-        <label>Frequency</label>
+        <label>Interval</label>
         <input type="range" class="conn-poll-slider" min="100" max="5000" step="100" value="${conn.pollIntervalMs || 1000}" />
         <span class="capture-poll-value conn-poll-value">${formatPoll(conn.pollIntervalMs || 1000)}</span>
       </div>

@@ -354,7 +354,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   font-weight: 600;
   color: var(--text);
   min-width: 36px;
-  text-align: right;
+  text-align: left;
 }
 
 /* ── Settings card ────────────────────────────────────────────── */
@@ -431,6 +431,8 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   color: #8b9cf7;
   font-size: 13px;
   font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+  user-select: text;
+  cursor: text;
 }
 .hint {
   margin-top: 6px;
