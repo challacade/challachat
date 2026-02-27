@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
+import { getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -236,6 +236,22 @@ class App extends EventEmitter {
       res.json({ ok: true, ...current });
     });
 
+  this.app.post('/api/music/settings', (req: Request, res: Response) => {
+      const patch: Record<string, unknown> = {};
+      if (typeof req.body?.autoShuffle === 'boolean') {
+        patch.autoShuffle = req.body.autoShuffle;
+      }
+      if (typeof req.body?.playlistLoop === 'boolean') {
+        patch.playlistLoop = req.body.playlistLoop;
+      }
+      const result = updateSettings(patch);
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      res.json({ ok: true, autoShuffle: result.settings.autoShuffle === true, playlistLoop: result.settings.playlistLoop !== false });
+    });
+
   this.app.post('/api/music/path', (req: Request, res: Response) => {
       const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
       const result = updateSettings({ musicPath: musicPath || undefined });
@@ -362,7 +378,7 @@ class App extends EventEmitter {
       const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
       const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
       const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
-      const line = getDisableSongIdNotes() ? `   ${details}  ` : `\u266b  ${details}  \u266b`;
+      const line = `\u266b  ${details}  \u266b`;
 
       const writeResult = writeSongTxt(line);
       if (!writeResult.ok) {

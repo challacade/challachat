@@ -82,6 +82,8 @@ const scrollSpeedLabel  = $('scrollSpeedLabel');
 const songTextSizeSlider = $('songTextSizeSlider');
 const songTextSizeLabel  = $('songTextSizeLabel');
 const writeSongFileToggle = $('writeSongFileToggle');
+const autoShuffleToggle  = $('autoShuffleToggle');
+const playlistLoopToggle = $('playlistLoopToggle');
 // Navigation
 const navHome         = $('navHome');
 const navAppearance   = $('navAppearance');
@@ -520,6 +522,8 @@ function syncMusicDisplayUI() {
   if (songTextSizeSlider) songTextSizeSlider.value = String(music.songTextSize ?? 1);
   if (songTextSizeLabel) songTextSizeLabel.textContent = `Text size: ${Math.round((music.songTextSize ?? 1) * 100)}%`;
   if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
+  if (autoShuffleToggle) autoShuffleToggle.checked = !!music.autoShuffle;
+  if (playlistLoopToggle) playlistLoopToggle.checked = music.playlistLoop !== false;
 }
 
 async function postMusicDisplaySettings(patch) {
@@ -563,6 +567,29 @@ writeSongFileToggle?.addEventListener('change', () => {
   music.writeSongFile = writeSongFileToggle.checked;
   postMusicDisplaySettings({ writeSongFile: writeSongFileToggle.checked });
 });
+autoShuffleToggle?.addEventListener('change', () => {
+  music.autoShuffle = autoShuffleToggle.checked;
+  postMusicSettings({ autoShuffle: autoShuffleToggle.checked });
+});
+playlistLoopToggle?.addEventListener('change', () => {
+  music.playlistLoop = playlistLoopToggle.checked;
+  postMusicSettings({ playlistLoop: playlistLoopToggle.checked });
+});
+
+async function postMusicSettings(patch) {
+  try {
+    const resp = await fetch('/api/music/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(patch),
+    });
+    const data = await resp.json();
+    if (data) {
+      if (typeof data.autoShuffle === 'boolean') music.autoShuffle = data.autoShuffle;
+      if (typeof data.playlistLoop === 'boolean') music.playlistLoop = data.playlistLoop;
+    }
+  } catch {}
+}
 
 // ─── Helpers ───────────────────────────────────────────────────
 

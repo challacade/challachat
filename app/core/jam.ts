@@ -1,5 +1,4 @@
 import type { NowPlaying } from './nowPlaying';
-import { getJamCountMinimum } from './settings';
 
 export type JamStatus = {
   enabled: boolean;
@@ -13,10 +12,10 @@ export type JamFinale = {
   jamCount: number;
 };
 
-const DEFAULT_THRESHOLD = 3;
+const JAM_THRESHOLD = 3;
 
 let jamEnabled = false;
-let threshold = getJamCountMinimum() ?? DEFAULT_THRESHOLD;
+let threshold = JAM_THRESHOLD;
 
 let currentSongKey: string | null = null;
 let currentSongId: string | null = null;
@@ -44,8 +43,8 @@ export function isJamEnabled(): boolean {
 }
 
 export function setJamThreshold(next: number): void {
-  const n = Math.max(1, Math.floor(Number(next) || DEFAULT_THRESHOLD));
-  threshold = Number.isFinite(n) ? n : DEFAULT_THRESHOLD;
+  const n = Math.max(1, Math.floor(Number(next) || JAM_THRESHOLD));
+  threshold = Number.isFinite(n) ? n : JAM_THRESHOLD;
 }
 
 function ensureTrackingForSong(now: NowPlaying): void {

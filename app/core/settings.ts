@@ -6,10 +6,6 @@ export type AppSettings = {
   musicPath?: string;
   /** Path to the censor CSV file (user-selected). */
   filterPath?: string;
-  /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
-
-  /** Minimum jam count required before the jam finale system message is sent when the song changes. */
-  jamCountMinimum?: number;
   /** Song display position on the overlay: 'none', 'top', or 'bottom'. */
   songDisplay?: string;
   /** Write the currently-playing song info to a text file. */
@@ -22,8 +18,6 @@ export type AppSettings = {
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
   playlistLoop?: boolean;
-  /** When true, replaces the ♫ music-note characters with spaces in the song.txt output. */
-  disableSongIdNotes?: boolean;
 };
 
 function getSettingsDir(): string {
@@ -140,15 +134,6 @@ export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile:
   };
 }
 
-export function getJamCountMinimum(): number | null {
-  const { settings } = readSettings();
-  const raw = (settings as any)?.jamCountMinimum;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  return i > 0 ? i : null;
-}
-
 export function getAutoShuffle(): boolean {
   const { settings } = readSettings();
   return (settings as any)?.autoShuffle === true;
@@ -160,9 +145,6 @@ export function getPlaylistLoop(): boolean {
   return (settings as any)?.playlistLoop !== false;
 }
 
-export function getDisableSongIdNotes(): boolean {
-  const { settings } = readSettings();
-  return (settings as any)?.disableSongIdNotes === true;
-}
+
 
 

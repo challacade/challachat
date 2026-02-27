@@ -187,10 +187,8 @@ Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/
 ```json
 {
   "musicPath": "D:/Music/MyPlaylist",
-  "jamCountMinimum": 3,
   "autoShuffle": true,
   "playlistLoop": true,
-  "disableSongIdNotes": false,
   "filterPath": "D:/filter.csv",
   "writeSongFile": true,
   "songDisplay": "top",
