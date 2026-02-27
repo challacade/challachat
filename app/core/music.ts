@@ -23,7 +23,7 @@ function isMp3(filePath: string): boolean {
 function safeReadDir(dir: string): fs.Dirent[] {
   try {
     return fs.readdirSync(dir, { withFileTypes: true });
-  } catch {
+  } catch { /* ignore – best-effort directory read */
     return [];
   }
 }
@@ -110,7 +110,7 @@ export async function getTrackMetaByIndex(index: number): Promise<{ title: strin
     const finalMeta = { title: finalTitle, artist: finalArtist };
     cache.metaByPath.set(filePath, finalMeta);
     return finalMeta;
-  } catch {
+  } catch { /* ignore – metadata parse failure */
     cache.metaByPath.set(filePath, null);
     return null;
   }

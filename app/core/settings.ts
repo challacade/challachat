@@ -186,9 +186,10 @@ const SOUND_DEFAULTS: Record<string, number> = {
 export function getSavedAppearance(): Record<string, number | string | boolean> {
   const { settings } = readSettings();
   const result = { ...APPEARANCE_DEFAULTS };
+  const record = settings as Record<string, unknown>;
   for (const key of Object.keys(APPEARANCE_DEFAULTS)) {
-    const val = (settings as any)[key];
-    if (val !== undefined) result[key] = val;
+    const val = record[key];
+    if (val !== undefined) result[key] = val as number | string | boolean;
   }
   return result;
 }
@@ -197,8 +198,9 @@ export function getSavedAppearance(): Record<string, number | string | boolean> 
 export function getSavedSounds(): Record<string, number> {
   const { settings } = readSettings();
   const result = { ...SOUND_DEFAULTS };
+  const record = settings as Record<string, unknown>;
   for (const key of Object.keys(SOUND_DEFAULTS)) {
-    const val = (settings as any)[key];
+    const val = record[key];
     if (typeof val === 'number') result[key] = val;
   }
   return result;
