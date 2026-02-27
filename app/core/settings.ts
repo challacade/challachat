@@ -129,45 +129,34 @@ export function getMusicPath(): string | null {
   return value.length > 0 ? value : null;
 }
 
+function parseSongDisplay(settings: AppSettings): string {
+  const val = typeof settings.songDisplay === 'string' ? settings.songDisplay : 'none';
+  return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
+}
+
 export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
+  const musicPathVal = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';
   return {
-    musicPath: getMusicPath(),
+    musicPath: musicPathVal.length > 0 ? musicPathVal : null,
     settingsPath: getSettingsPath(),
-    autoShuffle: getAutoShuffle(),
-    playlistLoop: getPlaylistLoop(),
-    songDisplay: getSongDisplay(),
+    autoShuffle: settings.autoShuffle === true,
+    playlistLoop: settings.playlistLoop !== false,
+    songDisplay: parseSongDisplay(settings),
     writeSongFile: settings.writeSongFile === true,
     songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
-}
-
-function getSongDisplay(): string {
-  const { settings } = readSettings();
-  const val = typeof settings.songDisplay === 'string' ? settings.songDisplay : 'none';
-  return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
 export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
   return {
-    songDisplay: getSongDisplay(),
+    songDisplay: parseSongDisplay(settings),
     writeSongFile: settings.writeSongFile === true,
     songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
-}
-
-function getAutoShuffle(): boolean {
-  const { settings } = readSettings();
-  return (settings as any)?.autoShuffle === true;
-}
-
-function getPlaylistLoop(): boolean {
-  const { settings } = readSettings();
-  // Default to true if not explicitly set to false
-  return (settings as any)?.playlistLoop !== false;
 }
 
 // ── Appearance defaults ──

@@ -84,6 +84,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     if (typeof body.memberVolume === 'number') {
       ctx.sounds.memberVolume = Math.max(0, Math.min(2, body.memberVolume));
     }
+    ctx.sse.send('sounds', ctx.sounds);
     updateSettings(ctx.sounds as any);
     res.json({ ok: true, ...ctx.sounds });
   });
