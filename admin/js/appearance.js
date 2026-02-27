@@ -9,29 +9,8 @@ import {
   presetSelect, previewHost,
 } from './dom.js';
 import { api } from './api.js';
-
-// ─── Presets ───────────────────────────────────────────────────
-
-const PRESETS = {
-  Dark: {
-    scale: 1.35, messageGap: 0.5,
-    textColor: '#ffffff', bubbleColor: '#ffffff', bgColor: '#000000',
-    textOpacity: 1, bubbleOpacity: 0.14, bgOpacity: 1,
-    showBubbles: true, showAvatars: true, showBadges: true
-  },
-  Light: {
-    scale: 1.35, messageGap: 0.5,
-    textColor: '#111111', bubbleColor: '#000000', bgColor: '#ffffff',
-    textOpacity: 1, bubbleOpacity: 0.08, bgOpacity: 1,
-    showBubbles: true, showAvatars: true, showBadges: true
-  },
-  Transparent: {
-    scale: 1.35, messageGap: 0.4,
-    textColor: '#ffffff', bubbleColor: '#ffffff', bgColor: '#000000',
-    textOpacity: 1, bubbleOpacity: 0.14, bgOpacity: 0,
-    showBubbles: false, showAvatars: true, showBadges: true
-  }
-};
+import { PRESETS } from '/shared/presets.js';
+import { clamp, hexToRgba, debounce } from '/shared/utils.js';
 
 // ─── Live preview (Shadow DOM) ─────────────────────────────────
 
@@ -119,27 +98,19 @@ function updatePreview() {
   const bubbleOp = Number(bubbleOpSlider.value);
   const bgOp = Number(bgOpSlider.value);
   const gap = Number(gapSlider.value);
-  const textHex = textColorPicker.value.replace('#', '');
-  const bubbleHex = bubbleColorPicker.value.replace('#', '');
-  const bgHex = bgColorPicker.value.replace('#', '');
   const showBubbles = showBubblesToggle.checked;
 
-  const tr = parseInt(textHex.slice(0,2),16), tg = parseInt(textHex.slice(2,4),16), tb = parseInt(textHex.slice(4,6),16);
-  const br2 = parseInt(bubbleHex.slice(0,2),16), bg2 = parseInt(bubbleHex.slice(2,4),16), bb = parseInt(bubbleHex.slice(4,6),16);
-  const pr = parseInt(bgHex.slice(0,2),16), pg = parseInt(bgHex.slice(2,4),16), pb = parseInt(bgHex.slice(4,6),16);
-
   // Preview uses a fixed scale for readability — we apply a clamped version
-  const previewScale = Math.max(0.55, Math.min(1.1, scale * 0.65));
+  const previewScale = clamp(scale * 0.65, 0.55, 1.1);
   wrap.style.setProperty('--base-scale', String(previewScale));
   wrap.style.setProperty('--scale', String(previewScale));
   wrap.style.setProperty('--message-gap', String(gap));
-  wrap.style.setProperty('--text', `rgba(${tr},${tg},${tb},${Math.max(0, Math.min(1, textOp))})`);
+  wrap.style.setProperty('--text', hexToRgba(textColorPicker.value, textOp));
 
   const bubbleOpVal = showBubbles ? bubbleOp : 0;
-  wrap.style.setProperty('--bubble', `rgba(${br2},${bg2},${bb},${bubbleOpVal})`);
+  wrap.style.setProperty('--bubble', hexToRgba(bubbleColorPicker.value, bubbleOpVal));
   wrap.style.setProperty('--bubble-blur', bubbleOpVal > 0 ? 'blur(8px)' : 'none');
-  wrap.style.background = `rgba(${pr},${pg},${pb},${Math.max(0, Math.min(1, bgOp))})`;
-
+  wrap.style.background = hexToRgba(bgColorPicker.value, bgOp);
   overlay.classList.toggle('no-bubbles', !showBubbles);
   overlay.classList.toggle('no-avatars', !showAvatarsToggle.checked);
   overlay.classList.toggle('no-badges', !showBadgesToggle.checked);
@@ -174,13 +145,9 @@ function updateAppearanceUI(a) {
   updatePreview();
 }
 
-let appearanceDebounce = null;
-function sendAppearance(patch) {
-  clearTimeout(appearanceDebounce);
-  appearanceDebounce = setTimeout(async () => {
-    try { await api('POST', '/api/appearance', patch); } catch {}
-  }, 150);
-}
+const sendAppearance = debounce(async (patch) => {
+  try { await api('POST', '/api/appearance', patch); } catch {}
+}, 150);
 
 export async function fetchAppearance() {
   try {

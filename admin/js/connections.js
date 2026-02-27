@@ -13,6 +13,7 @@ import {
   navButtons, pages,
 } from './dom.js';
 import { api } from './api.js';
+import { debounce } from '/shared/utils.js';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -96,16 +97,15 @@ function createConnectionCard(conn) {
 
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
 
-  let sliderDebounce = null;
   const slider = card.querySelector('.conn-poll-slider');
   const pollVal = card.querySelector('.conn-poll-value');
+  const sendPoll = debounce(async (ms) => {
+    try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms, connectionId: conn.id }); } catch {}
+  }, 300);
   slider.addEventListener('input', () => {
     const ms = Number(slider.value);
     pollVal.textContent = formatPoll(ms);
-    clearTimeout(sliderDebounce);
-    sliderDebounce = setTimeout(async () => {
-      try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms, connectionId: conn.id }); } catch {}
-    }, 300);
+    sendPoll(ms);
   });
 
   connectionCards.set(conn.id, card);

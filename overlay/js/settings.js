@@ -8,6 +8,7 @@
  */
 
 import { state, elements, PRESETS } from './state.js';
+import { clamp, hexToRgba } from '/shared/utils.js';
 
 // ================================
 // Theme Application
@@ -17,7 +18,7 @@ export function recomputeAutoScale() {
   const rect = elements.overlay.getBoundingClientRect();
   const baseWidth = 420;
   const baseHeight = 700;
-  const scaleFactor = Math.max(0.6, Math.min(2.2, Math.min(rect.width / baseWidth || 1, rect.height / baseHeight || 1)));
+  const scaleFactor = clamp(Math.min(rect.width / baseWidth || 1, rect.height / baseHeight || 1), 0.6, 2.2);
   state.autoScale = scaleFactor;
 }
 
@@ -25,35 +26,18 @@ export function applyTheme() {
   const finalScale = state.scale * state.autoScale;
 
   // Apply text color with opacity
-  const textHex = (state.theme.text || '#ffffff').replace('#', '');
-  const normalizedTextHex = textHex.length === 3 ? textHex.split('').map(c => c + c).join('') : textHex.padEnd(6, '0');
-  const tr = parseInt(normalizedTextHex.slice(0, 2), 16);
-  const tg = parseInt(normalizedTextHex.slice(2, 4), 16);
-  const tb = parseInt(normalizedTextHex.slice(4, 6), 16);
-  const textOpacity = Math.max(0, Math.min(1, state.theme.textOpacity || 1));
-  const textColor = `rgba(${tr}, ${tg}, ${tb}, ${textOpacity})`;
+  const textColor = hexToRgba(state.theme.text || '#ffffff', state.theme.textOpacity ?? 1);
   document.documentElement.style.setProperty('--text', textColor);
 
   document.documentElement.style.setProperty('--base-scale', String(finalScale));
   document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem));
 
-  const hex = (state.theme.bubbleColor || '#000000').replace('#', '');
-  const normalizedHex = hex.length === 3 ? hex.split('').map(c => c + c).join('') : hex.padEnd(6, '0');
-  const r = parseInt(normalizedHex.slice(0, 2), 16);
-  const g = parseInt(normalizedHex.slice(2, 4), 16);
-  const b = parseInt(normalizedHex.slice(4, 6), 16);
   const bubbleOpacity = state.showBubbles ? state.theme.bgOpacity : 0;
-  const bubbleColor = `rgba(${r}, ${g}, ${b}, ${bubbleOpacity})`;
+  const bubbleColor = hexToRgba(state.theme.bubbleColor || '#000000', bubbleOpacity);
   document.documentElement.style.setProperty('--bubble', bubbleColor);
   document.documentElement.style.setProperty('--bubble-blur', bubbleOpacity > 0 ? 'blur(8px)' : 'none');
 
-  const bgHex = (state.pageBgColor || '#000000').replace('#', '');
-  const normalizedBgHex = bgHex.length === 3 ? bgHex.split('').map(c => c + c).join('') : bgHex.padEnd(6, '0');
-  const br = parseInt(normalizedBgHex.slice(0, 2), 16);
-  const bg = parseInt(normalizedBgHex.slice(2, 4), 16);
-  const bb = parseInt(normalizedBgHex.slice(4, 6), 16);
-  const bgOpacity = Math.max(0, Math.min(1, state.pageBgOpacity));
-  const pageBg = `rgba(${br}, ${bg}, ${bb}, ${bgOpacity})`;
+  const pageBg = hexToRgba(state.pageBgColor || '#000000', state.pageBgOpacity);
   document.body.style.background = pageBg;
   document.documentElement.style.setProperty('--page-bg', pageBg);
 
@@ -200,20 +184,20 @@ function autoFitSongText(container, textSpan, title) {
 
 export function applyPreset(name) {
   if (!name || name === 'Custom' || !PRESETS[name]) return;
-  const preset = PRESETS[name];
+  const p = PRESETS[name];
   state.theme = {
-    text: preset.theme.text,
-    textOpacity: preset.theme.textOpacity,
-    bubbleColor: preset.theme.bubbleColor,
-    bgOpacity: preset.theme.bgOpacity
+    text: p.textColor,
+    textOpacity: p.textOpacity,
+    bubbleColor: p.bubbleColor,
+    bgOpacity: p.bubbleOpacity
   };
-  state.pageBgColor = preset.page.color;
-  state.pageBgOpacity = preset.page.opacity;
-  state.showAvatars = !!preset.showAvatars;
-  state.showBadges = !!preset.showBadges;
-  state.showBubbles = !!preset.showBubbles;
-  state.messageGapRem = preset.messageGapRem;
-  state.scale = preset.scale;
+  state.pageBgColor = p.bgColor;
+  state.pageBgOpacity = p.bgOpacity;
+  state.showAvatars = !!p.showAvatars;
+  state.showBadges = !!p.showBadges;
+  state.showBubbles = !!p.showBubbles;
+  state.messageGapRem = p.messageGap;
+  state.scale = p.scale;
 }
 
 // ================================
@@ -249,7 +233,7 @@ export function loadFromLocal() {
 export function loadFromUrl() {
   const url = new URL(location.href);
   if (url.searchParams.has('scale')) {
-    state.scale = Math.max(0.5, Math.min(3, Number(url.searchParams.get('scale')) || state.scale));
+    state.scale = clamp(Number(url.searchParams.get('scale')) || state.scale, 0.5, 3);
   }
   if (url.searchParams.has('preset')) {
     state.preset = url.searchParams.get('preset') || state.preset;
@@ -259,7 +243,7 @@ export function loadFromUrl() {
   if (url.searchParams.get('showEmojiBadges') === '1') state.showEmojiBadges = true;
   if (url.searchParams.get('nobubbles') === '1') state.showBubbles = false;
   if (url.searchParams.has('gap')) {
-    state.messageGapRem = Math.max(0, Math.min(1.5, Number(url.searchParams.get('gap'))));
+    state.messageGapRem = clamp(Number(url.searchParams.get('gap')), 0, 1.5);
   }
   if (url.searchParams.has('text')) {
     state.theme.text = `#${url.searchParams.get('text')}`.replace('##', '#');
@@ -268,12 +252,12 @@ export function loadFromUrl() {
     state.theme.bubbleColor = `#${url.searchParams.get('bubble')}`.replace('##', '#');
   }
   if (url.searchParams.has('bg')) {
-    state.theme.bgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('bg'))));
+    state.theme.bgOpacity = clamp(Number(url.searchParams.get('bg')), 0, 1);
   }
   if (url.searchParams.has('pagebgcol')) {
     state.pageBgColor = `#${url.searchParams.get('pagebgcol')}`.replace('##', '#');
   }
   if (url.searchParams.has('pagebgop')) {
-    state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop'))));
+    state.pageBgOpacity = clamp(Number(url.searchParams.get('pagebgop')), 0, 1);
   }
 }

@@ -6,6 +6,7 @@ import {
   memVolSlider, memVolLabel, testMsgBtn, testDonBtn, testMemBtn,
 } from './dom.js';
 import { api } from './api.js';
+import { debounce } from '/shared/utils.js';
 import { adminAudio, ensureAudioCtx, playSoundAdmin, initAdminAudio } from './audio.js';
 
 // ─── Volume channel descriptors ────────────────────────────────
@@ -16,13 +17,9 @@ const VOLUME_CHANNELS = [
   { key: 'memberVolume',   label: 'Membership', slider: memVolSlider, labelEl: memVolLabel, testBtn: testMemBtn, audioKey: 'member'   },
 ];
 
-let soundDebounce = null;
-function sendSounds(patch) {
-  clearTimeout(soundDebounce);
-  soundDebounce = setTimeout(async () => {
-    try { await api('POST', '/api/sounds', patch); } catch {}
-  }, 150);
-}
+const sendSounds = debounce(async (patch) => {
+  try { await api('POST', '/api/sounds', patch); } catch {}
+}, 150);
 
 export async function fetchSounds() {
   try {

@@ -40,6 +40,7 @@ interface AppEvents {
 const __dirnameResolved = __dirname;
 const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
 const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
+const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
 const MAX_CONNECTIONS = 5;
 
@@ -124,6 +125,7 @@ class App extends EventEmitter {
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
+    this.app.use('/shared', express.static(sharedStatic));
     this.app.get('/overlay', (_req: Request, res: Response) => {
       res.sendFile(path.join(overlayStatic, 'index.html'));
     });

@@ -46,6 +46,13 @@
                                                ]
                                 },
                                 {
+                                    "from":  "shared",
+                                    "to":  "shared",
+                                    "filter":  [
+                                                   "**/*"
+                                               ]
+                                },
+                                {
                                     "from":  "admin",
                                     "to":  "admin",
                                     "filter":  [

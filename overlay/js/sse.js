@@ -4,6 +4,7 @@
  */
 
 import { state, isDemoSite, showToast } from './state.js';
+import { clamp } from '/shared/utils.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById,
@@ -53,19 +54,19 @@ export function startSSE() {
     try {
       const data = JSON.parse(event.data || '{}');
       if (typeof data.scale === 'number') {
-        state.scale = Math.max(0.5, Math.min(3, data.scale));
+        state.scale = clamp(data.scale, 0.5, 3);
       }
       if (typeof data.textOpacity === 'number') {
-        state.theme.textOpacity = Math.max(0, Math.min(1, data.textOpacity));
+        state.theme.textOpacity = clamp(data.textOpacity, 0, 1);
       }
       if (typeof data.bubbleOpacity === 'number') {
-        state.theme.bgOpacity = Math.max(0, Math.min(1, data.bubbleOpacity));
+        state.theme.bgOpacity = clamp(data.bubbleOpacity, 0, 1);
       }
       if (typeof data.bgOpacity === 'number') {
-        state.pageBgOpacity = Math.max(0, Math.min(1, data.bgOpacity));
+        state.pageBgOpacity = clamp(data.bgOpacity, 0, 1);
       }
       if (typeof data.messageGap === 'number') {
-        state.messageGapRem = Math.max(0, Math.min(1.5, data.messageGap));
+        state.messageGapRem = clamp(data.messageGap, 0, 1.5);
       }
       if (typeof data.textColor === 'string') {
         state.theme.text = data.textColor;

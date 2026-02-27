@@ -25,36 +25,8 @@ export const AVATAR_RETRY_DELAY_MS = 3000;
 // Presets
 // ================================
 
-export const PRESETS = {
-  Dark: {
-    theme: { text: '#ffffff', textOpacity: 1, bubbleColor: '#ffffff', bgOpacity: 0.14 },
-    page: { color: '#000000', opacity: 1 },
-    showAvatars: true,
-    showBadges: true,
-    showBubbles: true,
-    messageGapRem: 0.5,
-    scale: 1.35
-  },
-  Light: {
-    theme: { text: '#111111', textOpacity: 1, bubbleColor: '#000000', bgOpacity: 0.08 },
-    page: { color: '#ffffff', opacity: 1 },
-    showAvatars: true,
-    showBadges: true,
-    showBubbles: true,
-    messageGapRem: 0.5,
-    scale: 1.35
-  },
-  Transparent: {
-    theme: { text: '#ffffff', textOpacity: 1, bubbleColor: '#ffffff', bgOpacity: 0.14 },
-    page: { color: '#000000', opacity: 0 },
-    showAvatars: true,
-    showBadges: true,
-    showBubbles: false,
-    messageGapRem: 0.4,
-    scale: 1.35
-  },
-  Custom: null
-};
+import { PRESETS as _SHARED_PRESETS } from '/shared/presets.js';
+export const PRESETS = { ..._SHARED_PRESETS, Custom: null };
 
 // ================================
 // Demo Mode Messages
