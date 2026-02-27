@@ -54,11 +54,9 @@ npm run electron:dev
 npm run dev
 ```
 
-#### macOS / Linux
-- Run locally: `npm run start:system` or [scripts/start-on-system.sh](./scripts/start-on-system.sh)
-
-#### Windows
-- Run locally: `npm run start:system:win` or [scripts/windows/start-on-system.ps1](./scripts/windows/start-on-system.ps1)
+#### Run locally
+- **macOS / Linux:** `npm run start:system`
+- **Windows:** `npm run start:system:win`
 
 #### Build distributables
 ```bash
@@ -109,10 +107,10 @@ The Electron admin panel provides a full GUI for managing ChallaChat:
   - Song display banner on the overlay (top or bottom) with configurable scroll speed and text size.
 
 ### Settings page
-- **Profanity filter** — Load a CSV word list, toggle on/off.
-- **Message logger** — Toggle chat logging to `.jsonl` files.
-- **Jam mode** — Toggle the `!jam` chat command.
-- **Demo mode** — Toggle demo mode for testing without a live stream.
+- **Profanity filter** — Load a CSV word list, toggle on/off. Matched words are replaced with the first letter + asterisks (e.g. `word` → `w***`).
+- **Message logger** — Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
+- **Jam mode** — Toggle the `!jam` command. Viewers jam once per track; songs with ≥ 3 jams get a finale message on track change.
+- **Demo mode** — Display sample messages at random intervals for testing without a live stream.
 - **Write song to file** — Writes current track to `song.txt` for OBS text sources.
 
 ## Multi-connection
@@ -128,14 +126,9 @@ Duplicate URLs are rejected. Use "End all connections" to disconnect everything 
 
 The overlay renders chat messages with full platform fidelity:
 
-- Inline emotes alongside text
-- Author avatars with role-colored rings (owner, mod, member, verified)
-- Platform badges (images with emoji fallbacks)
-- Donation/superchat amounts with color
-- Sub and membership system messages
-- Reply context (responding to @user)
-- Real-time message deletion
-- Auto-scaling based on viewport
+- Inline emotes, platform badges, and author avatars with role-colored rings
+- Donation/superchat amounts, sub/membership messages, and reply context
+- Real-time message deletion and auto-scaling based on viewport
 
 ### Overlay URL parameters
 
@@ -155,32 +148,7 @@ Customize the overlay via query parameters:
 | `pagebgcol` | Page background color (hex) |
 | `pagebgop` | Page background opacity (0–100) |
 
-## Profanity filter
-
-1. Create a CSV file with one bad word per line (or comma-separated).
-2. In the admin Settings page, click **Browse** to select the file.
-3. Toggle **Enable filter** to activate censoring.
-
-Words are replaced with the first letter + asterisks (e.g. `word` → `w***`). The filter path is saved to `settings.json` and reloaded on next launch.
-
-## Message logging
-
-When enabled, chat messages are logged to JSON Lines files:
-
-- **Windows:** `%LOCALAPPDATA%\ChallaChat\logs\`
-- **Linux/Mac:** `~/.challachat/logs/`
-
-Filename pattern: `chat-{date}-{platform}.jsonl`. Each line:
-```json
-{"ts":1733788800000,"author":"Username","text":"Hello world!","kind":"text"}
-{"ts":1733788805000,"author":"Donor","text":"Great stream!","kind":"donation","amount":"$5.00"}
-```
-
-## Music player & song.txt
-
-ChallaChat includes a music player that streams audio to the overlay and optionally writes the current track to a text file for OBS.
-
-### settings.json
+## settings.json
 
 ChallaChat automatically saves all admin panel settings to `settings.json` whenever you make a change. On next launch, saved settings are restored automatically.
 
@@ -218,17 +186,8 @@ Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/
 }
 ```
 
-## Jam mode
-
-Viewers type `!jam` in chat to jam along to the current song. Each viewer can jam once per track. When the song changes and the previous song received enough jams (≥ `jamCountMinimum`), a finale system message is broadcast: *"'Song Title' got N jams!"*
-
-## Demo mode
-
-Demo mode displays sample chat messages at random intervals for testing the overlay without a live stream. Enable it from the admin Settings page, the overlay settings panel, or visit `demo.challachat.com`.
-
 ## API reference
 
-### Connection management
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/connect` | Connect to a livestream URL |
@@ -236,26 +195,14 @@ Demo mode displays sample chat messages at random intervals for testing the over
 | `POST` | `/api/start-session` | Start session without connecting |
 | `POST` | `/api/end-session` | End session and disconnect all |
 | `GET` | `/api/status` | Server status and all connections |
-
-### Capture settings
-| Method | Path | Description |
-|--------|------|-------------|
 | `GET/POST` | `/api/poll-interval` | Get/set poll interval per connection |
 | `GET/POST` | `/api/appearance` | Get/set overlay appearance |
 | `GET/POST` | `/api/sounds` | Get/set sound volume levels |
-
-### Filter & logger
-| Method | Path | Description |
-|--------|------|-------------|
 | `GET` | `/api/filter` | Filter status |
 | `POST` | `/api/filter/toggle` | Enable/disable filter |
 | `POST` | `/api/filter/path` | Load filter word list |
 | `GET` | `/api/logger` | Logger status |
 | `POST` | `/api/logger/toggle` | Enable/disable logging |
-
-### Music
-| Method | Path | Description |
-|--------|------|-------------|
 | `GET` | `/api/music` | Music settings |
 | `POST` | `/api/music/path` | Set music folder |
 | `GET` | `/api/music/playlist` | Full playlist |
@@ -264,47 +211,19 @@ Demo mode displays sample chat messages at random intervals for testing the over
 | `GET/POST` | `/api/music/nowplaying` | Get/set now-playing track |
 | `POST` | `/api/music/songfile` | Write current track to song.txt |
 | `GET/POST` | `/api/music/display-settings` | Song display settings |
-
-### Other
-| Method | Path | Description |
-|--------|------|-------------|
+| `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop |
 | `POST` | `/api/demo-mode` | Enable/disable demo mode |
-| `GET/POST` | `/api/jam` | Jam mode status |
+| `GET` | `/api/jam` | Jam mode status |
 | `POST` | `/api/jam/toggle` | Enable/disable jam mode |
 | `GET` | `/api/stream` | SSE event stream |
 
 ## SSE event types
 
-| Event | Description |
-|-------|-------------|
-| `chat` | New chat message |
-| `appearance` | Overlay appearance update |
-| `sounds` | Sound volume update |
-| `music-settings` | Music display settings update |
-| `now-playing` | Current track changed |
-| `demo-mode` | Demo mode toggled |
-| `play-sound` | Trigger a sound effect |
-| `ping` | Heartbeat (every 15s) |
-| `end` | Stream ended |
+Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-playing`, `demo-mode`, `play-sound`, `ping` (heartbeat every 15s).
 
 ## Releases (GitHub Actions)
 
-The "Build Full Release" workflow (manual) prompts for a version, creates a tag, builds both artifacts, and publishes a GitHub Release with:
-- `ChallaChat-Setup.exe` (NSIS installer)
-- `ChallaChat-Portable.exe` (portable)
-
-Release notes include all commits on `main` since the previous tag.
-
-## Scripts
-
-| Script | Description |
-|--------|-------------|
-| `npm run dev` | Start server in dev mode (tsx) |
-| `npm run build` | Type-check and compile to `dist/` |
-| `npm run electron:dev` | Build + launch Electron |
-| `npm run dist:win` | Windows installer + portable |
-| `npm run dist:mac` | macOS DMG + ZIP |
-| `npm run dist:linux` | Linux AppImage + DEB |
+The "Build Full Release" workflow (manual dispatch) creates a tag, builds `ChallaChat-Setup.exe` and `ChallaChat-Portable.exe`, and publishes a GitHub Release with auto-generated release notes.
 
 ## License
 
