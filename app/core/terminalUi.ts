@@ -112,10 +112,6 @@ export class TerminalUI {
     }
   }
 
-  addRecent(_name: string, _text: string) {
-    // Intentionally no-op: we no longer preview chat in the terminal
-  }
-
   render() {
   if (this.headerPrinted) return; // One-time render only
   try { console.clear(); } catch { /* ignore */ }

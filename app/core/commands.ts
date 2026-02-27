@@ -4,7 +4,6 @@ import { tryJam, isJamEnabled } from './jam';
 
 export type CommandContext = {
   nowPlaying: NowPlaying | null;
-  broadcastSystemMessage: (text: string) => void;
 };
 
 export function runChatCommands(message: ChatEvent, ctx: CommandContext): void {

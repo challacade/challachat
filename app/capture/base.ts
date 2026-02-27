@@ -19,9 +19,12 @@ export interface CaptureOpts {
 
 /**
  * Simple hash function for generating stable message IDs.
- * Used inside page.evaluate() - must be self-contained.
+ * NOTE: This function is injected as a string into the browser context
+ * via evaluateOnNewDocument (see BaseChatCapture.start). It is not
+ * called at runtime in Node — only inside headless browser pages as
+ * window.__cyrb53.
  */
-export function cyrb53(str: string, seed = 0): string {
+function cyrb53(str: string, seed = 0): string {
   let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
   for (let i = 0, ch; i < str.length; i++) {
     ch = str.charCodeAt(i);

@@ -405,7 +405,6 @@ class App extends EventEmitter {
     try {
       runChatCommands(message, {
         nowPlaying: getNowPlaying(),
-        broadcastSystemMessage: (text) => this.broadcastSystemMessage(text)
       });
     } catch (err) {
       console.warn('[Commands] Error running chat command:', err);
