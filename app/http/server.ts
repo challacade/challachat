@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
+import { getDisableSongIdNotes, getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -64,7 +64,6 @@ class App extends EventEmitter {
   private connections = new Map<string, Connection>();
   private headless: boolean;
   private tui: TerminalUI | null = null;
-  private musicHotkeysEnabled = false;
   private demoMode = false;
   private sessionActive = false;
   private nextConnId = 1;
@@ -99,31 +98,6 @@ class App extends EventEmitter {
   };
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
-
-  private broadcastMusicControl(action: 'playPause' | 'prev' | 'next' | 'shuffle') {
-    try {
-      this.sse.send('music-control', { action, ts: Date.now() });
-    } catch {
-      // ignore
-    }
-  }
-
-  private tryEnableMusicHotkeys() {
-    if (this.musicHotkeysEnabled) return;
-    if (!this.isRunning) return;
-    if (!getEnableMusicHotkeys()) return;
-
-    // Only enable after a real playlist exists.
-    const current = refreshPlaylist();
-    if (!current.playlist.length) return;
-
-    const ok = this.tui?.enableMusicHotkeys((action) => {
-      if (!this.isRunning) return;
-      this.broadcastMusicControl(action);
-    }) ?? false;
-
-    this.musicHotkeysEnabled = ok;
-  }
 
   private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }) {
     const msg: ChatEvent = {
@@ -763,7 +737,6 @@ class App extends EventEmitter {
     const captureStatus = { status: 'active' as const, videoId, platform: 'youtube' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-    try { this.tryEnableMusicHotkeys(); } catch {}
     return connId;
   }
 
@@ -793,7 +766,6 @@ class App extends EventEmitter {
     const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-    try { this.tryEnableMusicHotkeys(); } catch {}
     return connId;
   }
 
@@ -844,7 +816,6 @@ class App extends EventEmitter {
     const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
-    try { this.tryEnableMusicHotkeys(); } catch {}
     return connId;
   }
 
@@ -967,8 +938,6 @@ class App extends EventEmitter {
     }
     if (this.connections.size === 0) {
       stopLogging();
-      try { this.tui?.disableMusicHotkeys(); } catch {}
-      this.musicHotkeysEnabled = false;
     }
     const stoppedStatus = { status: this.isRunning ? 'active' as const : 'stopped' as const, connectionId: connectionId ?? null };
     this.io.emit('capture-status', stoppedStatus);

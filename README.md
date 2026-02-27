@@ -180,17 +180,6 @@ Filename pattern: `chat-{date}-{platform}.jsonl`. Each line:
 
 ChallaChat includes a music player that streams audio to the overlay and optionally writes the current track to a text file for OBS.
 
-### Terminal music hotkeys
-
-When `enableMusicHotkeys` is `true` in settings:
-
-| Key | Action |
-|-----|--------|
-| `m` | Play / Pause |
-| `<` | Previous track |
-| `>` | Next track |
-| `?` | Shuffle |
-
 ### settings.json
 
 Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/settings.json` (Linux/Mac):
@@ -198,7 +187,6 @@ Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/
 ```json
 {
   "musicPath": "D:/Music/MyPlaylist",
-  "enableMusicHotkeys": true,
   "jamCountMinimum": 3,
   "autoShuffle": true,
   "playlistLoop": true,
@@ -277,7 +265,6 @@ Demo mode displays sample chat messages at random intervals for testing the over
 | `now-playing` | Current track changed |
 | `demo-mode` | Demo mode toggled |
 | `play-sound` | Trigger a sound effect |
-| `music-control` | Music player control (play, pause, next, prev, shuffle) |
 | `ping` | Heartbeat (every 15s) |
 | `end` | Stream ended |
 

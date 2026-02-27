@@ -8,8 +8,6 @@ export type AppSettings = {
   filterPath?: string;
   /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
 
-  /** Enable terminal-driven music hotkeys (m, <, >, ?) for controlling the overlay music player. */
-  enableMusicHotkeys?: boolean;
   /** Minimum jam count required before the jam finale system message is sent when the song changes. */
   jamCountMinimum?: number;
   /** Song display position on the overlay: 'none', 'top', or 'bottom'. */
@@ -141,13 +139,6 @@ export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile:
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
 }
-
-export function getEnableMusicHotkeys(): boolean {
-  const { settings } = readSettings();
-  return (settings as any)?.enableMusicHotkeys === true;
-}
-
-
 
 export function getJamCountMinimum(): number | null {
   const { settings } = readSettings();

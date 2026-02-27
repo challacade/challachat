@@ -184,16 +184,6 @@ function startAdminSSE() {
       }
     } catch {}
   });
-  es.addEventListener('music-control', (event) => {
-    try {
-      const data = JSON.parse(event.data);
-      const action = data?.action;
-      if (action === 'playPause') musicTogglePlayPause().catch(() => {});
-      else if (action === 'prev') musicPrev().catch(() => {});
-      else if (action === 'next') musicNext().catch(() => {});
-      else if (action === 'shuffle') musicShuffle().catch(() => {});
-    } catch {}
-  });
   es.addEventListener('error', () => {
     // Auto-reconnect is built into EventSource
   });
@@ -522,9 +512,6 @@ musicBrowseBtn?.addEventListener('click', async () => {
     }
   } catch {}
 });
-
-// SSE music-control events (from terminal hotkeys)
-// Handled in startAdminSSE below
 
 function syncMusicDisplayUI() {
   if (songDisplaySelect) songDisplaySelect.value = music.songDisplay || 'none';
