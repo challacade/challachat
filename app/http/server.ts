@@ -287,7 +287,38 @@ class App extends EventEmitter {
     }
   }
 
-  // Start capture for the provided livestream URL (YouTube or Twitch)
+  // Per-platform config used by the unified startCapture method
+  private platformConfig: Record<Platform, {
+    extractId: (url: string) => string | null;
+    CaptureClass: new (id: string, opts: any) => YouTubeChatCapture | TwitchChatCapture | KickChatCapture;
+    buildDisplayUrl: (id: string, originalUrl: string) => string;
+    logPrefix: string;
+    errorMessage: string;
+  }> = {
+    youtube: {
+      extractId: (url) => this.extractVideoId(url),
+      CaptureClass: YouTubeChatCapture,
+      buildDisplayUrl: (id, url) => /^https?:\/\/studio\.youtube\.com\//i.test(url) ? this.toPublicLiveUrl(id) : url,
+      logPrefix: 'yt',
+      errorMessage: 'Invalid YouTube URL. Please provide a valid YouTube livestream URL.',
+    },
+    twitch: {
+      extractId: (url) => this.extractTwitchChannel(url),
+      CaptureClass: TwitchChatCapture,
+      buildDisplayUrl: (id) => `https://www.twitch.tv/${id}`,
+      logPrefix: 'tw',
+      errorMessage: 'Invalid Twitch URL. Please provide a valid Twitch channel URL.',
+    },
+    kick: {
+      extractId: (url) => this.extractKickChannel(url),
+      CaptureClass: KickChatCapture,
+      buildDisplayUrl: (id) => `https://kick.com/${id}`,
+      logPrefix: 'kk',
+      errorMessage: 'Invalid Kick URL. Please provide a valid Kick channel URL.',
+    },
+  };
+
+  // Start capture for the provided livestream URL
   private async startScraping(url: string): Promise<string> {
     if (this.connections.size >= MAX_CONNECTIONS) {
       throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
@@ -303,51 +334,17 @@ class App extends EventEmitter {
       throw new Error('Unsupported URL. Please provide a YouTube, Twitch, or Kick livestream URL.');
     }
 
-    if (platform === 'youtube') {
-      return this.startYouTubeCapture(url);
-    } else if (platform === 'twitch') {
-      return this.startTwitchCapture(url);
-    } else {
-      return this.startKickCapture(url);
-    }
+    return this.startCapture(url, platform);
   }
 
-  // Start YouTube-specific capture
-  private async startYouTubeCapture(url: string): Promise<string> {
+  // Unified capture start — all platform differences are handled by platformConfig
+  private async startCapture(url: string, platform: Platform): Promise<string> {
+    const config = this.platformConfig[platform];
     const connId = this.generateConnId();
-    const isStudioUrl = /^https?:\/\/studio\.youtube\.com\//i.test(String(url || ''));
-    const videoId = this.extractVideoId(url);
-    if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
-    const capture = new YouTubeChatCapture(videoId, {
-      pollInterval: DEFAULT_POLL_INTERVAL,
-      quiet: true,
-      onMessage: (message) => this.onCaptureMessage(connId, message),
-      onDelete: (id) => this.onCaptureDelete(id),
-      onError: (err) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
-      onStatusChange: (status) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
-    });
-    await capture.start();
-    const displayUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
-    this.connections.set(connId, {
-      id: connId, capture, platform: 'youtube', url: displayUrl,
-      videoId, messageCount: 0, chatters: new Set(), startTime: Date.now(),
-      pollIntervalMs: DEFAULT_POLL_INTERVAL,
-    });
-    this.tui?.setUrl(displayUrl);
-    startLogging('yt');
-    this.tui?.render();
-    const captureStatus = { status: 'active' as const, videoId, platform: 'youtube' as const, startedAt: Date.now(), connectionId: connId };
-    this.io.emit('capture-status', captureStatus);
-    this.emit('capture-status', captureStatus);
-    return connId;
-  }
+    const identifier = config.extractId(url);
+    if (!identifier) throw new Error(config.errorMessage);
 
-  // Start Twitch-specific capture
-  private async startTwitchCapture(url: string): Promise<string> {
-    const connId = this.generateConnId();
-    const channel = this.extractTwitchChannel(url);
-    if (!channel) throw new Error('Invalid Twitch URL. Please provide a valid Twitch channel URL.');
-    const capture = new TwitchChatCapture(channel, {
+    const capture = new config.CaptureClass(identifier, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
       onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
@@ -356,16 +353,18 @@ class App extends EventEmitter {
       onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
     await capture.start();
-    const displayUrl = `https://www.twitch.tv/${channel}`;
+
+    const displayUrl = config.buildDisplayUrl(identifier, url);
     this.connections.set(connId, {
-      id: connId, capture, platform: 'twitch', url: displayUrl,
-      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      id: connId, capture, platform, url: displayUrl,
+      videoId: identifier, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: DEFAULT_POLL_INTERVAL,
     });
     this.tui?.setUrl(displayUrl);
-    startLogging('tw');
+    startLogging(config.logPrefix);
     this.tui?.render();
-    const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: Date.now(), connectionId: connId };
+
+    const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
     return connId;
@@ -390,35 +389,6 @@ class App extends EventEmitter {
       const match = url.match(/kick\.com\/(?:popout\/)?([^/?&#]+)/i);
       return match ? match[1].toLowerCase() : null;
     }
-  }
-
-  // Start Kick-specific capture
-  private async startKickCapture(url: string): Promise<string> {
-    const connId = this.generateConnId();
-    const channel = this.extractKickChannel(url);
-    if (!channel) throw new Error('Invalid Kick URL. Please provide a valid Kick channel URL.');
-    const capture = new KickChatCapture(channel, {
-      pollInterval: DEFAULT_POLL_INTERVAL,
-      quiet: true,
-      onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
-      onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
-    });
-    await capture.start();
-    const displayUrl = `https://kick.com/${channel}`;
-    this.connections.set(connId, {
-      id: connId, capture, platform: 'kick', url: displayUrl,
-      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
-      pollIntervalMs: DEFAULT_POLL_INTERVAL,
-    });
-    this.tui?.setUrl(displayUrl);
-    startLogging('kk');
-    this.tui?.render();
-    const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: Date.now(), connectionId: connId };
-    this.io.emit('capture-status', captureStatus);
-    this.emit('capture-status', captureStatus);
-    return connId;
   }
 
   // Relay messages to SSE clients and overlay
