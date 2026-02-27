@@ -8,6 +8,14 @@ import {
 import { api } from './api.js';
 import { adminAudio, ensureAudioCtx, playSoundAdmin, initAdminAudio } from './audio.js';
 
+// ─── Volume channel descriptors ────────────────────────────────
+
+const VOLUME_CHANNELS = [
+  { key: 'messageVolume',  label: 'Message',    slider: msgVolSlider, labelEl: msgVolLabel, testBtn: testMsgBtn, audioKey: 'message'  },
+  { key: 'donationVolume', label: 'Donation',   slider: donVolSlider, labelEl: donVolLabel, testBtn: testDonBtn, audioKey: 'donation' },
+  { key: 'memberVolume',   label: 'Membership', slider: memVolSlider, labelEl: memVolLabel, testBtn: testMemBtn, audioKey: 'member'   },
+];
+
 let soundDebounce = null;
 function sendSounds(patch) {
   clearTimeout(soundDebounce);
@@ -20,51 +28,28 @@ export async function fetchSounds() {
   try {
     const data = await api('GET', '/api/sounds');
     if (!data) return;
-    if (typeof data.messageVolume === 'number') {
-      msgVolSlider.value = data.messageVolume;
-      msgVolLabel.textContent = 'Message: ' + Math.round(data.messageVolume * 100) + '%';
-    }
-    if (typeof data.donationVolume === 'number') {
-      donVolSlider.value = data.donationVolume;
-      donVolLabel.textContent = 'Donation: ' + Math.round(data.donationVolume * 100) + '%';
-    }
-    if (typeof data.memberVolume === 'number') {
-      memVolSlider.value = data.memberVolume;
-      memVolLabel.textContent = 'Membership: ' + Math.round(data.memberVolume * 100) + '%';
+    for (const { key, label, slider, labelEl } of VOLUME_CHANNELS) {
+      if (typeof data[key] === 'number') {
+        slider.value = data[key];
+        labelEl.textContent = `${label}: ${Math.round(data[key] * 100)}%`;
+      }
     }
   } catch {}
 }
 
 export function bindSoundListeners() {
-  msgVolSlider.addEventListener('input', () => {
-    const val = Number(msgVolSlider.value);
-    msgVolLabel.textContent = 'Message: ' + Math.round(val * 100) + '%';
-    sendSounds({ messageVolume: val });
-  });
-  donVolSlider.addEventListener('input', () => {
-    const val = Number(donVolSlider.value);
-    donVolLabel.textContent = 'Donation: ' + Math.round(val * 100) + '%';
-    sendSounds({ donationVolume: val });
-  });
-  memVolSlider.addEventListener('input', () => {
-    const val = Number(memVolSlider.value);
-    memVolLabel.textContent = 'Membership: ' + Math.round(val * 100) + '%';
-    sendSounds({ memberVolume: val });
-  });
-
-  testMsgBtn.addEventListener('click', async () => {
-    ensureAudioCtx();
-    if (!adminAudio.message) await initAdminAudio();
-    playSoundAdmin(adminAudio.message, Number(msgVolSlider.value) || 0);
-  });
-  testDonBtn.addEventListener('click', async () => {
-    ensureAudioCtx();
-    if (!adminAudio.donation) await initAdminAudio();
-    playSoundAdmin(adminAudio.donation, Number(donVolSlider.value) || 0);
-  });
-  testMemBtn.addEventListener('click', async () => {
-    ensureAudioCtx();
-    if (!adminAudio.member) await initAdminAudio();
-    playSoundAdmin(adminAudio.member, Number(memVolSlider.value) || 0);
-  });
+  for (const { key, label, slider, labelEl, testBtn, audioKey } of VOLUME_CHANNELS) {
+    // Volume slider
+    slider.addEventListener('input', () => {
+      const val = Number(slider.value);
+      labelEl.textContent = `${label}: ${Math.round(val * 100)}%`;
+      sendSounds({ [key]: val });
+    });
+    // Test button
+    testBtn.addEventListener('click', async () => {
+      ensureAudioCtx();
+      if (!adminAudio[audioKey]) await initAdminAudio();
+      playSoundAdmin(adminAudio[audioKey], Number(slider.value) || 0);
+    });
+  }
 }

@@ -318,33 +318,22 @@ export function bindConnectionListeners() {
     } catch {}
   });
 
-  filterToggle.addEventListener('change', async () => {
-    try {
-      const data = await api('POST', '/api/filter/toggle', { active: filterToggle.checked });
-      updateFilterUI(data);
-    } catch { filterToggle.checked = !filterToggle.checked; }
-  });
+  // Settings toggles — data-driven
+  const SETTINGS_TOGGLES = [
+    { toggle: filterToggle,   endpoint: '/api/filter/toggle', payloadKey: 'active',  updateFn: updateFilterUI },
+    { toggle: loggerToggle,   endpoint: '/api/logger/toggle', payloadKey: 'enabled', updateFn: updateLoggerUI },
+    { toggle: jamToggle,      endpoint: '/api/jam/toggle',    payloadKey: 'enabled', updateFn: updateJamUI },
+    { toggle: demoModeToggle, endpoint: '/api/demo-mode',     payloadKey: 'enabled', updateFn: () => fetchStatus() },
+  ];
 
-  loggerToggle.addEventListener('change', async () => {
-    try {
-      const data = await api('POST', '/api/logger/toggle', { enabled: loggerToggle.checked });
-      updateLoggerUI(data);
-    } catch { loggerToggle.checked = !loggerToggle.checked; }
-  });
-
-  jamToggle.addEventListener('change', async () => {
-    try {
-      const data = await api('POST', '/api/jam/toggle', { enabled: jamToggle.checked });
-      updateJamUI(data);
-    } catch { jamToggle.checked = !jamToggle.checked; }
-  });
-
-  demoModeToggle.addEventListener('change', async () => {
-    try {
-      await api('POST', '/api/demo-mode', { enabled: demoModeToggle.checked });
-      await fetchStatus();
-    } catch { demoModeToggle.checked = !demoModeToggle.checked; }
-  });
+  for (const { toggle, endpoint, payloadKey, updateFn } of SETTINGS_TOGGLES) {
+    toggle.addEventListener('change', async () => {
+      try {
+        const data = await api('POST', endpoint, { [payloadKey]: toggle.checked });
+        await updateFn(data);
+      } catch { toggle.checked = !toggle.checked; }
+    });
+  }
 
   // Real-time Electron events
   if (isElectron) {
