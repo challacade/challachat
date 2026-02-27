@@ -65,7 +65,7 @@ function Invoke-ElectronBuilder($builderArgs, $version) {
   Write-Host "Set package.json version: $originalVersion -> $version" -ForegroundColor Cyan
 
   try {
-    Run "npx electron-builder $builderArgs"
+    Run "npx electron-builder $builderArgs --publish never"
   } finally {
     # Restore original version
     $pkgJson.version = $originalVersion
