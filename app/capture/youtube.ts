@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { ChatEvent, CaptureOptions } from './types';
+import { CaptureOptions } from './types';
 import { BaseChatCapture } from './base';
 
 /**
@@ -10,6 +10,10 @@ export class YouTubeChatCapture extends BaseChatCapture {
   private videoId: string;
   protected readonly logPrefix = 'Capture';
   protected readonly chatUrl: string;
+  protected readonly hashPrefix = 'h_';
+  protected readonly platformDomain = 'youtube.com';
+  protected readonly platformName = 'youtube';
+  protected readonly highPriorityKinds = ['donation', 'member', 'member-renewal', 'member-milestone', 'member-gift'];
 
   constructor(videoId: string, options: CaptureOptions = {}) {
     super(options);
@@ -58,18 +62,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
       // ─────────────────────────────────────────────────────────────────────
       // Helper functions (must be defined inside evaluate for browser context)
       // ─────────────────────────────────────────────────────────────────────
-      function cyrb53(str: string, seed = 0) {
-        let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-        for (let i = 0, ch; i < str.length; i++) {
-          ch = str.charCodeAt(i);
-          h1 = Math.imul(h1 ^ ch, 2654435761);
-          h2 = Math.imul(h2 ^ ch, 1597334677);
-        }
-        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-        const combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
-        return combined.toString(36);
-      }
+      const cyrb53 = (window as any).__cyrb53;
 
       function detectYouTubeUserRoles(messageElement: Element) {
         try {
@@ -386,40 +379,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
       return { messages: out, visibleIds, deletedIds };
     });
 
-    // Process results
-    const messages = (result as any)?.messages || [];
-    const visibleRendererIds: Set<string> = new Set((result as any)?.visibleIds || []);
-    const deletedRendererIds: Set<string> = new Set((result as any)?.deletedIds || []);
-
-    for (const message of messages as any[]) {
-      const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
-      const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
-      const highPriority = !!message.hasCard || ['donation', 'member', 'member-renewal', 'member-milestone', 'member-gift'].includes(message.kind);
-      if (!this.seenIds.has(message.id) && (hasText || hasSegments || highPriority)) {
-        this.seenIds.add(message.id);
-        const evt: ChatEvent = {
-          id: message.id,
-          author: message.author,
-          text: message.text || '',
-          segments: message.segments,
-          kind: message.kind,
-          ts: message.timestamp || Date.now(),
-          amountDisplay: message.amountDisplay,
-          color: message.color,
-          hasCard: message.hasCard
-        };
-        this.callbacks.onMessage(evt);
-      }
-    }
-
-    // Deletion detection
-    const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith('h_'));
-    for (const id of knownDomIds) {
-      if (deletedRendererIds.has(id) || !visibleRendererIds.has(id)) {
-        this.callbacks.onDelete(id);
-        this.seenIds.delete(id);
-      }
-    }
+    this.processRawMessages(result as any);
   }
 }
 

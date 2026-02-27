@@ -56,6 +56,18 @@ export abstract class BaseChatCapture {
   /** The URL to navigate to for chat */
   protected abstract readonly chatUrl: string;
 
+  /** Prefix used for hash-generated message IDs (e.g. 'h_', 'tw_', 'kick_') */
+  protected abstract readonly hashPrefix: string;
+
+  /** Domain substring to match in URL for page validation */
+  protected abstract readonly platformDomain: string;
+
+  /** Platform name to match in page title (lowercase) */
+  protected abstract readonly platformName: string;
+
+  /** Message kinds considered high-priority (always emitted even without text/segments) */
+  protected readonly highPriorityKinds: string[] = [];
+
   /** Viewport dimensions for the browser page */
   protected get viewport(): { width: number; height: number } {
     return { width: 1280, height: 720 };
@@ -133,6 +145,22 @@ export abstract class BaseChatCapture {
         this.page.setDefaultTimeout(90000);
         this.page.setDefaultNavigationTimeout(90000);
         await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+        // Inject cyrb53 hash into browser context (used by all platform scrapers)
+        await this.page.evaluateOnNewDocument(`
+          window.__cyrb53 = function(str, seed) {
+            seed = seed || 0;
+            var h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+            for (var i = 0, ch; i < str.length; i++) {
+              ch = str.charCodeAt(i);
+              h1 = Math.imul(h1 ^ ch, 2654435761);
+              h2 = Math.imul(h2 ^ ch, 1597334677);
+            }
+            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+            var combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
+            return combined.toString(36);
+          };
+        `);
         await this.page.setViewport({ ...this.viewport, deviceScaleFactor: 1 });
         await this.page.setRequestInterception(true);
         this.page.on('request', (req: HTTPRequest) => {
@@ -170,9 +198,10 @@ export abstract class BaseChatCapture {
     if (!this.isRunning) return;
     this.log('Stopping...');
     this.isRunning = false;
-    this.emitStatus({ status: 'stopping' });
+    const base = this.getActiveStatus();
+    this.emitStatus({ ...base, status: 'stopping' });
     await this.cleanup();
-    this.emitStatus({ status: 'stopped' });
+    this.emitStatus({ ...base, status: 'stopped' });
     this.log('Stopped');
   }
 
@@ -204,7 +233,62 @@ export abstract class BaseChatCapture {
   }
 
   /** Check if the page loaded successfully even if navigation timed out */
-  protected abstract isValidPage(): Promise<boolean>;
+  protected async isValidPage(): Promise<boolean> {
+    if (!this.page) return false;
+    try {
+      const url = this.page.url();
+      const title = await this.page.title();
+      return url.includes(this.platformDomain) || title.toLowerCase().includes(this.platformName);
+    } catch {
+      return false;
+    }
+  }
+
+  /**
+   * Process raw messages from page.evaluate(), handling dedup, emission, and deletion detection.
+   * Called by subclass pollMessages() after scraping.
+   */
+  protected processRawMessages(result: { messages: any[]; visibleIds: string[]; deletedIds?: string[] }): void {
+    const messages = result.messages || [];
+    const visibleRendererIds = new Set(result.visibleIds || []);
+    const deletedRendererIds = result.deletedIds ? new Set(result.deletedIds) : null;
+
+    for (const message of messages) {
+      const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
+      const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
+      const isHighPriority = !!message.hasCard || this.highPriorityKinds.includes(message.kind);
+      if (!this.seenIds.has(message.id) && (hasText || hasSegments || isHighPriority)) {
+        this.seenIds.add(message.id);
+        const evt: ChatEvent = {
+          id: message.id,
+          author: message.author,
+          text: message.text || '',
+          segments: message.segments,
+          kind: message.kind || 'text',
+          ts: message.timestamp || Date.now(),
+          amountDisplay: message.amountDisplay,
+          color: message.color,
+          hasCard: message.hasCard,
+          systemMessage: message.systemMessage,
+          replyTo: message.replyTo,
+          rewardName: message.rewardName,
+          months: message.months,
+          giftCount: message.giftCount,
+          totalGifted: message.totalGifted,
+        };
+        this.callbacks.onMessage(evt);
+      }
+    }
+
+    // Deletion detection — only check IDs assigned by the DOM, not hash-generated ones
+    const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith(this.hashPrefix));
+    for (const id of knownDomIds) {
+      if ((deletedRendererIds && deletedRendererIds.has(id)) || !visibleRendererIds.has(id)) {
+        this.callbacks.onDelete(id);
+        this.seenIds.delete(id);
+      }
+    }
+  }
 
   protected async navigate(attempt: number) {
     if (!this.page) throw new Error('No page');

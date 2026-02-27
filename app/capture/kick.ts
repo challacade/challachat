@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import { ChatEvent, CaptureOptions } from './types';
+import { CaptureOptions } from './types';
 import { BaseChatCapture } from './base';
 
 /**
@@ -10,6 +10,10 @@ export class KickChatCapture extends BaseChatCapture {
   private channel: string;
   protected readonly logPrefix = 'Kick';
   protected readonly chatUrl: string;
+  protected readonly hashPrefix = 'kick_';
+  protected readonly platformDomain = 'kick.com';
+  protected readonly platformName = 'kick';
+  protected readonly highPriorityKinds = ['sub', 'sub-gift', 'cheer', 'donation', 'redemption'];
 
   constructor(channel: string, options: CaptureOptions = {}) {
     super(options);
@@ -37,43 +41,10 @@ export class KickChatCapture extends BaseChatCapture {
     ];
   }
 
-  protected async isValidPage(): Promise<boolean> {
-    if (!this.page) return false;
-    try {
-      const url = this.page.url();
-      const title = await this.page.title();
-      return url.includes('kick.com') || title.toLowerCase().includes('kick');
-    } catch {
-      return false;
-    }
-  }
-
-  async stop() {
-    if (!this.isRunning) return;
-    this.log('Stopping...');
-    this.isRunning = false;
-    this.emitStatus({ status: 'stopping', platform: 'kick' });
-    await this.cleanup();
-    this.emitStatus({ status: 'stopped', platform: 'kick' });
-    this.log('Stopped');
-  }
-
   protected async pollMessages(): Promise<void> {
     if (!this.page) return;
     const result = await this.page.evaluate(() => {
-      // Hash function for stable IDs
-      function cyrb53(str: string, seed = 0) {
-        let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-        for (let i = 0, ch; i < str.length; i++) {
-          ch = str.charCodeAt(i);
-          h1 = Math.imul(h1 ^ ch, 2654435761);
-          h2 = Math.imul(h2 ^ ch, 1597334677);
-        }
-        h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-        h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-        const combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
-        return combined.toString(36);
-      }
+      const cyrb53 = (window as any).__cyrb53;
 
       // Parse badges from a message container (inline SVGs)
       function parseBadges(container: Element) {
@@ -357,41 +328,7 @@ export class KickChatCapture extends BaseChatCapture {
       return { messages: out, visibleIds };
     });
 
-    const messages = (result as any)?.messages || [];
-    const visibleRendererIds: Set<string> = new Set((result as any)?.visibleIds || []);
-
-    for (const message of messages as any[]) {
-      const hasText = typeof message.text === 'string' && message.text.trim().length > 0;
-      const hasSegments = Array.isArray(message.segments) && message.segments.length > 0;
-      const isHighPriority = ['sub', 'sub-gift', 'cheer', 'donation', 'redemption'].includes(message.kind);
-      if (!this.seenIds.has(message.id) && (hasText || hasSegments || isHighPriority)) {
-        this.seenIds.add(message.id);
-        const evt: ChatEvent = {
-          id: message.id,
-          author: message.author,
-          text: message.text || '',
-          segments: message.segments,
-          kind: message.kind || 'text',
-          ts: message.timestamp || Date.now(),
-          replyTo: message.replyTo,
-          rewardName: message.rewardName,
-          color: message.color,
-          months: message.months,
-          giftCount: message.giftCount,
-          totalGifted: message.totalGifted
-        };
-        this.callbacks.onMessage(evt);
-      }
-    }
-
-    // Deletion detection - Kick uses data-index which changes, so we track by generated IDs
-    const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith('kick_'));
-    for (const id of knownDomIds) {
-      if (!visibleRendererIds.has(id)) {
-        this.callbacks.onDelete(id);
-        this.seenIds.delete(id);
-      }
-    }
+    this.processRawMessages(result as any);
   }
 }
 
