@@ -2,24 +2,27 @@
 import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
-import fs from 'fs';
 import { EventEmitter } from 'events';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
-import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
+import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
-import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
-import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
-import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
-import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
-import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
+import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
+import { startLogging, stopLogging, logMessage, setLogEnabled } from '../core/logger';
+import { readSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
+import { getNowPlaying } from '../core/nowPlaying';
+import { onNowPlayingUpdated, setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
 import type { ChatEvent, Platform } from '../capture/types';
 import { closeBrowser } from '../capture/browserPool';
+import type { Connection, RouteContext } from './routes/context';
+import { createCaptureRouter } from './routes/capture';
+import { createMusicRouter } from './routes/music';
+import { createOverlayRouter } from './routes/overlay';
+import { createSettingsRouter } from './routes/settings';
 
 /**
  * Typed events emitted by the App class.
@@ -37,19 +40,6 @@ export interface AppEvents {
 const __dirnameResolved = __dirname;
 const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
 const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
-
-// Per-connection state
-interface Connection {
-  id: string;
-  capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture;
-  platform: Platform;
-  url: string;
-  videoId: string | null;
-  messageCount: number;
-  chatters: Set<string>;
-  startTime: number;
-  pollIntervalMs: number;
-}
 
 const MAX_CONNECTIONS = 5;
 
@@ -111,7 +101,7 @@ class App extends EventEmitter {
   void this.ensureServerWithRetry();
   }
 
-  // Configure express, static files, and lightweight APIs
+  // Configure express, static files, and mount route modules
   private setupServer() {
     this.app.use(express.json());
 
@@ -138,446 +128,40 @@ class App extends EventEmitter {
       res.sendFile(path.join(overlayStatic, 'index.html'));
     });
 
-  this.app.get('/api/status', (_req: Request, res: Response) => {
-      res.json(this.getStatus());
-    });
+    // Build the shared context for route modules
+    const ctx: RouteContext = {
+      connections: this.connections,
+      sse: this.sse,
+      io: this.io,
+      appearance: this.appearance,
+      sounds: this.sounds,
+      getStatus: () => this.getStatus(),
+      isRunning: () => this.isRunning,
+      isDemoMode: () => this.demoMode,
+      setDemoMode: (v) => { this.demoMode = v; },
+      isSessionActive: () => this.sessionActive,
+      setSessionActive: (v) => { this.sessionActive = v; },
+      ensureServer: () => this.ensureServer(),
+      apiConnect: (url) => this.apiConnect(url),
+      apiDisconnect: (id) => this.apiDisconnect(id),
+      shutdownCapture: (id) => this.shutdownCapture(id),
+      broadcastSystemMessage: (text, opts) => this.broadcastSystemMessage(text, opts),
+    };
 
-  this.app.get('/api/poll-interval', (req: Request, res: Response) => {
-      const connId = String(req.query.connectionId || '');
-      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
-      res.json({ pollIntervalMs: conn?.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
-    });
-  this.app.post('/api/poll-interval', (req: Request, res: Response) => {
-      const connId = String(req.body?.connectionId || '');
-      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
-      const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-      if (conn) conn.capture.setPollInterval(next);
-      res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
-    });
+    // Mount API route modules
+    this.app.use('/api', createCaptureRouter(ctx));
+    this.app.use('/api', createMusicRouter(ctx));
+    this.app.use('/api', createOverlayRouter(ctx));
+    this.app.use('/api', createSettingsRouter(ctx));
 
-  this.app.get('/api/filter', (_req: Request, res: Response) => {
-      res.json(getFilterStatus());
-    });
-  this.app.post('/api/filter/toggle', (req: Request, res: Response) => {
-      const active = req.body?.active;
-      if (typeof active === 'boolean') {
-        setFilterActive(active);
-        updateSettings({ filterActive: active });
-      }
-      res.json({ ok: true, ...getFilterStatus() });
-    });
-
-  this.app.post('/api/filter/path', (req: Request, res: Response) => {
-      const filterPath = req.body?.filterPath;
-      if (typeof filterPath === 'string' && filterPath.trim().length > 0) {
-        const trimmed = filterPath.trim();
-        const success = loadFilterFromPath(trimmed);
-        if (success) {
-          updateSettings({ filterPath: trimmed });
-        }
-        res.json({ ok: success, ...getFilterStatus() });
-      } else {
-        res.json({ ok: false, error: 'No path provided', ...getFilterStatus() });
-      }
-    });
-
-  this.app.get('/api/logger', (_req: Request, res: Response) => {
-      res.json(getLoggerStatus());
-    });
-  this.app.post('/api/logger/toggle', (req: Request, res: Response) => {
-      const enabled = req.body?.enabled;
-      if (typeof enabled === 'boolean') {
-        setLogEnabled(enabled);
-        updateSettings({ loggerEnabled: enabled });
-        // If enabling and currently capturing, start logging immediately
-        if (enabled && this.isRunning) {
-          const firstConn = this.connections.values().next().value;
-          const platformPrefix = firstConn?.platform === 'kick' ? 'kk' : firstConn?.platform === 'twitch' ? 'tw' : 'yt';
-          startLogging(platformPrefix);
-        }
-      }
-      res.json({ ok: true, ...getLoggerStatus() });
-    });
-
-  this.app.get('/api/music', (_req: Request, res: Response) => {
-      res.json(getMusicSettingsStatus());
-    });
-
-  this.app.get('/api/music/display-settings', (_req: Request, res: Response) => {
-      res.json(getMusicDisplaySettings());
-    });
-
-  this.app.post('/api/music/display-settings', (req: Request, res: Response) => {
-      const patch: Record<string, unknown> = {};
-      if (typeof req.body?.songDisplay === 'string') {
-        const val = req.body.songDisplay;
-        patch.songDisplay = ['none', 'top', 'bottom'].includes(val) ? val : 'none';
-      }
-      if (typeof req.body?.writeSongFile === 'boolean') {
-        patch.writeSongFile = req.body.writeSongFile;
-      }
-      if (typeof req.body?.songScrollSpeed === 'number') {
-        patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));
-      }
-      if (typeof req.body?.songTextSize === 'number') {
-        patch.songTextSize = Math.max(0, Math.min(2, req.body.songTextSize));
-      }
-      const result = updateSettings(patch);
-      if (!result.ok) {
-        res.status(500).json({ error: 'Failed to write settings' });
-        return;
-      }
-      const current = getMusicDisplaySettings();
-      this.sse.send('music-settings', current);
-      res.json({ ok: true, ...current });
-    });
-
-  this.app.post('/api/music/settings', (req: Request, res: Response) => {
-      const patch: Record<string, unknown> = {};
-      if (typeof req.body?.autoShuffle === 'boolean') {
-        patch.autoShuffle = req.body.autoShuffle;
-      }
-      if (typeof req.body?.playlistLoop === 'boolean') {
-        patch.playlistLoop = req.body.playlistLoop;
-      }
-      const result = updateSettings(patch);
-      if (!result.ok) {
-        res.status(500).json({ error: 'Failed to write settings' });
-        return;
-      }
-      res.json({ ok: true, autoShuffle: result.settings.autoShuffle === true, playlistLoop: result.settings.playlistLoop !== false });
-    });
-
-  this.app.post('/api/music/path', (req: Request, res: Response) => {
-      const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
-      const result = updateSettings({ musicPath: musicPath || undefined });
-      if (!result.ok) {
-        res.status(500).json({ error: 'Failed to write settings' });
-        return;
-      }
-      // Refresh playlist with the new path
-      const current = refreshPlaylist();
-      res.json({
-        ok: true,
-        musicPath: musicPath || null,
-        playlist: current.playlist,
-        count: current.playlist.length
-      });
-    });
-
-  this.app.get('/api/music/nowplaying', (_req: Request, res: Response) => {
-      const now = getNowPlaying();
-      res.json({ nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
-    });
-
-  this.app.post('/api/music/nowplaying', (req: Request, res: Response) => {
-      const idx = Number(req.body?.index);
-      if (!Number.isInteger(idx) || idx < 0) {
-        res.status(400).json({ error: 'Invalid index' });
-        return;
-      }
-      const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
-      const now = setNowPlayingByIndex(idx, songId);
-      const finale = onNowPlayingUpdated(now);
-      if (finale) {
-        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
-        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
-      }
-      res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
-      // Broadcast to overlay so it can update song display
-      if (now) {
-        this.sse.send('now-playing', { songId: now.songId, index: now.index });
-      }
-    });
-
-  this.app.get('/api/jam', (_req: Request, res: Response) => {
-      res.json(getJamStatus(getNowPlaying()));
-    });
-
-  this.app.post('/api/jam/toggle', (req: Request, res: Response) => {
-      const enabled = req.body?.enabled;
-      if (typeof enabled === 'boolean') {
-        setJamEnabled(enabled);
-        updateSettings({ jamEnabled: enabled });
-      }
-      res.json({ ok: true, ...getJamStatus(getNowPlaying()) });
-    });
-
-  this.app.get('/api/music/playlist', (_req: Request, res: Response) => {
-      // Build playlist on demand (and refresh when path changes)
-      const current = refreshPlaylist();
-      res.json({
-        musicPath: current.musicPath,
-        playlist: current.playlist,
-        count: current.playlist.length,
-        scannedAt: current.scannedAt
-      });
-    });
-
-  this.app.get('/api/music/track/:index/meta', async (req: Request, res: Response) => {
-      const idx = Number(req.params.index);
-      if (!Number.isInteger(idx) || idx < 0) {
-        res.status(400).json({ error: 'Invalid index' });
-        return;
-      }
-
-      const filePath = getTrackByIndex(idx);
-      if (!filePath) {
-        res.status(404).json({ error: 'Track not found' });
-        return;
-      }
-
-      try {
-        const meta = await getTrackMetaByIndex(idx);
-        res.json({
-          title: meta?.title ?? null,
-          artist: meta?.artist ?? null
-        });
-      } catch {
-        res.status(500).json({ error: 'Failed to read track metadata' });
-      }
-    });
-
-  this.app.post('/api/music/songfile', async (req: Request, res: Response) => {
-      const idx = Number(req.body?.index);
-      if (!Number.isInteger(idx) || idx < 0) {
-        res.status(400).json({ error: 'Invalid index' });
-        return;
-      }
-
-      // Treat songfile writes as a signal for the current track (used by !jam tracking)
-      const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
-      const now = setNowPlayingByIndex(idx, songId);
-      const finale = onNowPlayingUpdated(now);
-      if (finale) {
-        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
-        this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
-      }
-
-      const filePath = getTrackByIndex(idx);
-      if (!filePath) {
-        res.status(404).json({ error: 'Track not found' });
-        return;
-      }
-
-      let title: string | null = null;
-      let artist: string | null = null;
-
-      try {
-        const meta = await getTrackMetaByIndex(idx);
-        title = meta?.title ?? null;
-        artist = meta?.artist ?? null;
-      } catch {
-        // ignore and fallback to filename
-      }
-
-      const fallbackTitle = path.basename(filePath, path.extname(filePath));
-      const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
-      const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
-      const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
-      const line = `\u266b  ${details}  \u266b`;
-
-      const writeResult = writeSongTxt(line);
-      if (!writeResult.ok) {
-        res.status(500).json({ error: 'Failed to write song file', path: writeResult.path });
-        return;
-      }
-
-      res.json({ ok: true, path: writeResult.path, line });
-    });
-
-  this.app.get('/api/music/track/:index', (req: Request, res: Response) => {
-      const idx = Number(req.params.index);
-      const filePath = getTrackByIndex(idx);
-      if (!filePath) {
-        res.status(404).json({ error: 'Track not found' });
-        return;
-      }
-
-      try {
-        const stat = fs.statSync(filePath);
-        const total = stat.size;
-        const range = req.headers.range;
-
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.setHeader('Accept-Ranges', 'bytes');
-
-        if (range) {
-          const m = /^bytes=(\d+)-(\d*)$/i.exec(range);
-          if (!m) {
-            res.status(416).end();
-            return;
-          }
-          const start = Number(m[1]);
-          const end = m[2] ? Number(m[2]) : total - 1;
-          const clampedStart = Math.max(0, Math.min(total - 1, start));
-          const clampedEnd = Math.max(clampedStart, Math.min(total - 1, end));
-          const chunkSize = clampedEnd - clampedStart + 1;
-
-          res.status(206);
-          res.setHeader('Content-Range', `bytes ${clampedStart}-${clampedEnd}/${total}`);
-          res.setHeader('Content-Length', String(chunkSize));
-          fs.createReadStream(filePath, { start: clampedStart, end: clampedEnd }).pipe(res);
-          return;
-        }
-
-        res.setHeader('Content-Length', String(total));
-        fs.createReadStream(filePath).pipe(res);
-      } catch {
-        res.status(500).json({ error: 'Failed to read track' });
-      }
-    });
-
-  // Overlay appearance (admin-controlled)
-  this.app.get('/api/appearance', (_req: Request, res: Response) => {
-      res.json(this.appearance);
-    });
-  this.app.post('/api/appearance', (req: Request, res: Response) => {
-      const body = req.body;
-      if (!body || typeof body !== 'object') {
-        res.status(400).json({ error: 'Invalid body' });
-        return;
-      }
-      // Merge only known keys
-      if (typeof body.scale === 'number') {
-        this.appearance.scale = Math.max(0.5, Math.min(3, body.scale));
-      }
-      if (typeof body.textOpacity === 'number') {
-        this.appearance.textOpacity = Math.max(0, Math.min(1, body.textOpacity));
-      }
-      if (typeof body.bubbleOpacity === 'number') {
-        this.appearance.bubbleOpacity = Math.max(0, Math.min(1, body.bubbleOpacity));
-      }
-      if (typeof body.bgOpacity === 'number') {
-        this.appearance.bgOpacity = Math.max(0, Math.min(1, body.bgOpacity));
-      }
-      if (typeof body.messageGap === 'number') {
-        this.appearance.messageGap = Math.max(0, Math.min(1.5, body.messageGap));
-      }
-      if (typeof body.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.textColor)) {
-        this.appearance.textColor = body.textColor;
-      }
-      if (typeof body.bubbleColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bubbleColor)) {
-        this.appearance.bubbleColor = body.bubbleColor;
-      }
-      if (typeof body.bgColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bgColor)) {
-        this.appearance.bgColor = body.bgColor;
-      }
-      if (typeof body.showBubbles === 'boolean') {
-        this.appearance.showBubbles = body.showBubbles;
-      }
-      if (typeof body.showAvatars === 'boolean') {
-        this.appearance.showAvatars = body.showAvatars;
-      }
-      if (typeof body.showBadges === 'boolean') {
-        this.appearance.showBadges = body.showBadges;
-      }
-      if (typeof body.preset === 'string' && ['Dark', 'Light', 'Transparent', 'Custom'].includes(body.preset)) {
-        this.appearance.preset = body.preset;
-      }
-      // Broadcast to all overlay SSE clients
-      this.sse.send('appearance', this.appearance);
-      // Persist to settings.json
-      updateSettings(this.appearance as any);
-      res.json({ ok: true, ...this.appearance });
-    });
-
-  this.app.get('/api/stream', (_req: Request, res: Response) => {
-      res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
-      res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
-      // Send current appearance immediately so overlay gets the latest on connect
-      res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
-      res.write(`event: sounds\ndata: ${JSON.stringify(this.sounds)}\n\n`);
-      res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
-      if (this.demoMode) {
-        res.write(`event: demo-mode\ndata: ${JSON.stringify({ enabled: true })}\n\n`);
-      }
-      const np = getNowPlaying();
-      if (np) {
-        res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);
-      }
-      this.sse.add(res);
-    });
-
-  this.io.on('connection', (socket: Socket) => {
+    // Socket.IO connection handler (not an HTTP route — stays here)
+    this.io.on('connection', (socket: Socket) => {
       const conns = Array.from(this.connections.values());
       socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', connections: conns.map(c => ({ id: c.id, platform: c.platform, videoId: c.videoId, messageCount: c.messageCount })) });
     });
 
-  // Sound settings (admin-controlled)
-  this.app.get('/api/sounds', (_req: Request, res: Response) => {
-      res.json(this.sounds);
-    });
-
-  this.app.post('/api/sounds', (req: Request, res: Response) => {
-      const body = req.body || {};
-      if (typeof body.messageVolume === 'number') {
-        this.sounds.messageVolume = Math.max(0, Math.min(2, body.messageVolume));
-      }
-      if (typeof body.donationVolume === 'number') {
-        this.sounds.donationVolume = Math.max(0, Math.min(2, body.donationVolume));
-      }
-      if (typeof body.memberVolume === 'number') {
-        this.sounds.memberVolume = Math.max(0, Math.min(2, body.memberVolume));
-      }
-      // Persist to settings.json
-      updateSettings(this.sounds as any);
-      res.json({ ok: true, ...this.sounds });
-    });
-
-  // Serve admin control panel (static files from admin/ directory)
-  this.app.use('/admin', express.static(adminStatic));
-
-  // API: connect to a livestream URL
-  this.app.post('/api/connect', async (req: Request, res: Response) => {
-      const url = req.body?.url;
-      if (!url || typeof url !== 'string') {
-        res.status(400).json({ ok: false, error: 'Missing or invalid URL.' });
-        return;
-      }
-      const result = await this.apiConnect(url);
-      res.json(result);
-    });
-
-  // API: disconnect a specific capture connection
-  this.app.post('/api/disconnect', async (req: Request, res: Response) => {
-      const connectionId = req.body?.connectionId;
-      if (!connectionId || typeof connectionId !== 'string') {
-        res.status(400).json({ ok: false, error: 'Missing connectionId.' });
-        return;
-      }
-      await this.apiDisconnect(connectionId);
-      res.json({ ok: true });
-    });
-
-  // API: start session without connecting (shows active view with add-connection card)
-  this.app.post('/api/start-session', async (_req: Request, res: Response) => {
-      await this.ensureServer();
-      this.sessionActive = true;
-      res.json({ ok: true });
-    });
-
-  // API: end session (disconnect all, return to welcome)
-  this.app.post('/api/end-session', async (_req: Request, res: Response) => {
-      await this.shutdownCapture(); // stop all connections
-      this.sessionActive = false;
-      this.demoMode = false;
-      this.sse.send('demo-mode', { enabled: false });
-      res.json({ ok: true });
-    });
-
-  // API: toggle demo mode (overlay shows fake chat messages)
-  this.app.post('/api/demo-mode', (req: Request, res: Response) => {
-      const enabled = req.body?.enabled;
-      if (typeof enabled !== 'boolean') {
-        res.status(400).json({ ok: false, error: 'Missing enabled boolean.' });
-        return;
-      }
-      this.demoMode = enabled;
-      this.sse.send('demo-mode', { enabled });
-      updateSettings({ demoMode: enabled });
-      res.json({ ok: true, demoMode: this.demoMode });
-    });
+    // Serve admin control panel (static files from admin/ directory)
+    this.app.use('/admin', express.static(adminStatic));
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
   }
