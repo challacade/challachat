@@ -11,35 +11,15 @@ export const elements = {
   messages: document.getElementById('messages'),
   overlay: document.getElementById('overlay'),
   toast: document.getElementById('toast'),
-  settings: document.getElementById('settings'),
-  settingsBtn: document.getElementById('settingsBtn'),
-
-
-
-  demoMode: document.getElementById('demoMode'),
-
-
-  copyUrlBtn: document.getElementById('copyUrlBtn'),
-  clearMessagesBtn: document.getElementById('clearMessagesBtn'),
-  generalSettingsBtn: document.getElementById('generalSettingsBtn'),
-  generalSettings: document.getElementById('generalSettings'),
   songDisplayOverlay: document.getElementById('songDisplayOverlay'),
-  pollIntervalMs: document.getElementById('pollIntervalMs'),
-  censorEnabled: document.getElementById('censorEnabled'),
-  censorStatus: document.getElementById('censorStatus'),
-  logEnabled: document.getElementById('logEnabled'),
-  logStatus: document.getElementById('logStatus')
 };
 
 // ================================
 // Constants
 // ================================
 
-export const SETTINGS_TOGGLE_KEYS = ['Enter', ' ', 'Spacebar', 'Escape', 'Esc'];
-export const SOUND_FRESH_MS = 2000;
 export const AVATAR_MAX_RETRIES = 3;
 export const AVATAR_RETRY_DELAY_MS = 3000;
-export const PROXIMITY_DISTANCE = 60;
 
 // ================================
 // Presets
@@ -123,7 +103,7 @@ export const DEMO_MESSAGES = [
       avatar: 'https://api.dicebear.com/7.x/shapes/svg?seed=DesignPro&backgroundColor=bae1ff',
       flags: {}
     },
-    text: 'Try changing the themes and colors in settings! 🎨',
+    text: 'Customize themes and colors from the admin panel! 🎨',
     kind: 'text'
   },
   {
@@ -132,7 +112,7 @@ export const DEMO_MESSAGES = [
       avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=SupportBot&backgroundColor=a8e6cf',
       flags: { owner: true }
     },
-    text: 'Press Enter or Space to open settings anytime ⚙️',
+    text: 'Manage everything from the admin panel ⚙️',
     kind: 'text'
   },
   {
@@ -159,7 +139,7 @@ export const DEMO_MESSAGES = [
       avatar: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=AudioEngineer&backgroundColor=c7ceea',
       flags: { member: true }
     },
-    text: 'Enable sound effects for donations and new members! 🔊',
+    text: 'Sound effects for donations and new members play in the admin panel! 🔊',
     kind: 'text'
   },
   {
@@ -198,15 +178,9 @@ export const state = {
   byId: new Map(),
   seenIds: new Set(),
   autoScale: 1,
-  sounds: {
-    message: { volume: 1 },
-    donation: { volume: 1 },
-    member: { volume: 1 },
-  },
   preset: 'Dark',
   startedAt: null,
   demoMode: false,
-  logEnabled: false,
   songDisplay: {
     position: 'none',  // 'none' | 'top' | 'bottom'
     scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
@@ -249,9 +223,7 @@ export function saveToLocal() {
     pageBgColor: state.pageBgColor,
     pageBgOpacity: state.pageBgOpacity,
     preset: state.preset || 'Custom',
-    demoMode: state.demoMode,
-    sounds: state.sounds,
-    logEnabled: state.logEnabled
+    demoMode: state.demoMode
   };
   try {
     localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave));

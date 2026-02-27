@@ -12,20 +12,11 @@
 import { state, elements, isDemoSite } from './js/state.js';
 import { startDemoMode, adjustMessageAlignment } from './js/messages.js';
 import {
-  setupMouseDetection,
   recomputeAutoScale,
   applyTheme,
   applyPreset,
   loadFromLocal,
   loadFromUrl,
-  syncUi,
-  bindUi,
-  fetchPollIntervalFromServer,
-  fetchCensorFilterStatus,
-  fetchLoggerStatus,
-  toggleLogger,
-  buildCustomPresetDropdown,
-  syncCustomPresetDropdown
 } from './js/settings.js';
 import { startSSE } from './js/sse.js';
 
@@ -35,9 +26,6 @@ import { startSSE } from './js/sse.js';
 
 function start() {
   state.startedAt = Date.now();
-  
-  // Setup mouse detection for settings buttons
-  setupMouseDetection();
   
   // Calculate initial auto-scale
   recomputeAutoScale();
@@ -74,32 +62,11 @@ function start() {
   // Apply settings
   applyPreset(state.preset);
   applyTheme();
-  syncUi();
-  bindUi();
   
   // Start demo mode if enabled
   if (state.demoMode) {
     startDemoMode();
   }
-  
-  // Fetch settings from server (non-blocking)
-  try { fetchPollIntervalFromServer(); } catch {}
-  try { fetchCensorFilterStatus(); } catch {}
-  
-  // Restore logger state
-  try {
-    if (state.logEnabled) {
-      toggleLogger(true);
-    } else {
-      fetchLoggerStatus();
-    }
-  } catch {}
-  
-  // Build custom dropdowns
-  try {
-    buildCustomPresetDropdown();
-    syncCustomPresetDropdown();
-  } catch {}
   
   // Start SSE connection
   startSSE();
