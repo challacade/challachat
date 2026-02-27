@@ -88,7 +88,7 @@ export function stopLogging(): void {
   if (logStream) {
     try {
       logStream.end();
-    } catch {}
+    } catch { /* ignore – best-effort stream close */ }
     logStream = null;
   }
   if (currentLogPath && messageCount > 0) {

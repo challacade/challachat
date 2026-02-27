@@ -30,7 +30,7 @@ export class TerminalUI {
   constructor(port: number) {
     this.port = port;
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    try { console.clear(); } catch {}
+    try { console.clear(); } catch { /* ignore – not all terminals support clear */ }
     this.defaultPrompt = `${ANSI.bold}${ANSI.yellow}Enter livestream URL:${ANSI.reset} `;
     this.rl.setPrompt(this.defaultPrompt);
   }
@@ -118,7 +118,7 @@ export class TerminalUI {
 
   render() {
   if (this.headerPrinted) return; // One-time render only
-  try { console.clear(); } catch {}
+  try { console.clear(); } catch { /* ignore */ }
   const headerWhite = `${ANSI.bold}${ANSI.white}ChallaChat Overlay is${ANSI.reset}`;
   const headerGreen = `${ANSI.bold}${ANSI.green} Active on Port ${this.port}${ANSI.reset}`;
   console.log(`${headerWhite}${headerGreen}`);

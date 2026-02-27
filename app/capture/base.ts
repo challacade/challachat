@@ -211,7 +211,7 @@ export abstract class BaseChatCapture {
    */
   protected async cleanup() {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
-    if (this.page) { try { await this.page.close(); } catch {} this.page = null; }
+    if (this.page) { try { await this.page.close(); } catch { /* ignore – page may already be closed */ } this.page = null; }
     // Do NOT close the browser — it's shared via BrowserPool
     this.browser = null;
   }
@@ -316,7 +316,7 @@ export abstract class BaseChatCapture {
         try {
           await this.page.waitForSelector(sel, { timeout: 2000 });
           return;
-        } catch {}
+        } catch { /* expected – selector not yet available, keep trying */ }
       }
       await new Promise(r => setTimeout(r, 2000));
     }

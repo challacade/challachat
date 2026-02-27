@@ -82,8 +82,8 @@ class App extends EventEmitter {
       showUsername: opts?.showUsername !== false,
       effects: opts?.effects
     };
-    try { this.io.emit('chat-message', msg); } catch {}
-    try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
+    try { this.io.emit('chat-message', msg); } catch { /* ignore – best-effort broadcast */ }
+    try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch { /* ignore */ }
   }
 
   constructor(options?: { headless?: boolean }) {
@@ -405,7 +405,9 @@ class App extends EventEmitter {
         nowPlaying: getNowPlaying(),
         broadcastSystemMessage: (text) => this.broadcastSystemMessage(text)
       });
-    } catch {}
+    } catch (err) {
+      console.warn('[Commands] Error running chat command:', err);
+    }
 
     // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
@@ -433,8 +435,8 @@ class App extends EventEmitter {
   // Relay delete events (by id) so overlays can remove them immediately
   private onCaptureDelete(id: string) {
     if (!id) return;
-    try { this.io.emit('chat-delete', { id }); } catch {}
-    try { this.sse.send('chat', { events: [{ type: 'delete', id }] as any }); } catch {}
+    try { this.io.emit('chat-delete', { id }); } catch { /* ignore */ }
+    try { this.sse.send('chat', { events: [{ type: 'delete', id }] as any }); } catch { /* ignore */ }
   }
 
   // Normalize event shape for the overlay client

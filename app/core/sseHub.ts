@@ -12,19 +12,19 @@ export class SSEHub<T = unknown> {
   add(res: Response) {
     this.clients.add(res);
     const timer = setInterval(() => {
-      try { res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`); } catch {}
+      try { res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`); } catch { /* client disconnected */ }
     }, this.heartbeatMs);
     res.on('close', () => {
       clearInterval(timer);
       this.clients.delete(res);
-      try { res.end(); } catch {}
+      try { res.end(); } catch { /* ignore */ }
     });
   }
 
   send(event: string, payload: T) {
     const data = `event: ${event}\ndata: ${JSON.stringify(payload)}\n\n`;
     for (const res of Array.from(this.clients)) {
-      try { res.write(data); } catch {}
+      try { res.write(data); } catch { /* client disconnected */ }
     }
   }
 }

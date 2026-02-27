@@ -42,7 +42,9 @@ export function loadFilterFromPath(filePath: string): boolean {
         return true;
       }
     }
-  } catch {}
+  } catch (err) {
+    console.warn(`[Censor] Failed to load filter from ${filePath}:`, err);
+  }
   filterLoaded = false;
   loadedPath = null;
   badWords.clear();
