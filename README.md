@@ -182,18 +182,39 @@ ChallaChat includes a music player that streams audio to the overlay and optiona
 
 ### settings.json
 
+ChallaChat automatically saves all admin panel settings to `settings.json` whenever you make a change. On next launch, saved settings are restored automatically.
+
 Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/settings.json` (Linux/Mac):
 
 ```json
 {
+  "scale": 1.35,
+  "textOpacity": 1,
+  "bubbleOpacity": 0.14,
+  "bgOpacity": 0,
+  "messageGap": 0.4,
+  "textColor": "#ffffff",
+  "bubbleColor": "#000000",
+  "bgColor": "#000000",
+  "showBubbles": true,
+  "showAvatars": true,
+  "showBadges": true,
+  "preset": "Dark",
+  "messageVolume": 1,
+  "donationVolume": 1,
+  "memberVolume": 1,
   "musicPath": "D:/Music/MyPlaylist",
   "autoShuffle": true,
   "playlistLoop": true,
-  "filterPath": "D:/filter.csv",
-  "writeSongFile": true,
   "songDisplay": "top",
-  "songScrollSpeed": 100,
-  "songTextSize": 100
+  "songScrollSpeed": 0,
+  "songTextSize": 1,
+  "writeSongFile": true,
+  "filterPath": "D:/filter.csv",
+  "filterActive": true,
+  "loggerEnabled": false,
+  "jamEnabled": false,
+  "demoMode": false
 }
 ```
 

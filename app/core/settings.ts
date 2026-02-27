@@ -3,9 +3,12 @@ import path from 'path';
 import os from 'os';
 
 export type AppSettings = {
+  // ── Music & song display ──
   musicPath?: string;
-  /** Path to the censor CSV file (user-selected). */
-  filterPath?: string;
+  /** Automatically shuffle the playlist when it first loads. */
+  autoShuffle?: boolean;
+  /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
+  playlistLoop?: boolean;
   /** Song display position on the overlay: 'none', 'top', or 'bottom'. */
   songDisplay?: string;
   /** Write the currently-playing song info to a text file. */
@@ -14,10 +17,36 @@ export type AppSettings = {
   songScrollSpeed?: number;
   /** Extra scale factor for song display text size (0–2, where 1 = 100%). */
   songTextSize?: number;
-  /** Automatically shuffle the playlist when it first loads. */
-  autoShuffle?: boolean;
-  /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
-  playlistLoop?: boolean;
+
+  // ── Filter ──
+  /** Path to the censor CSV file (user-selected). */
+  filterPath?: string;
+  /** Whether the profanity filter is active. */
+  filterActive?: boolean;
+
+  // ── Appearance ──
+  scale?: number;
+  textOpacity?: number;
+  bubbleOpacity?: number;
+  bgOpacity?: number;
+  messageGap?: number;
+  textColor?: string;
+  bubbleColor?: string;
+  bgColor?: string;
+  showBubbles?: boolean;
+  showAvatars?: boolean;
+  showBadges?: boolean;
+  preset?: string;
+
+  // ── Sound volumes ──
+  messageVolume?: number;
+  donationVolume?: number;
+  memberVolume?: number;
+
+  // ── Toggles ──
+  loggerEnabled?: boolean;
+  jamEnabled?: boolean;
+  demoMode?: boolean;
 };
 
 function getSettingsDir(): string {
@@ -145,6 +174,58 @@ export function getPlaylistLoop(): boolean {
   return (settings as any)?.playlistLoop !== false;
 }
 
+// ── Appearance defaults ──
+const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
+  scale: 1.35,
+  textOpacity: 1,
+  bubbleOpacity: 0.14,
+  bgOpacity: 0,
+  messageGap: 0.4,
+  textColor: '#ffffff',
+  bubbleColor: '#000000',
+  bgColor: '#000000',
+  showBubbles: true,
+  showAvatars: true,
+  showBadges: true,
+  preset: 'Dark',
+};
 
+// ── Sound defaults ──
+const SOUND_DEFAULTS: Record<string, number> = {
+  messageVolume: 1,
+  donationVolume: 1,
+  memberVolume: 1,
+};
 
+/** Load saved appearance, merging with defaults for any missing keys. */
+export function getSavedAppearance(): Record<string, number | string | boolean> {
+  const { settings } = readSettings();
+  const result = { ...APPEARANCE_DEFAULTS };
+  for (const key of Object.keys(APPEARANCE_DEFAULTS)) {
+    const val = (settings as any)[key];
+    if (val !== undefined) result[key] = val;
+  }
+  return result;
+}
 
+/** Load saved sound volumes, merging with defaults for any missing keys. */
+export function getSavedSounds(): Record<string, number> {
+  const { settings } = readSettings();
+  const result = { ...SOUND_DEFAULTS };
+  for (const key of Object.keys(SOUND_DEFAULTS)) {
+    const val = (settings as any)[key];
+    if (typeof val === 'number') result[key] = val;
+  }
+  return result;
+}
+
+/** Load saved toggle states (filter active, logger, jam, demo). All default to false. */
+export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; jamEnabled: boolean; demoMode: boolean } {
+  const { settings } = readSettings();
+  return {
+    filterActive: settings.filterActive === true,
+    loggerEnabled: settings.loggerEnabled === true,
+    jamEnabled: settings.jamEnabled === true,
+    demoMode: settings.demoMode === true,
+  };
+}

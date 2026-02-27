@@ -10,7 +10,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt } from '../core/settings';
+import { getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -74,28 +74,11 @@ class App extends EventEmitter {
   /** Generate a unique connection ID. */
   private generateConnId(): string { return `conn_${this.nextConnId++}`; }
 
-  // Overlay appearance settings (admin-controlled, broadcast via SSE)
-  private appearance: Record<string, number | string | boolean> = {
-    scale: 1.35,
-    textOpacity: 1,
-    bubbleOpacity: 0.14,
-    bgOpacity: 0,
-    messageGap: 0.4,
-    textColor: '#ffffff',
-    bubbleColor: '#000000',
-    bgColor: '#000000',
-    showBubbles: true,
-    showAvatars: true,
-    showBadges: true,
-    preset: 'Dark',
-  };
+  // Overlay appearance settings (loaded from settings.json, broadcast via SSE)
+  private appearance: Record<string, number | string | boolean> = getSavedAppearance();
 
-  // Sound settings (admin-controlled, sounds play in admin UI)
-  private sounds: Record<string, number> = {
-    messageVolume: 1,
-    donationVolume: 1,
-    memberVolume: 1,
-  };
+  // Sound settings (loaded from settings.json)
+  private sounds: Record<string, number> = getSavedSounds();
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 
@@ -137,6 +120,17 @@ class App extends EventEmitter {
     if (settings.filterPath) {
       loadFilterFromPath(settings.filterPath);
     }
+
+    // Restore saved toggle states
+    const toggles = getSavedToggles();
+    if (settings.filterPath && toggles.filterActive) {
+      setFilterActive(true);
+    } else {
+      setFilterActive(false);
+    }
+    if (toggles.loggerEnabled) setLogEnabled(true);
+    if (toggles.jamEnabled) setJamEnabled(true);
+    this.demoMode = toggles.demoMode;
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -168,6 +162,7 @@ class App extends EventEmitter {
       const active = req.body?.active;
       if (typeof active === 'boolean') {
         setFilterActive(active);
+        updateSettings({ filterActive: active });
       }
       res.json({ ok: true, ...getFilterStatus() });
     });
@@ -193,6 +188,7 @@ class App extends EventEmitter {
       const enabled = req.body?.enabled;
       if (typeof enabled === 'boolean') {
         setLogEnabled(enabled);
+        updateSettings({ loggerEnabled: enabled });
         // If enabling and currently capturing, start logging immediately
         if (enabled && this.isRunning) {
           const firstConn = this.connections.values().next().value;
@@ -302,6 +298,7 @@ class App extends EventEmitter {
       const enabled = req.body?.enabled;
       if (typeof enabled === 'boolean') {
         setJamEnabled(enabled);
+        updateSettings({ jamEnabled: enabled });
       }
       res.json({ ok: true, ...getJamStatus(getNowPlaying()) });
     });
@@ -480,6 +477,8 @@ class App extends EventEmitter {
       }
       // Broadcast to all overlay SSE clients
       this.sse.send('appearance', this.appearance);
+      // Persist to settings.json
+      updateSettings(this.appearance as any);
       res.json({ ok: true, ...this.appearance });
     });
 
@@ -521,6 +520,8 @@ class App extends EventEmitter {
       if (typeof body.memberVolume === 'number') {
         this.sounds.memberVolume = Math.max(0, Math.min(2, body.memberVolume));
       }
+      // Persist to settings.json
+      updateSettings(this.sounds as any);
       res.json({ ok: true, ...this.sounds });
     });
 
@@ -574,6 +575,7 @@ class App extends EventEmitter {
       }
       this.demoMode = enabled;
       this.sse.send('demo-mode', { enabled });
+      updateSettings({ demoMode: enabled });
       res.json({ ok: true, demoMode: this.demoMode });
     });
 
