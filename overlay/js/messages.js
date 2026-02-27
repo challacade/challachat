@@ -7,6 +7,32 @@ import { state, elements, DEMO_MESSAGES, showToast } from './state.js';
 import { handleAvatarError } from './utils.js';
 
 // ================================
+// Shared Segment Renderer
+// ================================
+
+/**
+ * Append parsed chat segments (text + emote images) into a container element.
+ * @param {HTMLElement} container - Target element to append nodes into
+ * @param {Array} segments - Array of {t:'text',text} or {t:'emote',url,alt} objects
+ */
+function renderSegments(container, segments) {
+  for (const segment of segments) {
+    if (!segment) continue;
+    if (segment.t === 'text') {
+      container.append(segment.text || '');
+    } else if (segment.t === 'emote' && segment.url) {
+      const img = document.createElement('img');
+      img.className = 'emoji-img';
+      img.src = segment.url;
+      img.alt = segment.alt || '';
+      img.decoding = 'async';
+      img.loading = 'lazy';
+      container.appendChild(img);
+    }
+  }
+}
+
+// ================================
 // Demo Mode
 // ================================
 
@@ -199,20 +225,7 @@ export function renderMessage(item) {
   
   const segments = item?.segments;
   if (!isSubMessageType && Array.isArray(segments) && segments.length) {
-    for (const segment of segments) {
-      if (!segment) continue;
-      if (segment.t === 'text') {
-        contentElement.append(segment.text || '');
-      } else if (segment.t === 'emote' && segment.url) {
-        const img = document.createElement('img');
-        img.className = 'emoji-img';
-        img.src = segment.url;
-        img.alt = segment.alt || '';
-        img.decoding = 'async';
-        img.loading = 'lazy';
-        contentElement.appendChild(img);
-      }
-    }
+    renderSegments(contentElement, segments);
   } else if (!isSubMessageType) {
     const text = snippet?.displayMessage || snippet?.textMessageDetails?.messageText || '';
     contentElement.textContent = '';
@@ -348,20 +361,7 @@ export function renderMessage(item) {
     if (Array.isArray(segments) && segments.length) {
       const customMsgEl = document.createElement('div');
       customMsgEl.className = 'sub-custom-message';
-      for (const segment of segments) {
-        if (!segment) continue;
-        if (segment.t === 'text') {
-          customMsgEl.append(segment.text || '');
-        } else if (segment.t === 'emote' && segment.url) {
-          const img = document.createElement('img');
-          img.className = 'emoji-img';
-          img.src = segment.url;
-          img.alt = segment.alt || '';
-          img.decoding = 'async';
-          img.loading = 'lazy';
-          customMsgEl.appendChild(img);
-        }
-      }
+      renderSegments(customMsgEl, segments);
       // Only append if there's actual content
       if (customMsgEl.textContent?.trim() || customMsgEl.querySelector('img')) {
         body.appendChild(contentElement);
@@ -431,20 +431,7 @@ export function updateMessageById(updateEvent) {
   const segments = updateEvent.segments;
   
   if (Array.isArray(segments) && segments.length) {
-    for (const segment of segments) {
-      if (!segment) continue;
-      if (segment.t === 'text') {
-        contentElement.append(segment.text || '');
-      } else if (segment.t === 'emote' && segment.url) {
-        const img = document.createElement('img');
-        img.className = 'emoji-img';
-        img.src = segment.url;
-        img.alt = segment.alt || '';
-        img.decoding = 'async';
-        img.loading = 'lazy';
-        contentElement.appendChild(img);
-      }
-    }
+    renderSegments(contentElement, segments);
   } else {
     const text = updateEvent.text || '';
     contentElement.append(text);
