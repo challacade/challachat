@@ -15,10 +15,14 @@ Capture and display any livestream chat in a custom overlay. Add it to your stre
 app/
   capture/      # Livestream chat capture (Puppeteer)
   core/         # Config, SSE hub, censor, logger, music, jam mode, terminal UI
-  http/         # Express + Socket.IO server, API routes
+  http/         # Express + Socket.IO server
+    routes/     # Modular API route handlers
   main/         # Electron main process, preload, IPC
 admin/          # Electron admin panel (HTML/CSS/JS)
+  js/           # Admin ES modules (api, appearance, audio, connections, etc.)
 overlay/        # Client overlay (HTML/CSS/JS, images, sounds)
+  js/           # Overlay ES modules (messages, settings, sse, state, etc.)
+shared/         # Shared ES modules used by both admin and overlay (presets, utils)
 scripts/        # Build and startup scripts
 website/        # Marketing / landing page (static)
 ```
