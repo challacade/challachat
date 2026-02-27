@@ -674,7 +674,7 @@ async function fetchStatus() {
 const MAX_CONNECTIONS = 5;
 const connectionCards = new Map(); // connectionId → DOM element
 
-const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/k.png' };
+const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/kick.png' };
 
 function createConnectionCard(conn) {
   const card = document.createElement('section');
