@@ -1,15 +1,15 @@
 /**
  * ChallaChat Overlay - Server-Sent Events
- * SSE connection handling for chat events and music control
+ * SSE connection handling for chat events
  */
 
 import { state, isDemoSite, showToast } from './state.js';
-import { audio, playSound } from './audio.js';
-import { musicTogglePlayPause, musicPrev, musicNext, musicShuffle } from './music.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
-  removeMessageById, updateMessageById, shouldPlaySound 
+  removeMessageById, updateMessageById,
+  startDemoMode, stopDemoMode
 } from './messages.js';
+import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
 
 // ================================
 // SSE Connection
@@ -21,11 +21,6 @@ export function startSSE() {
   const eventSource = new EventSource('/api/stream');
 
   eventSource.addEventListener('open', () => {
-    try {
-      if (audio.ctx && audio.ctx.state === 'suspended') {
-        audio.ctx.resume().catch(() => {});
-      }
-    } catch {}
   });
 
   eventSource.addEventListener('chat', (event) => {
@@ -48,58 +43,98 @@ export function startSSE() {
         
         if (messageNode) {
           pushMessageElement(messageNode, item.snippet.publishedAt);
-          const shouldPlay = shouldPlaySound(item.snippet.publishedAt);
-          
-          if (shouldPlay) {
-            if (item.snippet.type === 'newSponsorEvent' || item.snippet.type === 'memberMilestoneChatEvent') {
-              if ((state.sounds.member.volume || 0) > 0) {
-                playSound(audio.member, state.sounds.member.volume);
-              }
-            } else if (item.snippet.type === 'superChatEvent') {
-              if ((state.sounds.donation.volume || 0) > 0) {
-                playSound(audio.donation, state.sounds.donation.volume);
-              }
-            } else {
-              if ((state.sounds.message.volume || 0) > 0) {
-                playSound(audio.message, state.sounds.message.volume);
-              }
-            }
-            
-            try {
-              if (audio.ctx && audio.ctx.state === 'suspended') {
-                showToast('Click overlay to enable sound');
-              }
-            } catch {}
-          }
         }
       });
     } catch {}
   });
 
-  // Remote music control (from terminal hotkeys)
-  eventSource.addEventListener('music-control', (event) => {
+  // Appearance updates from admin UI
+  eventSource.addEventListener('appearance', (event) => {
     try {
       const data = JSON.parse(event.data || '{}');
-      const action = data?.action;
-      if (action === 'playPause') {
-        void musicTogglePlayPause();
-        return;
+      if (typeof data.scale === 'number') {
+        state.scale = Math.max(0.5, Math.min(3, data.scale));
       }
-      if (action === 'prev') {
-        void musicPrev();
-        return;
+      if (typeof data.textOpacity === 'number') {
+        state.theme.textOpacity = Math.max(0, Math.min(1, data.textOpacity));
       }
-      if (action === 'next') {
-        void musicNext();
-        return;
+      if (typeof data.bubbleOpacity === 'number') {
+        state.theme.bgOpacity = Math.max(0, Math.min(1, data.bubbleOpacity));
       }
-      if (action === 'shuffle') {
-        void musicShuffle();
-        return;
+      if (typeof data.bgOpacity === 'number') {
+        state.pageBgOpacity = Math.max(0, Math.min(1, data.bgOpacity));
       }
+      if (typeof data.messageGap === 'number') {
+        state.messageGapRem = Math.max(0, Math.min(1.5, data.messageGap));
+      }
+      if (typeof data.textColor === 'string') {
+        state.theme.text = data.textColor;
+      }
+      if (typeof data.bubbleColor === 'string') {
+        state.theme.bubbleColor = data.bubbleColor;
+      }
+      if (typeof data.bgColor === 'string') {
+        state.pageBgColor = data.bgColor;
+      }
+      if (typeof data.showBubbles === 'boolean') {
+        state.showBubbles = data.showBubbles;
+      }
+      if (typeof data.showAvatars === 'boolean') {
+        state.showAvatars = data.showAvatars;
+      }
+      if (typeof data.showBadges === 'boolean') {
+        state.showBadges = data.showBadges;
+      }
+      if (typeof data.preset === 'string') {
+        state.preset = data.preset;
+      }
+      applyTheme();
     } catch {
       // ignore
     }
+  });
+
+  // Music display settings from admin UI
+  eventSource.addEventListener('music-settings', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.songDisplay === 'string') {
+        state.songDisplay.position = data.songDisplay;
+      }
+      if (typeof data.songScrollSpeed === 'number') {
+        state.songDisplay.scrollSpeed = data.songScrollSpeed;
+      }
+      if (typeof data.songTextSize === 'number') {
+        state.songDisplay.textSize = data.songTextSize;
+      }
+      applySongDisplay();
+    } catch {}
+  });
+
+  // Now-playing song title from admin music player
+  eventSource.addEventListener('now-playing', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.songId === 'string') {
+        state.songDisplay.songId = data.songId;
+      }
+      updateSongDisplayText();
+    } catch {}
+  });
+
+  // Demo mode toggle from admin UI
+  eventSource.addEventListener('demo-mode', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      if (typeof data.enabled === 'boolean') {
+        state.demoMode = data.enabled;
+        if (data.enabled) {
+          startDemoMode();
+        } else {
+          stopDemoMode();
+        }
+      }
+    } catch {}
   });
 
   eventSource.addEventListener('end', () => {

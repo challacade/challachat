@@ -3,19 +3,50 @@ import path from 'path';
 import os from 'os';
 
 export type AppSettings = {
+  // ── Music & song display ──
   musicPath?: string;
-  /** Optional maximum length for songId strings (e.g. "Title - Artist"). If exceeded, truncates with "...". */
-  maxSongIdLength?: number;
-  /** Enable terminal-driven music hotkeys (m, <, >, ?) for controlling the overlay music player. */
-  enableMusicHotkeys?: boolean;
-  /** Minimum jam count required before the jam finale system message is sent when the song changes. */
-  jamCountMinimum?: number;
   /** Automatically shuffle the playlist when it first loads. */
   autoShuffle?: boolean;
   /** Loop the playlist when it reaches the end. Defaults to true if not specified. */
   playlistLoop?: boolean;
-  /** When true, replaces the ♫ music-note characters with spaces in the song.txt output. */
-  disableSongIdNotes?: boolean;
+  /** Song display position on the overlay: 'none', 'top', or 'bottom'. */
+  songDisplay?: string;
+  /** Write the currently-playing song info to a text file. */
+  writeSongFile?: boolean;
+  /** Scroll speed for the song display text (0 = off, 1 = 100% = 60px/s). */
+  songScrollSpeed?: number;
+  /** Extra scale factor for song display text size (0–2, where 1 = 100%). */
+  songTextSize?: number;
+
+  // ── Filter ──
+  /** Path to the censor CSV file (user-selected). */
+  filterPath?: string;
+  /** Whether the profanity filter is active. */
+  filterActive?: boolean;
+
+  // ── Appearance ──
+  scale?: number;
+  textOpacity?: number;
+  bubbleOpacity?: number;
+  bgOpacity?: number;
+  messageGap?: number;
+  textColor?: string;
+  bubbleColor?: string;
+  bgColor?: string;
+  showBubbles?: boolean;
+  showAvatars?: boolean;
+  showBadges?: boolean;
+  preset?: string;
+
+  // ── Sound volumes ──
+  messageVolume?: number;
+  donationVolume?: number;
+  memberVolume?: number;
+
+  // ── Toggles ──
+  loggerEnabled?: boolean;
+  jamEnabled?: boolean;
+  demoMode?: boolean;
 };
 
 function getSettingsDir(): string {
@@ -83,42 +114,53 @@ export function readSettings(): { settings: AppSettings; exists: boolean; path: 
   }
 }
 
+export function updateSettings(patch: Partial<AppSettings>): { ok: boolean; settings: AppSettings } {
+  const { settings } = readSettings();
+  const merged: AppSettings = { ...settings, ...patch };
+  const settingsPath = getSettingsPath();
+  ensureSettingsDirExists();
+  try {
+    fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2), { encoding: 'utf-8' });
+    return { ok: true, settings: merged };
+  } catch {
+    return { ok: false, settings };
+  }
+}
+
 export function getMusicPath(): string | null {
   const { settings } = readSettings();
   const value = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';
   return value.length > 0 ? value : null;
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
+  const { settings } = readSettings();
   return {
     musicPath: getMusicPath(),
     settingsPath: getSettingsPath(),
     autoShuffle: getAutoShuffle(),
-    playlistLoop: getPlaylistLoop()
+    playlistLoop: getPlaylistLoop(),
+    songDisplay: getSongDisplay(),
+    writeSongFile: settings.writeSongFile === true,
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
+    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
 }
 
-export function getEnableMusicHotkeys(): boolean {
+export function getSongDisplay(): string {
   const { settings } = readSettings();
-  return (settings as any)?.enableMusicHotkeys === true;
+  const val = typeof settings.songDisplay === 'string' ? settings.songDisplay : 'none';
+  return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMaxSongIdLength(): number | null {
+export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
-  const raw = (settings as any)?.maxSongIdLength;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  return i > 0 ? i : null;
-}
-
-export function getJamCountMinimum(): number | null {
-  const { settings } = readSettings();
-  const raw = (settings as any)?.jamCountMinimum;
-  const n = Number(raw);
-  if (!Number.isFinite(n)) return null;
-  const i = Math.floor(n);
-  return i > 0 ? i : null;
+  return {
+    songDisplay: getSongDisplay(),
+    writeSongFile: settings.writeSongFile === true,
+    songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
+    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
+  };
 }
 
 export function getAutoShuffle(): boolean {
@@ -132,16 +174,58 @@ export function getPlaylistLoop(): boolean {
   return (settings as any)?.playlistLoop !== false;
 }
 
-export function getDisableSongIdNotes(): boolean {
+// ── Appearance defaults ──
+const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
+  scale: 1.35,
+  textOpacity: 1,
+  bubbleOpacity: 0.14,
+  bgOpacity: 0,
+  messageGap: 0.4,
+  textColor: '#ffffff',
+  bubbleColor: '#000000',
+  bgColor: '#000000',
+  showBubbles: true,
+  showAvatars: true,
+  showBadges: true,
+  preset: 'Dark',
+};
+
+// ── Sound defaults ──
+const SOUND_DEFAULTS: Record<string, number> = {
+  messageVolume: 1,
+  donationVolume: 1,
+  memberVolume: 1,
+};
+
+/** Load saved appearance, merging with defaults for any missing keys. */
+export function getSavedAppearance(): Record<string, number | string | boolean> {
   const { settings } = readSettings();
-  return (settings as any)?.disableSongIdNotes === true;
+  const result = { ...APPEARANCE_DEFAULTS };
+  for (const key of Object.keys(APPEARANCE_DEFAULTS)) {
+    const val = (settings as any)[key];
+    if (val !== undefined) result[key] = val;
+  }
+  return result;
 }
 
-export function truncateSongId(songId: string): string {
-  const s = String(songId ?? '');
-  const max = getMaxSongIdLength();
-  if (!max) return s;
-  if (s.length <= max) return s;
-  if (max <= 3) return '...'.slice(0, max);
-  return s.slice(0, Math.max(0, max - 3)).trimEnd() + '...';
+/** Load saved sound volumes, merging with defaults for any missing keys. */
+export function getSavedSounds(): Record<string, number> {
+  const { settings } = readSettings();
+  const result = { ...SOUND_DEFAULTS };
+  for (const key of Object.keys(SOUND_DEFAULTS)) {
+    const val = (settings as any)[key];
+    if (typeof val === 'number') result[key] = val;
+  }
+  return result;
+}
+
+/** Load saved toggle states (filter active, logger, jam, demo). All default to false. */
+export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; jamEnabled: boolean; demoMode: boolean } {
+  const { settings } = readSettings();
+  return {
+    filterActive: settings.filterActive === true,
+    loggerEnabled: settings.loggerEnabled === true,
+    jamEnabled: settings.jamEnabled === true,
+    demoMode: settings.demoMode === true,
+  };
 }

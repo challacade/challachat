@@ -13,46 +13,16 @@ export const elements = {
   toast: document.getElementById('toast'),
   settings: document.getElementById('settings'),
   settingsBtn: document.getElementById('settingsBtn'),
-  soundSettingsBtn: document.getElementById('soundSettingsBtn'),
-  musicSettingsBtn: document.getElementById('musicSettingsBtn'),
-  scale: document.getElementById('scale'),
-  showAvatars: document.getElementById('showAvatars'),
-  showBadges: document.getElementById('showBadges'),
-  textColor: document.getElementById('textColor'),
-  textOpacity: document.getElementById('textOpacity'),
-  textColorPreview: document.getElementById('textColorPreview'),
-  bubbleColor: document.getElementById('bubbleColor'),
-  bubbleColorPreview: document.getElementById('bubbleColorPreview'),
-  bgOpacity: document.getElementById('bgOpacity'),
-  showBubbles: document.getElementById('showBubbles'),
+
+
+
   demoMode: document.getElementById('demoMode'),
-  messageGap: document.getElementById('messageGap'),
-  pageBgOpacity: document.getElementById('pageBgOpacity'),
-  pageBgColor: document.getElementById('pageBgColor'),
-  pageBgColorPreview: document.getElementById('pageBgColorPreview'),
+
+
   copyUrlBtn: document.getElementById('copyUrlBtn'),
-  msgVolume: document.getElementById('msgVolume'),
-  donationVolume: document.getElementById('donationVolume'),
-  memberVolume: document.getElementById('memberVolume'),
-  testMessageBtn: document.getElementById('testMessageBtn'),
-  testDonationBtn: document.getElementById('testDonationBtn'),
-  testMemberBtn: document.getElementById('testMemberBtn'),
   clearMessagesBtn: document.getElementById('clearMessagesBtn'),
   generalSettingsBtn: document.getElementById('generalSettingsBtn'),
   generalSettings: document.getElementById('generalSettings'),
-  musicSettings: document.getElementById('musicSettings'),
-  musicPathDisplay: document.getElementById('musicPathDisplay'),
-  musicCurrentTitle: document.getElementById('musicCurrentTitle'),
-  musicVolume: document.getElementById('musicVolume'),
-  musicPrevBtn: document.getElementById('musicPrevBtn'),
-  musicPlayBtn: document.getElementById('musicPlayBtn'),
-  musicNextBtn: document.getElementById('musicNextBtn'),
-  musicShuffleBtn: document.getElementById('musicShuffleBtn'),
-  musicWriteSongFile: document.getElementById('musicWriteSongFile'),
-  musicEnableJam: document.getElementById('musicEnableJam'),
-  musicSongDisplay: document.getElementById('musicSongDisplay'),
-  songDisplaySelect: document.getElementById('songDisplaySelect'),
-  scrollSongDisplay: document.getElementById('scrollSongDisplay'),
   songDisplayOverlay: document.getElementById('songDisplayOverlay'),
   pollIntervalMs: document.getElementById('pollIntervalMs'),
   censorEnabled: document.getElementById('censorEnabled'),
@@ -233,18 +203,16 @@ export const state = {
     donation: { volume: 1 },
     member: { volume: 1 },
   },
-  music: {
-    volume: 1,
-    index: 0,
-    writeSongFile: false,
-    enableJam: false,
-    songDisplay: 'none',  // 'none' | 'top' | 'bottom'
-    scrollSongDisplay: false
-  },
   preset: 'Dark',
   startedAt: null,
   demoMode: false,
-  logEnabled: false
+  logEnabled: false,
+  songDisplay: {
+    position: 'none',  // 'none' | 'top' | 'bottom'
+    scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
+    textSize: 1,       // extra scale factor (0–2, where 1 = 100%)
+    songId: ''
+  }
 };
 
 // ================================
@@ -283,7 +251,6 @@ export function saveToLocal() {
     preset: state.preset || 'Custom',
     demoMode: state.demoMode,
     sounds: state.sounds,
-    music: state.music,
     logEnabled: state.logEnabled
   };
   try {

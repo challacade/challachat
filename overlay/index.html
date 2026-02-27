@@ -18,117 +18,15 @@
     <div id="messages" class="messages" aria-live="polite"></div>
     <div id="toast" class="toast hidden"></div>
     <button id="settingsBtn" class="settings-btn appearance hidden" aria-label="Appearance">🎨</button>
-  <button id="soundSettingsBtn" class="settings-btn sound hidden" aria-label="Sound Settings">🔊</button>
-  <button id="musicSettingsBtn" class="settings-btn music hidden" aria-label="Music">🎵</button>
   <button id="generalSettingsBtn" class="settings-btn general hidden" aria-label="Settings">⚙️</button>
   </div>
   <div id="settings" class="settings hidden">
     <h2>Appearance</h2>
-    <div class="grid">
-      <label>
-        Preset
-  <select id="preset">
-          <option value="Dark">Dark</option>
-          <option value="Light">Light</option>
-          <option value="Transparent">Transparent</option>
-          <option value="Custom">Custom</option>
-        </select>
-  <!-- Custom dropdown rendered here (progressive enhancement) -->
-  <div id="presetSelect" class="select-custom" aria-hidden="true"></div>
-      </label>
-    </div>
-    <div class="grid color-grid">
-      <div class="color-column">
-        <label>
-          Text color
-          <div class="color-input-wrapper">
-            <input id="textColor" type="text" value="#FFFFFF" maxlength="7" placeholder="#FFFFFF" />
-            <div id="textColorPreview" class="color-preview"></div>
-          </div>
-        </label>
-        <label>
-          Text opacity
-          <input id="textOpacity" type="range" min="0" max="1" step="0.05" value="1" />
-        </label>
-      </div>
-      <div class="color-column">
-        <label>
-          Bubble color
-          <div class="color-input-wrapper">
-            <input id="bubbleColor" type="text" value="#000000" maxlength="7" placeholder="#000000" />
-            <div id="bubbleColorPreview" class="color-preview"></div>
-          </div>
-        </label>
-        <label>
-          Bubble opacity
-          <input id="bgOpacity" type="range" min="0" max="1" step="0.05" value="0.0" />
-        </label>
-      </div>
-      <div class="color-column">
-        <label>
-          Background color
-          <div class="color-input-wrapper">
-            <input id="pageBgColor" type="text" value="#000000" maxlength="7" placeholder="#000000" />
-            <div id="pageBgColorPreview" class="color-preview"></div>
-          </div>
-        </label>
-        <label>
-          Background opacity
-          <input id="pageBgOpacity" type="range" min="0" max="1" step="0.05" value="1" />
-        </label>
-      </div>
-    </div>
-    <div class="grid">
-      <label>
-        Scale
-        <input id="scale" type="range" min="0.5" max="3" step="0.01" value="1.8" />
-      </label>
-      <label>
-        Vertical gap (rem)
-        <input id="messageGap" type="range" min="0" max="1.5" step="0.05" value="0.4" />
-      </label>
-    </div>
 
-    <div class="grid">
-      <label class="checkbox-label">
-        <input id="showBubbles" type="checkbox" checked />
-        <span>Message bubble</span>
-      </label>
-      <label class="checkbox-label">
-        <input id="showAvatars" type="checkbox" checked />
-        <span>Avatars</span>
-      </label>
-      <label class="checkbox-label">
-        <input id="showBadges" type="checkbox" checked />
-        <span>Badges</span>
-      </label>
-    </div>
-  </div>
 
-  <!-- Sound Settings Panel -->
-  <div id="soundSettings" class="settings hidden">
-    <h2>Sound Settings</h2>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Message Volume
-        <input id="msgVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testMessageBtn" class="secondary" title="Play sample message sound">Test</button>
-    </div>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Donation Volume
-        <input id="donationVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testDonationBtn" class="secondary" title="Play sample donation sound">Test</button>
-    </div>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        Membership Volume
-        <input id="memberVolume" type="range" min="0" max="2" step="0.05" value="1" />
-      </label>
-      <button id="testMemberBtn" class="secondary" title="Play sample membership sound">Test</button>
-    </div>
+
+
+
   </div>
 
   <!-- General Settings Panel -->
@@ -164,56 +62,6 @@
       <button id="clearMessagesBtn" class="secondary" title="Clear all messages from the overlay">Clear All Messages</button>
       <button id="copyUrlBtn" class="secondary">Copy URL With Settings</button>
     </div>
-  </div>
-
-  <!-- Music Settings Panel -->
-  <div id="musicSettings" class="settings hidden">
-    <h2>Music</h2>
-    <div id="musicCurrentTitle" class="music-current-title"></div>
-    <div class="grid sound-grid">
-      <label class="span-2">
-        <input id="musicVolume" type="range" min="0" max="1" step="0.05" value="1" aria-label="Music volume" />
-      </label>
-    </div>
-    <div class="row">
-      <button id="musicPrevBtn" class="secondary">Previous</button>
-      <button id="musicPlayBtn" class="secondary">Play</button>
-      <button id="musicNextBtn" class="secondary">Next</button>
-      <button id="musicShuffleBtn" class="secondary">Shuffle</button>
-    </div>
-    <div class="grid music-display-row">
-      <label>
-        Song Display
-        <select id="musicSongDisplay">
-          <option value="none">None</option>
-          <option value="top">Top</option>
-          <option value="bottom">Bottom</option>
-        </select>
-        <div id="songDisplaySelect" class="select-custom" aria-hidden="true"></div>
-      </label>
-    </div>
-    <div class="censor-row">
-      <label class="checkbox-label">
-        <input id="scrollSongDisplay" type="checkbox" />
-        <span>Scroll song display</span>
-      </label>
-    </div>
-    <div class="censor-row music-write-row">
-      <label class="checkbox-label">
-        <input id="musicWriteSongFile" type="checkbox" />
-        <span>Write current song details</span>
-      </label>
-    </div>
-    <div class="censor-row music-write-row">
-      <label class="checkbox-label">
-        <input id="musicEnableJam" type="checkbox" />
-        <span>Enable !jam</span>
-      </label>
-    </div>
-    <!--<div class="censor-row">
-      <div>Music Path</div>
-      <div id="musicPathDisplay" class="status-message"></div>
-    </div>-->
   </div>
 
   <script type="module" src="/app.js"></script>

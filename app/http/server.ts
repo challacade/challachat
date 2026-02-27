@@ -3,13 +3,14 @@ import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
 import fs from 'fs';
+import { EventEmitter } from 'events';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
 import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
-import { censorMessage, getFilterStatus, reloadFilter, setFilterActive } from '../core/censor';
+import { censorMessage, getFilterStatus, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, getLoggerStatus } from '../core/logger';
-import { getDisableSongIdNotes, getEnableMusicHotkeys, getMusicSettingsStatus, truncateSongId, writeSongTxt } from '../core/settings';
+import { getMusicDisplaySettings, getMusicSettingsStatus, readSettings, updateSettings, writeSongTxt, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../core/music';
 import { getNowPlaying, setNowPlayingByIndex } from '../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../core/jam';
@@ -18,105 +19,68 @@ import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
 import type { ChatEvent, Platform } from '../capture/types';
+import { closeBrowser } from '../capture/browserPool';
 
-// Check if we're running as a Single Executable Application
-let sea: any = null;
-
-try {
-  sea = require('node:sea');
-} catch (error) {
-  // SEA module not available - running in development mode
+/**
+ * Typed events emitted by the App class.
+ * In headless (Electron) mode these replace console output;
+ * the Electron main process listens and forwards them over IPC.
+ */
+export interface AppEvents {
+  'server-ready': (port: number) => void;
+  'capture-status': (status: { status: string; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number }) => void;
+  'capture-error': (error: string) => void;
+  'log': (message: string) => void;
 }
 
-// Resolve static directory for both dev and SEA builds
+// Resolve static directories (overlay + admin)
 const __dirnameResolved = __dirname;
-const snapshotStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
-const externalStatic = (() => {
-  try { return path.join(path.dirname(process.execPath), 'overlay'); } catch { return snapshotStatic; }
-})();
+const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
+const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 
-// Helper function to get static files
-function getStaticFile(filePath: string): Buffer | string | null {
-  // Check if we're in optimized SEA mode with external static files
-  if (process.env.CHALLACHAT_PORTABLE === 'true' && process.env.CHALLACHAT_OVERLAY_DIR) {
-    const overlayDir = process.env.CHALLACHAT_OVERLAY_DIR;
-    const fullPath = path.join(overlayDir, filePath);
-    
-    if (fs.existsSync(fullPath)) {
-      return fs.readFileSync(fullPath);
-    } else {
-      return null;
-    }
-  } else if (sea && sea.isSea && sea.isSea()) {
-    // For embedded SEA, we need to add the overlay/ prefix to match the asset keys
-    const assetKey = `overlay/${filePath}`.replace(/\\/g, '/'); // Normalize path separators
-    try {
-      // For text files (HTML, CSS, JS), get as UTF-8 string
-      // For binary files (images, audio), get as ArrayBuffer
-      const ext = path.extname(filePath).toLowerCase();
-      const isTextFile = ['.html', '.css', '.js', '.txt', '.json'].includes(ext);
-      
-      const asset = isTextFile ? sea.getAsset(assetKey, 'utf8') : sea.getAsset(assetKey);
-      return asset;
-    } catch (error) {
-      return null;
-    }
-  } else {
-    // Development mode - use file system
-    const fullPath = path.join(snapshotStatic, filePath);
-    if (fs.existsSync(fullPath)) {
-      return fs.readFileSync(fullPath);
-    }
-    const altPath = path.join(externalStatic, filePath);
-    if (fs.existsSync(altPath)) {
-      return fs.readFileSync(altPath);
-    }
-    return null;
-  }
+// Per-connection state
+interface Connection {
+  id: string;
+  capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture;
+  platform: Platform;
+  url: string;
+  videoId: string | null;
+  messageCount: number;
+  chatters: Set<string>;
+  startTime: number;
+  pollIntervalMs: number;
 }
+
+const MAX_CONNECTIONS = 5;
 
 // HTTP server + overlay + SSE wiring
-class App {
+class App extends EventEmitter {
   private app = express();
   private server = http.createServer(this.app);
   private io = new SocketIOServer(this.server, { cors: { origin: '*', methods: ['GET','POST'] } });
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
-  private capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture | null = null;
-  private currentPlatform: Platform | null = null;
-  private isRunning = false;
-  private messageCount = 0;
-  private startTime: number | null = null;
-  private currentVideoId: string | null = null;
-  private currentUrl: string | null = null;
-  private tui = new TerminalUI(this.port);
-  private musicHotkeysEnabled = false;
+  private connections = new Map<string, Connection>();
+  private headless: boolean;
+  private tui: TerminalUI | null = null;
+  private demoMode = false;
+  private sessionActive = false;
+  private nextConnId = 1;
 
-  private broadcastMusicControl(action: 'playPause' | 'prev' | 'next' | 'shuffle') {
-    try {
-      this.sse.send('music-control', { action, ts: Date.now() });
-    } catch {
-      // ignore
-    }
-  }
+  /** True when at least one capture connection is active. */
+  private get isRunning(): boolean { return this.connections.size > 0; }
 
-  private tryEnableMusicHotkeys() {
-    if (this.musicHotkeysEnabled) return;
-    if (!this.isRunning) return;
-    if (!getEnableMusicHotkeys()) return;
+  /** Generate a unique connection ID. */
+  private generateConnId(): string { return `conn_${this.nextConnId++}`; }
 
-    // Only enable after a real playlist exists.
-    const current = refreshPlaylist();
-    if (!current.playlist.length) return;
+  // Overlay appearance settings (loaded from settings.json, broadcast via SSE)
+  private appearance: Record<string, number | string | boolean> = getSavedAppearance();
 
-    const ok = this.tui.enableMusicHotkeys((action) => {
-      if (!this.isRunning) return;
-      this.broadcastMusicControl(action);
-    });
-
-    this.musicHotkeysEnabled = ok;
-  }
+  // Sound settings (loaded from settings.json)
+  private sounds: Record<string, number> = getSavedSounds();
+  private serverReadyResolve!: (port: number) => void;
+  private serverReadyPromise: Promise<number>;
 
   private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }) {
     const msg: ChatEvent = {
@@ -132,153 +96,89 @@ class App {
     try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch {}
   }
 
-  constructor() {
+  constructor(options?: { headless?: boolean }) {
+  super();
+  this.headless = options?.headless ?? false;
+  this.tui = this.headless ? null : new TerminalUI(this.port);
+  this.serverReadyPromise = new Promise<number>(resolve => { this.serverReadyResolve = resolve; });
   this.setupServer();
-  this.setupTerminal();
+  if (!this.headless) this.setupTerminal();
   this.handleSignals();
-  // Show prompt immediately; bind server in background with retry
-  this.tui.showWelcome();
-  this.tui.prompt();
+  if (this.tui) {
+    this.tui.showWelcome();
+    this.tui.prompt();
+  }
   void this.ensureServerWithRetry();
   }
 
   // Configure express, static files, and lightweight APIs
   private setupServer() {
     this.app.use(express.json());
+
+    // If a custom filter path is saved, load from it
+    const { settings } = readSettings();
+    if (settings.filterPath) {
+      loadFilterFromPath(settings.filterPath);
+    }
+
+    // Restore saved toggle states
+    const toggles = getSavedToggles();
+    if (settings.filterPath && toggles.filterActive) {
+      setFilterActive(true);
+    } else {
+      setFilterActive(false);
+    }
+    if (toggles.loggerEnabled) setLogEnabled(true);
+    if (toggles.jamEnabled) setJamEnabled(true);
+    this.demoMode = toggles.demoMode;
     
-    // Handle static files through SEA assets or filesystem at /overlay/ prefix
-    this.app.use('/overlay', (req: Request, res: Response) => {
-      const filePath = req.path.substring(1); // Remove leading slash
-      const file = getStaticFile(filePath);
-      
-      if (file) {
-        // Set appropriate content type based on file extension
-        const ext = path.extname(filePath).toLowerCase();
-        const contentType = {
-          '.html': 'text/html',
-          '.css': 'text/css',
-          '.js': 'application/javascript',
-          '.ico': 'image/x-icon',
-          '.mp3': 'audio/mpeg'
-        }[ext] || 'application/octet-stream';
-        
-        res.setHeader('Content-Type', contentType);
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Handle static files at root level (for HTML references like /styles.css)
-    this.app.get('/styles.css', (_req: Request, res: Response) => {
-      const file = getStaticFile('styles.css');
-      if (file) {
-        res.setHeader('Content-Type', 'text/css');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/app.js', (_req: Request, res: Response) => {
-      const file = getStaticFile('app.js');
-      if (file) {
-        res.setHeader('Content-Type', 'application/javascript');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/favicon.ico', (_req: Request, res: Response) => {
-      const file = getStaticFile('favicon.ico');
-      if (file) {
-        res.setHeader('Content-Type', 'image/x-icon');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    this.app.get('/sounds/:filename', (req: Request, res: Response) => {
-      const filename = req.params.filename;
-      const file = getStaticFile(`sounds/${filename}`);
-      if (file) {
-        res.setHeader('Content-Type', 'audio/mpeg');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Serve JS modules from /js/ folder
-    this.app.get('/js/:filename', (req: Request, res: Response) => {
-      const filename = req.params.filename;
-      const file = getStaticFile(`js/${filename}`);
-      if (file) {
-        res.setHeader('Content-Type', 'application/javascript');
-        res.send(file);
-      } else {
-        res.status(404).send('Not found');
-      }
-    });
-
-    // Serve main pages
-    this.app.get('/', (_req: Request, res: Response) => {
-      const indexHtml = getStaticFile('index.html');
-      if (indexHtml) {
-        res.setHeader('Content-Type', 'text/html');
-        res.send(indexHtml);
-      } else {
-        res.status(500).send('Unable to load index.html');
-      }
-    });
-    
+    // Serve overlay static files directly from the filesystem
+    this.app.use(express.static(overlayStatic));
     this.app.get('/overlay', (_req: Request, res: Response) => {
-      const indexHtml = getStaticFile('index.html');
-      if (indexHtml) {
-        res.setHeader('Content-Type', 'text/html');
-        res.send(indexHtml);
-      } else {
-        res.status(500).send('Unable to load index.html');
-      }
+      res.sendFile(path.join(overlayStatic, 'index.html'));
     });
 
   this.app.get('/api/status', (_req: Request, res: Response) => {
-      res.json({
-        isRunning: this.isRunning,
-        platform: this.currentPlatform,
-        videoId: this.currentVideoId,
-        url: this.currentUrl,
-        messageCount: this.messageCount,
-        uptime: this.startTime ? Date.now() - this.startTime : 0,
-        pollIntervalMs: this.capture?.pollInterval || null,
-        overlayUrl: `http://localhost:${this.port}/`
-      });
+      res.json(this.getStatus());
     });
 
-  this.app.get('/api/poll-interval', (_req: Request, res: Response) => {
-      res.json({ pollIntervalMs: this.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
+  this.app.get('/api/poll-interval', (req: Request, res: Response) => {
+      const connId = String(req.query.connectionId || '');
+      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
+      res.json({ pollIntervalMs: conn?.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
     });
   this.app.post('/api/poll-interval', (req: Request, res: Response) => {
+      const connId = String(req.body?.connectionId || '');
+      const conn = connId ? this.connections.get(connId) : this.connections.values().next().value;
       const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-      if (this.capture) this.capture.setPollInterval(next);
-      res.json({ ok: true, pollIntervalMs: this.capture?.pollInterval || next });
+      if (conn) conn.capture.setPollInterval(next);
+      res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
     });
 
   this.app.get('/api/filter', (_req: Request, res: Response) => {
       res.json(getFilterStatus());
     });
-  this.app.post('/api/filter/reload', (_req: Request, res: Response) => {
-      const success = reloadFilter();
-      res.json({ ok: success, ...getFilterStatus() });
-    });
   this.app.post('/api/filter/toggle', (req: Request, res: Response) => {
       const active = req.body?.active;
       if (typeof active === 'boolean') {
         setFilterActive(active);
+        updateSettings({ filterActive: active });
       }
       res.json({ ok: true, ...getFilterStatus() });
+    });
+
+  this.app.post('/api/filter/path', (req: Request, res: Response) => {
+      const filterPath = req.body?.filterPath;
+      if (typeof filterPath === 'string' && filterPath.trim().length > 0) {
+        const trimmed = filterPath.trim();
+        const success = loadFilterFromPath(trimmed);
+        if (success) {
+          updateSettings({ filterPath: trimmed });
+        }
+        res.json({ ok: success, ...getFilterStatus() });
+      } else {
+        res.json({ ok: false, error: 'No path provided', ...getFilterStatus() });
+      }
     });
 
   this.app.get('/api/logger', (_req: Request, res: Response) => {
@@ -288,9 +188,12 @@ class App {
       const enabled = req.body?.enabled;
       if (typeof enabled === 'boolean') {
         setLogEnabled(enabled);
+        updateSettings({ loggerEnabled: enabled });
         // If enabling and currently capturing, start logging immediately
-        if (enabled && this.isRunning && this.currentVideoId) {
-          startLogging('yt');
+        if (enabled && this.isRunning) {
+          const firstConn = this.connections.values().next().value;
+          const platformPrefix = firstConn?.platform === 'kick' ? 'kk' : firstConn?.platform === 'twitch' ? 'tw' : 'yt';
+          startLogging(platformPrefix);
         }
       }
       res.json({ ok: true, ...getLoggerStatus() });
@@ -298,6 +201,68 @@ class App {
 
   this.app.get('/api/music', (_req: Request, res: Response) => {
       res.json(getMusicSettingsStatus());
+    });
+
+  this.app.get('/api/music/display-settings', (_req: Request, res: Response) => {
+      res.json(getMusicDisplaySettings());
+    });
+
+  this.app.post('/api/music/display-settings', (req: Request, res: Response) => {
+      const patch: Record<string, unknown> = {};
+      if (typeof req.body?.songDisplay === 'string') {
+        const val = req.body.songDisplay;
+        patch.songDisplay = ['none', 'top', 'bottom'].includes(val) ? val : 'none';
+      }
+      if (typeof req.body?.writeSongFile === 'boolean') {
+        patch.writeSongFile = req.body.writeSongFile;
+      }
+      if (typeof req.body?.songScrollSpeed === 'number') {
+        patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));
+      }
+      if (typeof req.body?.songTextSize === 'number') {
+        patch.songTextSize = Math.max(0, Math.min(2, req.body.songTextSize));
+      }
+      const result = updateSettings(patch);
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      const current = getMusicDisplaySettings();
+      this.sse.send('music-settings', current);
+      res.json({ ok: true, ...current });
+    });
+
+  this.app.post('/api/music/settings', (req: Request, res: Response) => {
+      const patch: Record<string, unknown> = {};
+      if (typeof req.body?.autoShuffle === 'boolean') {
+        patch.autoShuffle = req.body.autoShuffle;
+      }
+      if (typeof req.body?.playlistLoop === 'boolean') {
+        patch.playlistLoop = req.body.playlistLoop;
+      }
+      const result = updateSettings(patch);
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      res.json({ ok: true, autoShuffle: result.settings.autoShuffle === true, playlistLoop: result.settings.playlistLoop !== false });
+    });
+
+  this.app.post('/api/music/path', (req: Request, res: Response) => {
+      const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
+      const result = updateSettings({ musicPath: musicPath || undefined });
+      if (!result.ok) {
+        res.status(500).json({ error: 'Failed to write settings' });
+        return;
+      }
+      // Refresh playlist with the new path
+      const current = refreshPlaylist();
+      res.json({
+        ok: true,
+        musicPath: musicPath || null,
+        playlist: current.playlist,
+        count: current.playlist.length
+      });
     });
 
   this.app.get('/api/music/nowplaying', (_req: Request, res: Response) => {
@@ -315,10 +280,14 @@ class App {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
       res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
+      // Broadcast to overlay so it can update song display
+      if (now) {
+        this.sse.send('now-playing', { songId: now.songId, index: now.index });
+      }
     });
 
   this.app.get('/api/jam', (_req: Request, res: Response) => {
@@ -329,6 +298,7 @@ class App {
       const enabled = req.body?.enabled;
       if (typeof enabled === 'boolean') {
         setJamEnabled(enabled);
+        updateSettings({ jamEnabled: enabled });
       }
       res.json({ ok: true, ...getJamStatus(getNowPlaying()) });
     });
@@ -380,7 +350,7 @@ class App {
       const now = setNowPlayingByIndex(idx, songId);
       const finale = onNowPlayingUpdated(now);
       if (finale) {
-        const quotedSongId = `'${truncateSongId(String(finale.songId)).replace(/'/g, '’')}'`;
+        const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
         this.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
       }
 
@@ -405,8 +375,7 @@ class App {
       const finalTitle = (typeof title === 'string' && title.trim()) ? title.trim() : fallbackTitle;
       const finalArtist = (typeof artist === 'string' && artist.trim()) ? artist.trim() : null;
       const details = finalArtist ? `${finalTitle} - ${finalArtist}` : finalTitle;
-      const capped = truncateSongId(details);
-      const line = getDisableSongIdNotes() ? `   ${capped}  ` : `\u266b  ${capped}  \u266b`;
+      const line = `\u266b  ${details}  \u266b`;
 
       const writeResult = writeSongTxt(line);
       if (!writeResult.ok) {
@@ -459,14 +428,155 @@ class App {
       }
     });
 
+  // Overlay appearance (admin-controlled)
+  this.app.get('/api/appearance', (_req: Request, res: Response) => {
+      res.json(this.appearance);
+    });
+  this.app.post('/api/appearance', (req: Request, res: Response) => {
+      const body = req.body;
+      if (!body || typeof body !== 'object') {
+        res.status(400).json({ error: 'Invalid body' });
+        return;
+      }
+      // Merge only known keys
+      if (typeof body.scale === 'number') {
+        this.appearance.scale = Math.max(0.5, Math.min(3, body.scale));
+      }
+      if (typeof body.textOpacity === 'number') {
+        this.appearance.textOpacity = Math.max(0, Math.min(1, body.textOpacity));
+      }
+      if (typeof body.bubbleOpacity === 'number') {
+        this.appearance.bubbleOpacity = Math.max(0, Math.min(1, body.bubbleOpacity));
+      }
+      if (typeof body.bgOpacity === 'number') {
+        this.appearance.bgOpacity = Math.max(0, Math.min(1, body.bgOpacity));
+      }
+      if (typeof body.messageGap === 'number') {
+        this.appearance.messageGap = Math.max(0, Math.min(1.5, body.messageGap));
+      }
+      if (typeof body.textColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.textColor)) {
+        this.appearance.textColor = body.textColor;
+      }
+      if (typeof body.bubbleColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bubbleColor)) {
+        this.appearance.bubbleColor = body.bubbleColor;
+      }
+      if (typeof body.bgColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(body.bgColor)) {
+        this.appearance.bgColor = body.bgColor;
+      }
+      if (typeof body.showBubbles === 'boolean') {
+        this.appearance.showBubbles = body.showBubbles;
+      }
+      if (typeof body.showAvatars === 'boolean') {
+        this.appearance.showAvatars = body.showAvatars;
+      }
+      if (typeof body.showBadges === 'boolean') {
+        this.appearance.showBadges = body.showBadges;
+      }
+      if (typeof body.preset === 'string' && ['Dark', 'Light', 'Transparent', 'Custom'].includes(body.preset)) {
+        this.appearance.preset = body.preset;
+      }
+      // Broadcast to all overlay SSE clients
+      this.sse.send('appearance', this.appearance);
+      // Persist to settings.json
+      updateSettings(this.appearance as any);
+      res.json({ ok: true, ...this.appearance });
+    });
+
   this.app.get('/api/stream', (_req: Request, res: Response) => {
       res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache, no-transform', 'Connection': 'keep-alive', 'X-Accel-Buffering': 'no' });
       res.write(`event: ping\ndata: {"ts": ${Date.now()}}\n\n`);
+      // Send current appearance immediately so overlay gets the latest on connect
+      res.write(`event: appearance\ndata: ${JSON.stringify(this.appearance)}\n\n`);
+      res.write(`event: sounds\ndata: ${JSON.stringify(this.sounds)}\n\n`);
+      res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
+      if (this.demoMode) {
+        res.write(`event: demo-mode\ndata: ${JSON.stringify({ enabled: true })}\n\n`);
+      }
+      const np = getNowPlaying();
+      if (np) {
+        res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);
+      }
       this.sse.add(res);
     });
 
   this.io.on('connection', (socket: Socket) => {
-      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', platform: this.currentPlatform, videoId: this.currentVideoId, messageCount: this.messageCount });
+      const conns = Array.from(this.connections.values());
+      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', connections: conns.map(c => ({ id: c.id, platform: c.platform, videoId: c.videoId, messageCount: c.messageCount })) });
+    });
+
+  // Sound settings (admin-controlled)
+  this.app.get('/api/sounds', (_req: Request, res: Response) => {
+      res.json(this.sounds);
+    });
+
+  this.app.post('/api/sounds', (req: Request, res: Response) => {
+      const body = req.body || {};
+      if (typeof body.messageVolume === 'number') {
+        this.sounds.messageVolume = Math.max(0, Math.min(2, body.messageVolume));
+      }
+      if (typeof body.donationVolume === 'number') {
+        this.sounds.donationVolume = Math.max(0, Math.min(2, body.donationVolume));
+      }
+      if (typeof body.memberVolume === 'number') {
+        this.sounds.memberVolume = Math.max(0, Math.min(2, body.memberVolume));
+      }
+      // Persist to settings.json
+      updateSettings(this.sounds as any);
+      res.json({ ok: true, ...this.sounds });
+    });
+
+  // Serve admin control panel (static files from admin/ directory)
+  this.app.use('/admin', express.static(adminStatic));
+
+  // API: connect to a livestream URL
+  this.app.post('/api/connect', async (req: Request, res: Response) => {
+      const url = req.body?.url;
+      if (!url || typeof url !== 'string') {
+        res.status(400).json({ ok: false, error: 'Missing or invalid URL.' });
+        return;
+      }
+      const result = await this.apiConnect(url);
+      res.json(result);
+    });
+
+  // API: disconnect a specific capture connection
+  this.app.post('/api/disconnect', async (req: Request, res: Response) => {
+      const connectionId = req.body?.connectionId;
+      if (!connectionId || typeof connectionId !== 'string') {
+        res.status(400).json({ ok: false, error: 'Missing connectionId.' });
+        return;
+      }
+      await this.apiDisconnect(connectionId);
+      res.json({ ok: true });
+    });
+
+  // API: start session without connecting (shows active view with add-connection card)
+  this.app.post('/api/start-session', async (_req: Request, res: Response) => {
+      await this.ensureServer();
+      this.sessionActive = true;
+      res.json({ ok: true });
+    });
+
+  // API: end session (disconnect all, return to welcome)
+  this.app.post('/api/end-session', async (_req: Request, res: Response) => {
+      await this.shutdownCapture(); // stop all connections
+      this.sessionActive = false;
+      this.demoMode = false;
+      this.sse.send('demo-mode', { enabled: false });
+      res.json({ ok: true });
+    });
+
+  // API: toggle demo mode (overlay shows fake chat messages)
+  this.app.post('/api/demo-mode', (req: Request, res: Response) => {
+      const enabled = req.body?.enabled;
+      if (typeof enabled !== 'boolean') {
+        res.status(400).json({ ok: false, error: 'Missing enabled boolean.' });
+        return;
+      }
+      this.demoMode = enabled;
+      this.sse.send('demo-mode', { enabled });
+      updateSettings({ demoMode: enabled });
+      res.json({ ok: true, demoMode: this.demoMode });
     });
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
@@ -474,21 +584,23 @@ class App {
 
   // Wire terminal input handlers; actual prompt is shown after port bind
   private setupTerminal() {
+  if (!this.tui) return;
+  const tui = this.tui;
   // Do not prompt until we are successfully listening on a port
-    this.tui.onLine(async (line) => {
+    tui.onLine(async (line) => {
       const trimmed = line.trim();
-      if (!trimmed) { this.tui.prompt(); return; }
+      if (!trimmed) { tui.prompt(); return; }
       if (/^(quit|exit)$/i.test(trimmed)) { await this.shutdown(); return; }
       try {
         await this.ensureServer();
-        this.tui.showConnectingOnce();
+        tui.showConnectingOnce();
         await this.startScraping(trimmed);
       } catch (e: any) {
         console.log(`Error: ${e?.message || String(e)}`);
-        this.tui.prompt();
+        tui.prompt();
       }
     });
-    this.tui.onClose(() => { this.shutdown(); });
+    tui.onClose(() => { this.shutdown(); });
   }
 
   private handleSignals() {
@@ -533,7 +645,7 @@ class App {
         if (err?.code === 'EADDRINUSE') {
           console.log(`Port ${this.port} is in use. Trying ${this.port + 1}...`);
           this.port = Math.min(65535, this.port + 1);
-          this.tui.setPort(this.port);
+          this.tui?.setPort(this.port);
           this.pendingPortConfirmation = this.port;
           attempts++;
           if (attempts > 50) throw new Error('Failed to find a free port.');
@@ -542,12 +654,16 @@ class App {
         // Unknown error: show concise message, not stack
         console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}. Trying next port...`);
         this.port = Math.min(65535, this.port + 1);
-        this.tui.setPort(this.port);
+        this.tui?.setPort(this.port);
         this.pendingPortConfirmation = this.port;
         attempts++;
         if (attempts > 50) throw err;
       }
     }
+    // Signal that the server is ready (used by Electron main process)
+    this.serverReadyResolve(this.port);
+    this.emit('server-ready', this.port);
+    this.emit('log', `Server listening on port ${this.port}`);
   }
 
   // Detect platform from URL
@@ -588,8 +704,15 @@ class App {
   }
 
   // Start capture for the provided livestream URL (YouTube or Twitch)
-  private async startScraping(url: string) {
-    if (this.isRunning) { console.log('Already capturing. Use "stop" first to change streams.'); return; }
+  private async startScraping(url: string): Promise<string> {
+    if (this.connections.size >= MAX_CONNECTIONS) {
+      throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
+    }
+
+    // Prevent duplicate URLs
+    for (const conn of this.connections.values()) {
+      if (conn.url === url) throw new Error('Already connected to this URL.');
+    }
 
     const platform = this.detectPlatform(url);
     if (!platform) {
@@ -597,72 +720,71 @@ class App {
     }
 
     if (platform === 'youtube') {
-      await this.startYouTubeCapture(url);
+      return this.startYouTubeCapture(url);
     } else if (platform === 'twitch') {
-      await this.startTwitchCapture(url);
-    } else if (platform === 'kick') {
-      await this.startKickCapture(url);
+      return this.startTwitchCapture(url);
+    } else {
+      return this.startKickCapture(url);
     }
   }
 
   // Start YouTube-specific capture
-  private async startYouTubeCapture(url: string) {
+  private async startYouTubeCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const isStudioUrl = /^https?:\/\/studio\.youtube\.com\//i.test(String(url || ''));
     const videoId = this.extractVideoId(url);
     if (!videoId) throw new Error('Invalid YouTube URL. Please provide a valid YouTube livestream URL.');
-    this.capture = new YouTubeChatCapture(videoId, {
+    const capture = new YouTubeChatCapture(videoId, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message) => this.onCaptureMessage(message),
+      onMessage: (message) => this.onCaptureMessage(connId, message),
       onDelete: (id) => this.onCaptureDelete(id),
-      onError: (err) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onError: (err) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'youtube';
-    this.currentVideoId = videoId;
-    // For creator/admin URLs, store a public-style URL so status display matches what viewers use.
-    this.currentUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
-    this.messageCount = 0;
-    this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'yt' platform identifier)
+    await capture.start();
+    const displayUrl = isStudioUrl ? this.toPublicLiveUrl(videoId) : url;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'youtube', url: displayUrl,
+      videoId, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('yt');
-    this.tui.render();
-    this.io.emit('capture-status', { status: 'active', videoId: this.currentVideoId, platform: 'youtube', startedAt: this.startTime });
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
-    try { this.tryEnableMusicHotkeys(); } catch {}
+    this.tui?.render();
+    const captureStatus = { status: 'active' as const, videoId, platform: 'youtube' as const, startedAt: Date.now(), connectionId: connId };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
+    return connId;
   }
 
   // Start Twitch-specific capture
-  private async startTwitchCapture(url: string) {
+  private async startTwitchCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const channel = this.extractTwitchChannel(url);
     if (!channel) throw new Error('Invalid Twitch URL. Please provide a valid Twitch channel URL.');
-    this.capture = new TwitchChatCapture(channel, {
+    const capture = new TwitchChatCapture(channel, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'twitch';
-    this.currentVideoId = channel; // Use channel name as the identifier
-    this.currentUrl = `https://www.twitch.tv/${channel}`;
-    this.messageCount = 0;
-    this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'tw' platform identifier for Twitch)
+    await capture.start();
+    const displayUrl = `https://www.twitch.tv/${channel}`;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'twitch', url: displayUrl,
+      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('tw');
-    this.tui.render();
-    this.io.emit('capture-status', { status: 'active', channel, platform: 'twitch', startedAt: this.startTime });
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
-    try { this.tryEnableMusicHotkeys(); } catch {}
+    this.tui?.render();
+    const captureStatus = { status: 'active' as const, channel, platform: 'twitch' as const, startedAt: Date.now(), connectionId: connId };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
+    return connId;
   }
 
   // Extract Kick channel name from URL
@@ -687,37 +809,41 @@ class App {
   }
 
   // Start Kick-specific capture
-  private async startKickCapture(url: string) {
+  private async startKickCapture(url: string): Promise<string> {
+    const connId = this.generateConnId();
     const channel = this.extractKickChannel(url);
     if (!channel) throw new Error('Invalid Kick URL. Please provide a valid Kick channel URL.');
-    this.capture = new KickChatCapture(channel, {
+    const capture = new KickChatCapture(channel, {
       pollInterval: DEFAULT_POLL_INTERVAL,
       quiet: true,
-      onMessage: (message: ChatEvent) => this.onCaptureMessage(message),
+      onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => console.log(`[ERROR] ${err.message}`),
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); if (status?.status === 'active') this.tui.render(); }
+      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
     });
-    await this.capture.start();
-    this.isRunning = true;
-    this.currentPlatform = 'kick';
-    this.currentVideoId = channel; // Use channel name as the identifier
-    this.currentUrl = `https://kick.com/${channel}`;
-    this.messageCount = 0;
-    this.startTime = Date.now();
-    this.tui.setUrl(this.currentUrl);
-    // Start logging if enabled (uses 'kk' platform identifier for Kick)
+    await capture.start();
+    const displayUrl = `https://kick.com/${channel}`;
+    this.connections.set(connId, {
+      id: connId, capture, platform: 'kick', url: displayUrl,
+      videoId: channel, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+    });
+    this.tui?.setUrl(displayUrl);
     startLogging('kk');
-    this.tui.render();
-    this.io.emit('capture-status', { status: 'active', channel, platform: 'kick', startedAt: this.startTime });
-
-    // Enable terminal music hotkeys only after capture is active and music playlist exists.
-    try { this.tryEnableMusicHotkeys(); } catch {}
+    this.tui?.render();
+    const captureStatus = { status: 'active' as const, channel, platform: 'kick' as const, startedAt: Date.now(), connectionId: connId };
+    this.io.emit('capture-status', captureStatus);
+    this.emit('capture-status', captureStatus);
+    return connId;
   }
 
   // Relay messages to SSE clients and overlay
-  private onCaptureMessage(message: ChatEvent) {
-    this.messageCount++;
+  private onCaptureMessage(connId: string, message: ChatEvent) {
+    const conn = this.connections.get(connId);
+    if (conn) {
+      conn.messageCount++;
+      if (message.author?.name) conn.chatters.add(message.author.name);
+    }
 
     // Run chat commands (e.g. !jam) before censoring/broadcasting.
     try {
@@ -734,6 +860,20 @@ class App {
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
+
+    // Determine sound type and broadcast to admin UI for playback
+    const kind = filtered.kind || 'text';
+    let soundType: string | null = null;
+    if (kind === 'sub' || kind === 'sub-gift' || kind === 'member' || kind === 'member-renewal' || kind === 'member-gift' || kind === 'streak' || kind === 'member-milestone') {
+      soundType = 'member';
+    } else if (kind === 'cheer' || kind === 'donation') {
+      soundType = 'donation';
+    } else {
+      soundType = 'message';
+    }
+    if (soundType) {
+      this.sse.send('play-sound', { type: soundType, ts: Date.now() });
+    }
   }
 
   // Relay delete events (by id) so overlays can remove them immediately
@@ -798,26 +938,97 @@ class App {
     return `https://www.youtube.com/live/${videoId}`;
   }
 
-  // Gracefully stop the capture and summarize the session
-  private async shutdownCapture() {
-    if (!this.isRunning) return;
-    try { await this.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture: ${e?.message || e}`); }
-    // Stop logging when capture ends
-    stopLogging();
-    const duration = Math.round(((Date.now() - (this.startTime || Date.now())) / 1000));
-    console.log('Chat capture stopped');
-    console.log(`Session duration: ${duration} seconds`);
-    console.log(`Messages captured: ${this.messageCount}`);
-    this.isRunning = false; this.currentVideoId = null; this.currentUrl = null; this.capture = null; this.startTime = null; this.currentPlatform = null;
-    try { this.tui.disableMusicHotkeys(); } catch {}
-    this.musicHotkeysEnabled = false;
-    this.io.emit('capture-status', { status: 'stopped', platform: null });
+  // Gracefully stop one (or all) capture connections
+  private async shutdownCapture(connectionId?: string) {
+    if (connectionId) {
+      const conn = this.connections.get(connectionId);
+      if (!conn) return;
+      try { await conn.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture ${connectionId}: ${e?.message || e}`); }
+      const duration = Math.round((Date.now() - (conn.startTime || Date.now())) / 1000);
+      console.log(`Connection ${connectionId} stopped (${conn.platform} – ${duration}s, ${conn.messageCount} msgs)`);
+      this.connections.delete(connectionId);
+    } else {
+      // Stop all
+      for (const [id, conn] of this.connections) {
+        try { await conn.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture ${id}: ${e?.message || e}`); }
+      }
+      this.connections.clear();
+    }
+    if (this.connections.size === 0) {
+      stopLogging();
+    }
+    const stoppedStatus = { status: this.isRunning ? 'active' as const : 'stopped' as const, connectionId: connectionId ?? null };
+    this.io.emit('capture-status', stoppedStatus);
+    this.emit('capture-status', stoppedStatus);
   }
 
-  async shutdown() {
+  // --- Public API (used by Electron main process and REST endpoints) ---
+
+  /** Wait for the HTTP server to be listening. Resolves with the bound port. */
+  waitForReady(): Promise<number> {
+    return this.serverReadyPromise;
+  }
+
+  /** Return the port the server is listening on. */
+  getPort(): number {
+    return this.port;
+  }
+
+  /** Return the current application status (mirrors /api/status). */
+  getStatus() {
+    const connections = Array.from(this.connections.values()).map(c => ({
+      id: c.id,
+      platform: c.platform,
+      url: c.url,
+      videoId: c.videoId,
+      messageCount: c.messageCount,
+      chatters: c.chatters.size,
+      uptime: c.startTime ? Date.now() - c.startTime : 0,
+      pollIntervalMs: c.pollIntervalMs,
+    }));
+    return {
+      isRunning: this.isRunning,
+      sessionActive: this.sessionActive,
+      demoMode: this.demoMode,
+      connections,
+      overlayUrl: `http://localhost:${this.port}/`,
+    };
+  }
+
+  /** Connect to a livestream URL. Returns a result object with connectionId. */
+  async apiConnect(url: string): Promise<{ ok: boolean; connectionId?: string; platform?: string; videoId?: string; error?: string }> {
+    try {
+      await this.ensureServer();
+      const connId = await this.startScraping(url);
+      this.sessionActive = true;
+      const conn = this.connections.get(connId);
+      return { ok: true, connectionId: connId, platform: conn?.platform ?? undefined, videoId: conn?.videoId ?? undefined };
+    } catch (e: any) {
+      return { ok: false, error: e?.message || String(e) };
+    }
+  }
+
+  /** Disconnect a specific capture connection, or all if no id given. */
+  async apiDisconnect(connectionId?: string): Promise<void> {
+    await this.shutdownCapture(connectionId);
+  }
+
+  async shutdown(): Promise<void> {
     await this.shutdownCapture();
-    this.server.close(() => { console.log('Server closed. Goodbye!'); process.exit(0); });
+    await closeBrowser();
+    return new Promise<void>((resolve) => {
+      this.server.close(() => {
+        console.log('Server closed. Goodbye!');
+        if (!this.headless) process.exit(0);
+        resolve();
+      });
+    });
   }
 }
 
-new App();
+export { App };
+
+// Auto-start in standalone terminal mode (not when imported by Electron)
+if (!process.env.CHALLACHAT_ELECTRON) {
+  new App();
+}

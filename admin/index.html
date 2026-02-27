@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChallaChat</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/admin/styles.css" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" sizes="any">
+</head>
+<body>
+  <div class="app">
+    <!-- ── Header ───────────────────────────────────────────── -->
+    <header>
+      <div class="logo-group">
+        <img class="logo-img" id="logoImg" src="img/challachat.png" alt="ChallaChat" />
+      </div>
+
+      <nav class="nav-tabs">
+        <button class="nav-tab active" id="navHome" data-page="home" title="Home">
+          <!-- House icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+            <polyline points="9 22 9 12 15 12 15 22"/>
+          </svg>
+        </button>
+        <button class="nav-tab" id="navAppearance" data-page="appearance" title="Appearance">
+          <!-- Palette icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="13.5" cy="6.5" r="0.5" fill="currentColor"/><circle cx="17.5" cy="10.5" r="0.5" fill="currentColor"/><circle cx="8.5" cy="7.5" r="0.5" fill="currentColor"/><circle cx="6.5" cy="12" r="0.5" fill="currentColor"/>
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"/>
+          </svg>
+        </button>
+        <button class="nav-tab" id="navSound" data-page="sound" title="Sound">
+          <!-- Volume icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"/>
+            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+          </svg>
+        </button>
+        <button class="nav-tab" id="navSettings" data-page="settings" title="Settings">
+          <!-- Gear icon -->
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+        </button>
+      </nav>
+    </header>
+
+    <!-- ── Scrollable body ──────────────────────────────────── -->
+    <main>
+
+      <!-- ═══ HOME PAGE ═══════════════════════════════════════ -->
+      <div class="page active" id="pageHome">
+
+        <!-- Welcome view (idle / no connections) ----------------- -->
+        <div id="welcomeView">
+          <section class="card" id="connectSection">
+            <div class="welcome-platforms">
+              <img src="img/twitch.png"  alt="Twitch"  class="platform-logo twitch" />
+              <img src="img/youtube.png" alt="YouTube" class="platform-logo" />
+              <img src="img/k.png"    alt="Kick"    class="platform-logo kick" />
+            </div>
+            <p class="welcome-tagline">Capture any livestream chat in a custom overlay.</p>
+            <p class="welcome-tagline welcome-sub">No cloud, all local.</p>
+            <div class="input-row">
+              <input
+                type="text"
+                id="urlInput"
+                placeholder="Paste a YouTube, Twitch, or Kick URL…"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <button id="connectBtn" class="btn primary">Connect</button>
+            </div>
+            <div id="connectError" class="error hidden"></div>
+            <a href="#" id="startWithoutConnecting" class="demo-link">Start without connecting</a>
+          </section>
+        </div>
+
+        <!-- Active view (connected / demo) ----------------------- -->
+        <div id="activeView" class="active-view hidden">
+
+          <!-- OBS Overlay URL -------------------------------------- -->
+          <section class="card overlay-card" id="overlayCard">
+            <div class="overlay-row">
+              <img src="img/stream.png" class="overlay-clipart" alt="" />
+              <div class="overlay-copy-group">
+                <label class="overlay-label">Overlay Browser Source</label>
+                <div class="copy-row">
+                  <code id="overlayUrl">http://localhost:5050</code>
+                  <button id="copyBtn" class="btn small primary" title="Copy URL"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+                </div>
+                <p class="hint">Add this URL as a 'Browser' source in your streaming software to add the overlay to your scene.</p>
+              </div>
+            </div>
+          </section>
+
+          <!-- Active capture connections (dynamic) ---------------- -->
+          <div id="connectionsContainer"></div>
+
+          <!-- Add another connection -------------------------------- -->
+          <section class="card add-connection-card" id="addConnectionCard">
+            <div class="input-row">
+              <input type="text" id="addUrlInput" placeholder="Enter a livestream URL…" />
+              <button id="addConnectBtn" class="btn small primary">Connect</button>
+            </div>
+            <a href="#" id="closeServerLink" class="demo-link">End all connections</a>
+          </section>
+
+        </div>
+
+      </div><!-- /pageHome -->
+
+      <!-- ═══ APPEARANCE PAGE ═════════════════════════════════ -->
+      <div class="page" id="pageAppearance">
+
+        <section class="card sound-card">
+          <div class="preset-row">
+            <div class="sound-label">Preset</div>
+            <select id="presetSelect" class="music-select">
+              <option value="Dark">Dark</option>
+              <option value="Light">Light</option>
+              <option value="Transparent">Transparent</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+          <div class="sound-grid toggle-row">
+            <label class="a-toggle"><input type="checkbox" id="showBubblesToggle" checked /><span>Chat bubbles</span></label>
+            <label class="a-toggle"><input type="checkbox" id="showAvatarsToggle" checked /><span>Avatars</span></label>
+            <label class="a-toggle"><input type="checkbox" id="showBadgesToggle" checked /><span>Badges</span></label>
+          </div>
+          <div class="sound-grid">
+            <div class="sound-item">
+              <div class="sound-label" id="scaleLabel">Scale: 1.35</div>
+              <input type="range" id="scaleSlider" min="0.5" max="3" step="0.01" value="1.35" />
+            </div>
+            <div class="sound-item">
+              <div class="sound-label" id="gapLabel">Vertical gap: 0.40</div>
+              <input type="range" id="gapSlider" min="0" max="1.5" step="0.05" value="0.4" />
+            </div>
+          </div>
+          <div class="sound-grid">
+            <div class="sound-item">
+              <div class="sound-label">Text color</div>
+              <input type="color" id="textColorPicker" value="#ffffff" />
+            </div>
+            <div class="sound-item">
+              <div class="sound-label">Bubble color</div>
+              <input type="color" id="bubbleColorPicker" value="#000000" />
+            </div>
+            <div class="sound-item">
+              <div class="sound-label">Background color</div>
+              <input type="color" id="bgColorPicker" value="#000000" />
+            </div>
+          </div>
+          <div class="sound-grid">
+            <div class="sound-item">
+              <div class="sound-label" id="textOpLabel">Text opacity: 100%</div>
+              <input type="range" id="textOpSlider" min="0" max="1" step="0.05" value="1" />
+            </div>
+            <div class="sound-item">
+              <div class="sound-label" id="bubbleOpLabel">Bubble opacity: 14%</div>
+              <input type="range" id="bubbleOpSlider" min="0" max="1" step="0.05" value="0.14" />
+            </div>
+            <div class="sound-item">
+              <div class="sound-label" id="bgOpLabel">Back opacity: 0%</div>
+              <input type="range" id="bgOpSlider" min="0" max="1" step="0.05" value="0" />
+            </div>
+          </div>
+        </section>
+
+        <section class="card sound-card preview-card">
+          <div id="previewHost" class="preview-host"></div>
+        </section>
+
+      </div><!-- /pageAppearance -->
+
+      <!-- ═══ SOUND PAGE ══════════════════════════════════════ -->
+      <div class="page" id="pageSound">
+
+        <!-- ── Music player ─────────────────────────────────── -->
+        <section class="card music-card">
+          <div class="music-now-playing" id="musicNowPlaying">(no track)</div>
+          <div class="music-volume-row">
+            <span class="music-vol-icon" id="musicVolIcon" title="Mute / Unmute">🔊</span>
+            <input type="range" id="musicVolSlider" class="music-vol-slider" min="0" max="2" step="0.01" value="1" />
+            <span class="music-vol-label" id="musicVolLabel">100%</span>
+          </div>
+          <div class="music-controls">
+            <button class="music-btn" id="musicPrevBtn" title="Previous track">⏮</button>
+            <button class="music-btn" id="musicPlayBtn" title="Play / Pause">▶</button>
+            <button class="music-btn" id="musicNextBtn" title="Next track">⏭</button>
+          </div>
+          <div class="music-path-row">
+            <input type="text" class="music-path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
+            <button class="btn small primary" id="musicBrowseBtn">Browse</button>
+            <button class="btn small primary" id="musicShuffleBtn">Shuffle</button>
+          </div>
+          <div class="music-options">
+              <select id="songDisplaySelect" class="music-select">
+                <option value="none">No song display</option>
+                <option value="top">Top banner</option>
+                <option value="bottom">Bottom banner</option>
+              </select>
+              <div class="sound-item">
+                <div class="sound-label" id="songTextSizeLabel">Text size: 100%</div>
+                <input type="range" id="songTextSizeSlider" min="0" max="2" step="0.05" value="1" />
+              </div>
+              <div class="sound-item">
+                <div class="sound-label" id="scrollSpeedLabel">Scroll speed: 0%</div>
+                <input type="range" id="scrollSpeedSlider" min="0" max="2" step="0.05" value="0" />
+              </div>
+          </div>
+        </section>
+
+        <!-- ── Sound effects ────────────────────────────────── -->
+        <section class="card sound-card">
+          <div class="sound-grid">
+            <div class="sound-item">
+              <div class="sound-label" id="msgVolLabel">Message: 100%</div>
+              <input type="range" id="msgVolSlider" min="0" max="2" step="0.05" value="1" />
+              <button class="btn small primary" id="testMsgBtn" title="Play sample message sound">Test</button>
+            </div>
+            <div class="sound-item">
+              <div class="sound-label" id="donVolLabel">Donation: 100%</div>
+              <input type="range" id="donVolSlider" min="0" max="2" step="0.05" value="1" />
+              <button class="btn small primary" id="testDonBtn" title="Play sample donation sound">Test</button>
+            </div>
+            <div class="sound-item">
+              <div class="sound-label" id="memVolLabel">Membership: 100%</div>
+              <input type="range" id="memVolSlider" min="0" max="2" step="0.05" value="1" />
+              <button class="btn small primary" id="testMemBtn" title="Play sample membership sound">Test</button>
+            </div>
+          </div>
+        </section>
+
+      </div><!-- /pageSound -->
+
+      <!-- ═══ SETTINGS PAGE ═══════════════════════════════════ -->
+      <div class="page" id="pageSettings">
+
+        <section class="card sound-card">
+          <div class="filter-row">
+            <label class="a-toggle has-sub"><input type="checkbox" id="filterToggle" /><span>Filter chat<small class="a-toggle-sub" id="filterMeta"></small></span></label>
+            <input type="text" class="music-path-input" id="filterPathInput" placeholder="Path to censor CSV…" readonly />
+            <button class="btn small primary" id="filterBrowseBtn">Browse</button>
+          </div>
+        </section>
+
+        <section class="card sound-card">
+          <h3>General</h3>
+          <div class="sound-grid">
+            <label class="a-toggle"><input type="checkbox" id="loggerToggle" /><span>Chat logger</span></label>
+            <label class="a-toggle"><input type="checkbox" id="jamToggle" /><span>Jam mode</span></label>
+            <label class="a-toggle"><input type="checkbox" id="demoModeToggle" /><span>Demo mode</span></label>
+            <label class="a-toggle"><input type="checkbox" id="writeSongFileToggle" /><span>Write song to file</span></label>
+            <label class="a-toggle"><input type="checkbox" id="autoShuffleToggle" /><span>Auto-shuffle playlist</span></label>
+            <label class="a-toggle"><input type="checkbox" id="playlistLoopToggle" checked /><span>Loop playlist</span></label>
+          </div>
+        </section>
+
+      </div><!-- /pageSettings -->
+
+    </main>
+
+  </div>
+
+  <script src="/admin/app.js"></script>
+</body>
+</html>

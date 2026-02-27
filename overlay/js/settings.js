@@ -5,12 +5,7 @@
 
 import { state, elements, PRESETS, SETTINGS_TOGGLE_KEYS, PROXIMITY_DISTANCE, isDemoSite, showToast, saveToLocal } from './state.js';
 import { clamp01, isValidHexColor, normalizeHexColor, updateColorPreview, setupColorInput } from './utils.js';
-import { audio, ensureAudioContext, initializeAudio, playSound } from './audio.js';
-import { 
-  musicPlayer, applyMusicVolume, getServerIndexAtPos, syncMusicUi, 
-  ensureMusicPlaylistLoaded, notifyNowPlaying, toggleJam, requestSongFileWrite,
-  musicTogglePlayPause, musicPrev, musicNext, musicShuffle
-} from './music.js';
+
 import { startDemoMode, stopDemoMode, clearAllMessages } from './messages.js';
 
 // Re-export saveToLocal for backwards compatibility
@@ -25,29 +20,6 @@ let isMouseDetected = false;
 let initialShowTimeout = null;
 let clickShowTimeout = null;
 
-export function syncMusicSettingsButtonVisibility() {
-  const btn = elements.musicSettingsBtn;
-  const panel = elements.musicSettings;
-  const enabled = !!musicPlayer?.isConfigured;
-
-  if (!enabled) {
-    // Ensure the music UI is not visible or interactable when not configured.
-    btn?.classList.remove('show');
-    btn?.classList.add('hidden');
-    panel?.classList.add('hidden');
-    return;
-  }
-
-  // Configured: follow the same visibility rules as the other settings buttons.
-  if (isMouseDetected) {
-    btn?.classList.remove('hidden');
-    btn?.classList.add('show');
-  } else {
-    btn?.classList.remove('show');
-    btn?.classList.add('hidden');
-  }
-}
-
 // ================================
 // Mouse Detection Helpers
 // ================================
@@ -58,13 +30,11 @@ function isMouseNearSettingsButton(mouseX, mouseY) {
   const generalRight = 12;
   const soundRight = 68;
   const appearanceRight = 124;
-  const musicRight = 180;
   const generalLeft = window.innerWidth - generalRight - buttonSize;
   const soundLeft = window.innerWidth - soundRight - buttonSize;
-  const musicLeft = window.innerWidth - musicRight - buttonSize;
   const appearanceLeft = window.innerWidth - appearanceRight - buttonSize;
-  const extendedLeft = Math.min(generalLeft, musicLeft, soundLeft, appearanceLeft) - PROXIMITY_DISTANCE;
-  const extendedRight = window.innerWidth - Math.min(generalRight, musicRight, soundRight, appearanceRight) + PROXIMITY_DISTANCE;
+  const extendedLeft = Math.min(generalLeft, soundLeft, appearanceLeft) - PROXIMITY_DISTANCE;
+  const extendedRight = window.innerWidth - Math.min(generalRight, soundRight, appearanceRight) + PROXIMITY_DISTANCE;
   const buttonBottom = buttonTop + buttonSize;
   const proximityZone = {
     left: extendedLeft,
@@ -82,7 +52,6 @@ function showSettingsButton() {
     elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden');
     elements.soundSettingsBtn?.classList.add('show');
-    syncMusicSettingsButtonVisibility();
     elements.generalSettingsBtn?.classList.remove('hidden');
     elements.generalSettingsBtn?.classList.add('show');
   }
@@ -93,14 +62,11 @@ function hideSettingsButton() {
     isMouseDetected = false;
     elements.settingsBtn?.classList.remove('show');
     elements.soundSettingsBtn?.classList.remove('show');
-    elements.musicSettingsBtn?.classList.remove('show');
     elements.generalSettingsBtn?.classList.remove('show');
     setTimeout(() => {
       if (!isMouseDetected) {
         elements.settingsBtn?.classList.add('hidden');
         elements.soundSettingsBtn?.classList.add('hidden');
-        // Only keep visible when configured; otherwise ensure hidden.
-        syncMusicSettingsButtonVisibility();
         elements.generalSettingsBtn?.classList.add('hidden');
       }
     }, 160);
@@ -138,7 +104,6 @@ function showSettingsButtonInitially() {
   elements.settingsBtn?.classList.add('show');
   elements.soundSettingsBtn?.classList.remove('hidden');
   elements.soundSettingsBtn?.classList.add('show');
-  syncMusicSettingsButtonVisibility();
   elements.generalSettingsBtn?.classList.remove('hidden');
   elements.generalSettingsBtn?.classList.add('show');
   initialShowTimeout = setTimeout(() => {
@@ -155,7 +120,6 @@ function showSettingsButtonInitially() {
 function showSettingsButtonOnClick(event) {
   if (event.target === elements.settingsBtn || elements.settings?.contains(event.target)) return;
   if (event.target === elements.soundSettingsBtn || document.getElementById('soundSettings')?.contains(event.target)) return;
-  if (event.target === elements.musicSettingsBtn || elements.musicSettings?.contains(event.target)) return;
   if (event.target === elements.generalSettingsBtn || elements.generalSettings?.contains(event.target)) return;
   
   if (clickShowTimeout) {
@@ -168,7 +132,6 @@ function showSettingsButtonOnClick(event) {
     elements.settingsBtn?.classList.add('show');
     elements.soundSettingsBtn?.classList.remove('hidden');
     elements.soundSettingsBtn?.classList.add('show');
-    syncMusicSettingsButtonVisibility();
     elements.generalSettingsBtn?.classList.remove('hidden');
     elements.generalSettingsBtn?.classList.add('show');
   }
@@ -208,18 +171,6 @@ export function setupMouseDetection() {
     event.stopPropagation();
     const panel = document.getElementById('soundSettings');
     panel?.classList.toggle('hidden');
-  });
-  
-  elements.musicSettingsBtn?.addEventListener('click', (event) => {
-    event.preventDefault();
-    event.stopPropagation();
-    if (!musicPlayer?.isConfigured) return;
-    elements.musicSettings?.classList.toggle('hidden');
-    const isHidden = elements.musicSettings?.classList.contains('hidden');
-    if (!isHidden) {
-      ensureMusicPlaylistLoaded().catch(() => {});
-      syncMusicUi();
-    }
   });
   
   elements.generalSettingsBtn?.addEventListener('click', (event) => {
@@ -289,66 +240,136 @@ export function applyTheme() {
 export function applySongDisplay() {
   const overlay = elements.overlay;
   const songEl = elements.songDisplayOverlay;
-  const position = state.music?.songDisplay || 'none';
-  
+  const position = state.songDisplay?.position || 'none';
+
   // Update overlay classes for message gap
   overlay?.classList.remove('song-display-top', 'song-display-bottom');
-  
+
   if (position === 'none' || !songEl) {
     songEl?.classList.add('hidden');
     songEl?.classList.remove('top', 'bottom');
     return;
   }
-  
+
   // Show the song display and position it
   songEl.classList.remove('hidden', 'top', 'bottom');
   songEl.classList.add(position);
   overlay?.classList.add(`song-display-${position}`);
-  
+
+  // Apply song text size factor
+  const textSize = state.songDisplay?.textSize ?? 1;
+  songEl.style.setProperty('--song-text-scale', String(textSize));
+
   // Apply or remove scrolling
-  const scrolling = !!state.music?.scrollSongDisplay;
+  const scrolling = (state.songDisplay?.scrollSpeed || 0) > 0;
   songEl.classList.toggle('scrolling', scrolling);
-  
-  // Update song title from music player
+
+  // Update song title
   updateSongDisplayText();
 }
 
 export function updateSongDisplayText() {
   const songEl = elements.songDisplayOverlay;
   if (!songEl) return;
-  
-  const position = state.music?.songDisplay || 'none';
+
+  const position = state.songDisplay?.position || 'none';
   if (position === 'none') return;
-  
-  // Import getDisplayTitleAtPos dynamically to avoid circular dependencies
-  // The title will be updated whenever syncMusicUi is called
-  try {
-    const { getDisplayTitleAtPos, musicPlayer } = window.__challaChatMusicExports || {};
-    if (getDisplayTitleAtPos && musicPlayer) {
-      const title = getDisplayTitleAtPos(musicPlayer.index);
-      const display = title ? `♫ ${title} ♫` : '';
-      const textSpan = songEl.querySelector('.song-display-text');
-      if (textSpan) {
-        // For scrolling: duplicate text with a separator for seamless loop
-        const scrolling = songEl.classList.contains('scrolling');
-        textSpan.textContent = scrolling && display ? `${display}\u2003\u2003\u2003${display}\u2003\u2003\u2003` : display;
-        // Scale duration based on text length for consistent speed
-        if (scrolling && display) {
-          const chars = display.length;
-          const duration = Math.max(8, chars * 0.35);
-          songEl.style.setProperty('--marquee-duration', `${duration}s`);
-        }
-      } else {
-        songEl.textContent = display;
-      }
+
+  const title = state.songDisplay?.songId || '';
+  const display = title ? `\u266b ${title} \u266b` : '';
+  const textSpan = songEl.querySelector('.song-display-text');
+  if (!textSpan) { songEl.textContent = display; return; }
+
+  const scrolling = songEl.classList.contains('scrolling') && !!display;
+
+  if (!scrolling) {
+    // Static mode: measure text and auto-truncate with "..." if too wide
+    // Clear any scrolling child spans
+    textSpan.textContent = display;
+    songEl.style.removeProperty('--marquee-shift');
+    songEl.style.removeProperty('--marquee-duration');
+
+    if (display) {
+      requestAnimationFrame(() => {
+        autoFitSongText(songEl, textSpan, title);
+      });
     }
-  } catch {
-    // Fallback: will be updated when music module calls this
+    return;
   }
+
+  // Scrolling mode: two inner spans for seamless loop
+  let primary = textSpan.querySelector('.song-primary');
+  let secondary = textSpan.querySelector('.song-secondary');
+  if (!primary || !secondary) {
+    textSpan.textContent = '';
+    primary = document.createElement('span');
+    primary.className = 'song-primary';
+    secondary = document.createElement('span');
+    secondary.className = 'song-secondary';
+    textSpan.appendChild(primary);
+    textSpan.appendChild(secondary);
+  }
+  primary.textContent = display;
+  secondary.textContent = display;
+
+  // Measure after paint so offsetWidth is accurate
+  requestAnimationFrame(() => {
+    const textWidth = primary.offsetWidth;
+    const containerPad = parseFloat(getComputedStyle(songEl).paddingLeft) || 0;
+    const buffer = containerPad + 10; // ensure text is fully offscreen right
+    const gap = Math.max(80, window.innerWidth * 0.25) + buffer;
+    const shift = textWidth + gap;
+    secondary.style.marginLeft = `${gap}px`;
+    songEl.style.setProperty('--marquee-shift', `${shift}px`);
+    // Constant scroll speed (px/s) scaled by user's speed setting
+    const baseSpeed = 60;
+    const speedMult = state.songDisplay?.scrollSpeed || 1;
+    const speed = baseSpeed * speedMult;
+    const duration = Math.max(5, shift / speed);
+    songEl.style.setProperty('--marquee-duration', `${duration}s`);
+    // Restart animation so new metrics apply immediately
+    textSpan.style.animation = 'none';
+    void textSpan.offsetHeight;
+    textSpan.style.animation = '';
+  });
 }
 
-// Register global callback so music.js can call this without circular imports
-window.__challaChatUpdateSongDisplay = updateSongDisplayText;
+/**
+ * Measures the song text and truncates with "..." if it overflows the container.
+ * Uses a binary search on the title length for efficiency.
+ */
+function autoFitSongText(container, textSpan, title) {
+  const style = getComputedStyle(container);
+  const padL = parseFloat(style.paddingLeft) || 0;
+  const padR = parseFloat(style.paddingRight) || 0;
+  const availWidth = container.clientWidth - padL - padR;
+  // If the current text already fits, nothing to do
+  if (textSpan.scrollWidth <= availWidth) return;
+
+  // Binary search for the longest title substring that fits when wrapped as "♫ text… ♫"
+  let lo = 0;
+  let hi = title.length;
+  const wrap = (t) => `\u266b ${t}\u2026 \u266b`;  // ♫ text… ♫
+
+  while (lo < hi) {
+    const mid = (lo + hi + 1) >>> 1;
+    textSpan.textContent = wrap(title.slice(0, mid));
+    if (textSpan.scrollWidth <= availWidth) {
+      lo = mid;
+    } else {
+      hi = mid - 1;
+    }
+  }
+
+  // Apply the longest fitting version
+  if (lo === 0) {
+    textSpan.textContent = '\u266b \u2026 \u266b';  // nothing fits, just show ellipsis
+  } else if (lo >= title.length) {
+    textSpan.textContent = `\u266b ${title} \u266b`;
+  } else {
+    textSpan.textContent = wrap(title.slice(0, lo).trimEnd());
+  }
+}
 
 export function applyPreset(name) {
   if (!name || name === 'Custom' || !PRESETS[name]) return;
@@ -397,9 +418,6 @@ export function loadFromLocal() {
     if (data.sounds && typeof data.sounds === 'object') {
       state.sounds = { ...state.sounds, ...data.sounds };
     }
-    if (data.music && typeof data.music === 'object') {
-      state.music = { ...state.music, ...data.music };
-    }
     if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode;
     if (typeof data.logEnabled === 'boolean') state.logEnabled = data.logEnabled;
   } catch {}
@@ -435,10 +453,6 @@ export function loadFromUrl() {
   if (url.searchParams.has('pagebgop')) {
     state.pageBgOpacity = Math.max(0, Math.min(1, Number(url.searchParams.get('pagebgop'))));
   }
-  if (url.searchParams.has('songdisplay')) {
-    const val = url.searchParams.get('songdisplay');
-    if (['none', 'top', 'bottom'].includes(val)) state.music.songDisplay = val;
-  }
 }
 
 // ================================
@@ -446,76 +460,23 @@ export function loadFromUrl() {
 // ================================
 
 export function syncUi() {
-  elements.scale.value = String(state.scale);
-  if (elements.showAvatars) elements.showAvatars.checked = state.showAvatars;
-  if (elements.showBadges) elements.showBadges.checked = state.showBadges;
+
   
   const presetElement = document.getElementById('preset');
   if (presetElement) presetElement.value = state.preset || 'Custom';
   
-  // Set hex color values and update previews
-  elements.textColor.value = normalizeHexColor(state.theme.text);
-  if (elements.textOpacity) elements.textOpacity.value = String(state.theme.textOpacity || 1);
-  updateColorPreview(elements.textColor, elements.textColorPreview);
+
   
-  if (elements.bubbleColor) {
-    elements.bubbleColor.value = normalizeHexColor(state.theme.bubbleColor || '#000000');
-    updateColorPreview(elements.bubbleColor, elements.bubbleColorPreview);
-  }
-  
-  if (elements.pageBgColor) {
-    elements.pageBgColor.value = normalizeHexColor(state.pageBgColor || '#000000');
-    updateColorPreview(elements.pageBgColor, elements.pageBgColorPreview);
-  }
-  
-  elements.bgOpacity.value = String(state.theme.bgOpacity);
-  if (elements.showBubbles) elements.showBubbles.checked = state.showBubbles;
   if (elements.demoMode) elements.demoMode.checked = state.demoMode;
-  if (elements.messageGap) elements.messageGap.value = String(state.messageGapRem);
-  if (elements.pageBgOpacity) elements.pageBgOpacity.value = String(state.pageBgOpacity);
-  
-  // Sound panel
-  if (elements.msgVolume) elements.msgVolume.value = String(state.sounds.message.volume);
-  if (elements.donationVolume) elements.donationVolume.value = String(state.sounds.donation.volume);
-  if (elements.memberVolume) elements.memberVolume.value = String(state.sounds.member.volume);
-  
-  // Music panel
-  if (elements.musicVolume) elements.musicVolume.value = String(clamp01(state.music.volume));
-  if (elements.musicWriteSongFile) elements.musicWriteSongFile.checked = !!state.music.writeSongFile;
-  if (elements.musicEnableJam) elements.musicEnableJam.checked = !!state.music.enableJam;
-  if (elements.musicSongDisplay) elements.musicSongDisplay.value = state.music.songDisplay || 'none';
-  if (elements.scrollSongDisplay) elements.scrollSongDisplay.checked = !!state.music.scrollSongDisplay;
-  
-  applySongDisplay();
+
   applyTheme();
   
   // Keep custom dropdown label/selection in sync
   try { syncCustomPresetDropdown(); } catch {}
-  try { syncSongDisplayDropdown(); } catch {}
 }
 
 export function updateFromUi() {
-  state.scale = Math.max(0.5, Math.min(3, Number(elements.scale.value) || 1.35));
-  if (elements.showAvatars) state.showAvatars = elements.showAvatars.checked;
-  if (elements.showBadges) state.showBadges = elements.showBadges.checked;
   state.preset = 'Custom';
-  
-  // Update colors from hex inputs
-  if (isValidHexColor(elements.textColor.value)) {
-    state.theme.text = normalizeHexColor(elements.textColor.value);
-  }
-  if (elements.textOpacity) state.theme.textOpacity = Math.max(0, Math.min(1, Number(elements.textOpacity.value) || 1));
-  
-  if (elements.bubbleColor && isValidHexColor(elements.bubbleColor.value)) {
-    state.theme.bubbleColor = normalizeHexColor(elements.bubbleColor.value);
-  }
-  
-  if (elements.pageBgColor && isValidHexColor(elements.pageBgColor.value)) {
-    state.pageBgColor = normalizeHexColor(elements.pageBgColor.value);
-  }
-  
-  state.theme.bgOpacity = Math.max(0, Math.min(1, Number(elements.bgOpacity.value)));
-  if (elements.showBubbles) state.showBubbles = elements.showBubbles.checked;
   
   if (elements.demoMode) {
     const newDemoMode = elements.demoMode.checked;
@@ -529,47 +490,8 @@ export function updateFromUi() {
     }
   }
   
-  if (elements.messageGap) {
-    state.messageGapRem = Math.max(0, Math.min(1.5, Number(elements.messageGap.value)));
-  }
-  if (elements.pageBgOpacity) {
-    state.pageBgOpacity = Math.max(0, Math.min(1, Number(elements.pageBgOpacity.value)));
-  }
+
   
-  // Per-sound volumes only (set to 0 to disable)
-  if (elements.msgVolume) state.sounds.message.volume = Math.max(0, Math.min(2, Number(elements.msgVolume.value)));
-  if (elements.donationVolume) state.sounds.donation.volume = Math.max(0, Math.min(2, Number(elements.donationVolume.value)));
-  if (elements.memberVolume) state.sounds.member.volume = Math.max(0, Math.min(2, Number(elements.memberVolume.value)));
-  
-  // Music volume (HTMLAudioElement: 0..1)
-  if (elements.musicVolume) state.music.volume = clamp01(Number(elements.musicVolume.value));
-
-  const prevWriteSongFile = !!state.music.writeSongFile;
-  if (elements.musicWriteSongFile) state.music.writeSongFile = !!elements.musicWriteSongFile.checked;
-  if (!prevWriteSongFile && state.music.writeSongFile) {
-    requestSongFileWrite({ force: true });
-  }
-
-  const prevEnableJam = !!state.music.enableJam;
-  if (elements.musicEnableJam) state.music.enableJam = !!elements.musicEnableJam.checked;
-  if (prevEnableJam !== !!state.music.enableJam) {
-    void toggleJam(!!state.music.enableJam);
-    // If enabling while music is already playing, push current track to server.
-    if (state.music.enableJam) {
-      try { void notifyNowPlaying(getServerIndexAtPos(musicPlayer.index)); } catch {}
-    }
-  }
-
-  // Song display setting
-  if (elements.musicSongDisplay) {
-    state.music.songDisplay = elements.musicSongDisplay.value || 'none';
-  }
-  if (elements.scrollSongDisplay) {
-    state.music.scrollSongDisplay = !!elements.scrollSongDisplay.checked;
-  }
-  applySongDisplay();
-
-  applyMusicVolume();
   applyTheme();
   saveToLocal();
 }
@@ -691,10 +613,6 @@ export async function fetchCensorFilterStatus() {
 async function toggleCensorFilter(active) {
   if (isDemoSite()) return;
   try {
-    if (active) {
-      await fetch('/api/filter/reload', { method: 'POST' });
-    }
-    
     const resp = await fetch('/api/filter/toggle', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -832,9 +750,6 @@ export function copyUrlWithSettings() {
   params.set('text', state.theme.text.replace('#', ''));
   params.set('bubble', state.theme.bubbleColor.replace('#', ''));
   params.set('bg', String(state.theme.bgOpacity));
-  if (state.music.songDisplay && state.music.songDisplay !== 'none') {
-    params.set('songdisplay', state.music.songDisplay);
-  }
   
   try {
     navigator.clipboard.writeText(baseUrl.toString())
@@ -1008,14 +923,6 @@ export function syncCustomPresetDropdown() {
   try { syncCustomSelect('preset', 'presetSelect'); } catch {}
 }
 
-export function buildSongDisplayDropdown() {
-  buildCustomSelect('musicSongDisplay', 'songDisplaySelect');
-}
-
-export function syncSongDisplayDropdown() {
-  try { syncCustomSelect('musicSongDisplay', 'songDisplaySelect'); } catch {}
-}
-
 // ================================
 // UI Event Bindings
 // ================================
@@ -1079,14 +986,6 @@ export function bindUi() {
       }
     }
     
-    // Music
-    const musicPanel = elements.musicSettings;
-    if (musicPanel && !musicPanel.classList.contains('hidden')) {
-      if (!musicPanel.contains(target) && target !== elements.musicSettingsBtn) {
-        musicPanel.classList.add('hidden');
-      }
-    }
-    
     // General
     const generalPanel = elements.generalSettings;
     if (generalPanel && !generalPanel.classList.contains('hidden')) {
@@ -1096,50 +995,13 @@ export function bindUi() {
     }
   });
   
-  // Setup color inputs with previews
-  setupColorInput(elements.textColor, elements.textColorPreview);
-  setupColorInput(elements.bubbleColor, elements.bubbleColorPreview);
-  setupColorInput(elements.pageBgColor, elements.pageBgColorPreview);
+
   
   // Basic controls
   elements.copyUrlBtn?.addEventListener('click', () => copyUrlWithSettings());
-  elements.showBubbles?.addEventListener('change', updateFromUi);
   elements.demoMode?.addEventListener('change', updateFromUi);
-  elements.showBadges?.addEventListener('change', updateFromUi);
-  elements.showAvatars?.addEventListener('change', updateFromUi);
-  elements.messageGap?.addEventListener('input', updateFromUi);
-  elements.pageBgColor?.addEventListener('input', updateFromUi);
-  elements.pageBgOpacity?.addEventListener('input', updateFromUi);
-  elements.textColor?.addEventListener('input', updateFromUi);
-  elements.textOpacity?.addEventListener('input', updateFromUi);
-  elements.bubbleColor?.addEventListener('input', updateFromUi);
-  elements.bgOpacity?.addEventListener('input', updateFromUi);
-  elements.scale?.addEventListener('input', updateFromUi);
-  
-  const presetEl = document.getElementById('preset');
-  if (presetEl) {
-    presetEl.addEventListener('change', () => {
-      state.preset = presetEl.value || 'Custom';
-      applyPreset(state.preset);
-      syncUi();
-      saveToLocal();
-      showToast(`${state.preset} preset applied`);
-    });
-  }
-  
+
   elements.clearMessagesBtn?.addEventListener('click', () => clearAllMessages());
-  
-  // Per-sound volumes
-  elements.msgVolume?.addEventListener('input', updateFromUi);
-  elements.donationVolume?.addEventListener('input', updateFromUi);
-  elements.memberVolume?.addEventListener('input', updateFromUi);
-  
-  // Music volume
-  elements.musicVolume?.addEventListener('input', updateFromUi);
-  elements.musicWriteSongFile?.addEventListener('change', updateFromUi);
-  elements.musicEnableJam?.addEventListener('change', updateFromUi);
-  elements.musicSongDisplay?.addEventListener('change', updateFromUi);
-  elements.scrollSongDisplay?.addEventListener('change', updateFromUi);
   
   // Poll interval controls
   setupPollIntervalControls();
@@ -1149,63 +1011,4 @@ export function bindUi() {
   
   // Logger controls
   setupLoggerControls();
-  
-  // Per-sound Test buttons
-  elements.testMessageBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.message) {
-      await initializeAudio();
-    }
-    playSound(audio.message, state.sounds.message.volume);
-    showToast('Test: message');
-  });
-  
-  elements.testDonationBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.donation) {
-      await initializeAudio();
-    }
-    playSound(audio.donation, state.sounds.donation.volume);
-    showToast('Test: donation');
-  });
-  
-  elements.testMemberBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    ensureAudioContext();
-    if (!audio.member) {
-      await initializeAudio();
-    }
-    playSound(audio.member, state.sounds.member.volume);
-    showToast('Test: membership');
-  });
-
-  // Music controls
-  elements.musicPlayBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    void musicTogglePlayPause();
-  });
-
-  elements.musicPrevBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    void musicPrev();
-  });
-
-  elements.musicNextBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    void musicNext();
-  });
-
-  elements.musicShuffleBtn?.addEventListener('click', async (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    void musicShuffle();
-  });
 }

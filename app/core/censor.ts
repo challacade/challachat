@@ -1,6 +1,4 @@
 import fs from 'fs';
-import path from 'path';
-import os from 'os';
 import type { ChatEvent, Segment } from '../capture/types';
 
 // Profanity filter that loads bad words from a CSV file and censors them in chat messages.
@@ -10,33 +8,6 @@ let badWords: Set<string> = new Set();
 let filterLoaded = false;  // Whether a CSV was found and loaded
 let filterActive = true;   // Whether censoring is currently enabled (user toggle)
 let loadedPath: string | null = null;
-
-// Possible locations for the censor CSV file (checked in order)
-function getCensorPaths(): string[] {
-  const paths: string[] = [];
-  
-  // 1. Beside the executable (for portable builds)
-  try {
-    const exeDir = path.dirname(process.execPath);
-    paths.push(path.join(exeDir, 'censor.csv'));
-  } catch {}
-  
-  // 2. Current working directory
-  paths.push(path.join(process.cwd(), 'censor.csv'));
-  
-  // 3. User's home directory under .challachat
-  try {
-    const homeDir = os.homedir();
-    paths.push(path.join(homeDir, '.challachat', 'censor.csv'));
-  } catch {}
-  
-  // 4. Windows AppData Local (if on Windows)
-  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
-    paths.push(path.join(process.env.LOCALAPPDATA, 'ChallaChat', 'censor.csv'));
-  }
-  
-  return paths;
-}
 
 // Parse CSV content into a set of lowercase words
 function parseCSV(content: string): Set<string> {
@@ -58,39 +29,34 @@ function parseCSV(content: string): Set<string> {
   return words;
 }
 
-// Load the censor list from the first available CSV file
-export function loadFilter(): boolean {
-  const paths = getCensorPaths();
-  
-  for (const filePath of paths) {
-    try {
-      if (fs.existsSync(filePath)) {
-        const content = fs.readFileSync(filePath, 'utf-8');
-        badWords = parseCSV(content);
-        
-        if (badWords.size > 0) {
-          filterLoaded = true;
-          loadedPath = filePath;
-          console.log(`[Censor] Loaded ${badWords.size} words from ${filePath}`);
-          return true;
-        }
-      }
-    } catch (err) {
-      // Continue to next path
-    }
-  }
-  
-  filterLoaded = false;
-  loadedPath = null;
-  return false;
-}
-
-// Reload the filter (can be called to refresh after file changes)
+// Reload the filter from the currently loaded path
 export function reloadFilter(): boolean {
+  if (!loadedPath) return false;
+  const savedPath = loadedPath;
   badWords.clear();
   filterLoaded = false;
   loadedPath = null;
-  return loadFilter();
+  return loadFilterFromPath(savedPath);
+}
+
+// Load filter from a specific file path (user-selected)
+export function loadFilterFromPath(filePath: string): boolean {
+  try {
+    if (fs.existsSync(filePath)) {
+      const content = fs.readFileSync(filePath, 'utf-8');
+      badWords = parseCSV(content);
+      if (badWords.size > 0) {
+        filterLoaded = true;
+        loadedPath = filePath;
+        console.log(`[Censor] Loaded ${badWords.size} words from ${filePath}`);
+        return true;
+      }
+    }
+  } catch {}
+  filterLoaded = false;
+  loadedPath = null;
+  badWords.clear();
+  return false;
 }
 
 // Get filter status for debugging/UI
@@ -183,5 +149,4 @@ export function censorMessage(message: ChatEvent): ChatEvent {
   return censored;
 }
 
-// Auto-load filter on module import
-loadFilter();
+

@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
-import puppeteer, { Browser, Page, HTTPRequest } from 'puppeteer';
+import { Browser, Page, HTTPRequest } from 'puppeteer-core';
 import { ChatEvent, CaptureOptions } from './types';
+import { acquireBrowser } from './browserPool';
 
 export interface CaptureCallbacks {
   onMessage: (m: ChatEvent) => void;
@@ -34,8 +35,11 @@ export function cyrb53(str: string, seed = 0): string {
 }
 
 /**
- * BaseChatCapture - Abstract base class for platform-specific chat capture implementations.
- * Handles browser launching, retry logic, polling lifecycle, and cleanup.
+ * BaseChatCapture - Abstract base class for platform-specific chat capture.
+ *
+ * Uses BrowserPool for a shared headless browser instance.  Only pages are
+ * created/destroyed per capture session — the browser itself survives across
+ * connect/disconnect cycles for fast re-connects.
  */
 export abstract class BaseChatCapture {
   protected browser: Browser | null = null;
@@ -124,7 +128,7 @@ export abstract class BaseChatCapture {
     for (let attempt = 1; attempt <= this.opts.maxRetries; attempt++) {
       try {
         this.log(`Attempt ${attempt}/${this.opts.maxRetries}`);
-        this.browser = await this.launchBrowser();
+        this.browser = await acquireBrowser();
         this.page = await this.browser.newPage();
         this.page.setDefaultTimeout(90000);
         this.page.setDefaultNavigationTimeout(90000);
@@ -172,10 +176,15 @@ export abstract class BaseChatCapture {
     this.log('Stopped');
   }
 
+  /**
+   * Cleanup the page only — the browser is shared via BrowserPool and stays
+   * alive for subsequent capture sessions.
+   */
   protected async cleanup() {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
     if (this.page) { try { await this.page.close(); } catch {} this.page = null; }
-    if (this.browser) { try { await this.browser.close(); } catch {} this.browser = null; }
+    // Do NOT close the browser — it's shared via BrowserPool
+    this.browser = null;
   }
 
   protected startPolling() {
@@ -230,101 +239,5 @@ export abstract class BaseChatCapture {
     // Final check - maybe page is valid even without matching selectors
     if (await this.isValidPage()) return;
     throw new Error('Chat elements not found after waiting 60 seconds');
-  }
-
-  // ─────────────────────────────────────────────────────────────────────────────
-  // Browser launching logic (shared across all platforms)
-  // ─────────────────────────────────────────────────────────────────────────────
-
-  private buildLaunchArgs(): string[] {
-    return [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-      '--disable-accelerated-2d-canvas',
-      '--no-first-run',
-      '--no-zygote',
-      '--disable-gpu',
-      '--disable-background-timer-throttling',
-      '--disable-backgrounding-occluded-windows',
-      '--disable-renderer-backgrounding',
-      '--disable-features=TranslateUI,VizDisplayCompositor,site-per-process',
-      '--disable-extensions',
-      '--disable-plugins',
-      '--mute-audio',
-      '--disable-web-security'
-    ];
-  }
-
-  private async launchBrowser(): Promise<Browser> {
-    const base: any = { headless: true, args: this.buildLaunchArgs(), timeout: 60000, protocolTimeout: 60000 };
-    // 1) Try using system Chrome via channel
-    try {
-      return await puppeteer.launch({ ...base, channel: 'chrome' as any });
-    } catch {}
-    // 2) Try using system Microsoft Edge
-    try {
-      return await puppeteer.launch({ ...base, channel: 'msedge' as any });
-    } catch {}
-    // 3) Try common install paths explicitly
-    if (process.platform === 'win32') {
-      for (const exe of this.findWindowsBrowserPaths()) {
-        try { return await puppeteer.launch({ ...base, executablePath: exe }); } catch {}
-      }
-    }
-    if (process.platform === 'darwin') {
-      for (const exe of this.findMacBrowserPaths()) {
-        try { return await puppeteer.launch({ ...base, executablePath: exe }); } catch {}
-      }
-    }
-    if (process.platform === 'linux') {
-      for (const exe of this.findLinuxBrowserPaths()) {
-        try { return await puppeteer.launch({ ...base, executablePath: exe }); } catch {}
-      }
-    }
-    // 4) Fall back to default (managed) Chrome-for-Testing
-    try {
-      return await puppeteer.launch(base);
-    } catch (e) {
-      throw new Error('No Chrome/Edge found. Please install Google Chrome or Microsoft Edge and try again.');
-    }
-  }
-
-  private findWindowsBrowserPaths(): string[] {
-    const paths: string[] = [];
-    const env = process.env;
-    const candidates = [
-      `${env['PROGRAMFILES']}\\Google\\Chrome\\Application\\chrome.exe`,
-      `${env['PROGRAMFILES(X86)']}\\Google\\Chrome\\Application\\chrome.exe`,
-      `${env['PROGRAMW6432']}\\Google\\Chrome\\Application\\chrome.exe`,
-      `${env['LOCALAPPDATA']}\\Google\\Chrome\\Application\\chrome.exe`,
-      `${env['PROGRAMFILES']}\\Microsoft\\Edge\\Application\\msedge.exe`,
-      `${env['PROGRAMFILES(X86)']}\\Microsoft\\Edge\\Application\\msedge.exe`,
-      `${env['PROGRAMW6432']}\\Microsoft\\Edge\\Application\\msedge.exe`,
-      `${env['LOCALAPPDATA']}\\Microsoft\\Edge\\Application\\msedge.exe`
-    ];
-    for (const p of candidates) {
-      if (p && p.trim().length > 0) paths.push(p);
-    }
-    return paths;
-  }
-
-  private findMacBrowserPaths(): string[] {
-    return [
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge',
-      '/Applications/Chromium.app/Contents/MacOS/Chromium'
-    ];
-  }
-
-  private findLinuxBrowserPaths(): string[] {
-    return [
-      '/usr/bin/google-chrome',
-      '/usr/bin/google-chrome-stable',
-      '/usr/bin/chromium-browser',
-      '/usr/bin/chromium',
-      '/usr/bin/microsoft-edge',
-      '/snap/bin/chromium'
-    ];
   }
 }

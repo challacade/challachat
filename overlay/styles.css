@@ -422,7 +422,7 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   left: 0;
   right: 0;
   padding: calc(0.5rem * var(--scale)) calc(1rem * var(--scale));
-  font-size: calc(1.35rem * var(--scale));
+  font-size: calc(1.35rem * var(--scale) * var(--song-text-scale, 1));
   font-weight: 600;
   color: var(--text);
   background: var(--page-bg, transparent);
@@ -447,12 +447,14 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
 
 .song-display-overlay.scrolling .song-display-text {
   display: inline-block;
+  white-space: nowrap;
+  will-change: transform;
   animation: song-marquee var(--marquee-duration, 12s) linear infinite;
 }
 
 @keyframes song-marquee {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(-50%); }
+  100% { transform: translateX(calc(-1 * var(--marquee-shift, 500px))); }
 }
 
 .song-display-overlay.hidden {
