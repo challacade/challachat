@@ -6,17 +6,20 @@ import {
   donVolSlider, donVolLabel, donMuteIcon,
   memVolSlider, memVolLabel, memMuteIcon,
   testMsgBtn, testDonBtn, testMemBtn,
+  browseMsgBtn, browseDonBtn, browseMemBtn,
+  msgFilename, donFilename, memFilename,
+  isElectron,
 } from './dom.js';
 import { api } from './api.js';
 import { debounce } from '/shared/utils.js';
-import { adminAudio, ensureAudioCtx, playSoundAdmin, initAdminAudio } from './audio.js';
+import { adminAudio, ensureAudioCtx, playSoundAdmin, initAdminAudio, reloadCustomSound } from './audio.js';
 
 // ─── Volume channel descriptors ────────────────────────────────
 
 const VOLUME_CHANNELS = [
-  { key: 'messageVolume',  slider: msgVolSlider, labelEl: msgVolLabel, muteIcon: msgMuteIcon, testBtn: testMsgBtn, audioKey: 'message',  savedVol: 1 },
-  { key: 'donationVolume', slider: donVolSlider, labelEl: donVolLabel, muteIcon: donMuteIcon, testBtn: testDonBtn, audioKey: 'donation', savedVol: 1 },
-  { key: 'memberVolume',   slider: memVolSlider, labelEl: memVolLabel, muteIcon: memMuteIcon, testBtn: testMemBtn, audioKey: 'member',   savedVol: 1 },
+  { key: 'messageVolume',  pathKey: 'messageSoundPath',  slider: msgVolSlider, labelEl: msgVolLabel, muteIcon: msgMuteIcon, testBtn: testMsgBtn, browseBtn: browseMsgBtn, filenameEl: msgFilename, audioKey: 'message',  savedVol: 1 },
+  { key: 'donationVolume', pathKey: 'donationSoundPath', slider: donVolSlider, labelEl: donVolLabel, muteIcon: donMuteIcon, testBtn: testDonBtn, browseBtn: browseDonBtn, filenameEl: donFilename, audioKey: 'donation', savedVol: 1 },
+  { key: 'memberVolume',   pathKey: 'memberSoundPath',   slider: memVolSlider, labelEl: memVolLabel, muteIcon: memMuteIcon, testBtn: testMemBtn, browseBtn: browseMemBtn, filenameEl: memFilename, audioKey: 'member',   savedVol: 1 },
 ];
 
 function updateMuteIcon(ch) {
@@ -38,6 +41,13 @@ export async function fetchSounds() {
         ch.savedVol = data[ch.key];
         ch.labelEl.textContent = `${Math.round(data[ch.key] * 100)}%`;
         updateMuteIcon(ch);
+      }
+      // Display custom filename or <default>
+      const customPath = data[ch.pathKey];
+      if (customPath && typeof customPath === 'string') {
+        ch.filenameEl.textContent = customPath.split(/[\\/]/).pop();
+      } else {
+        ch.filenameEl.textContent = '<default>';
       }
     }
   } catch {}
@@ -72,6 +82,22 @@ export function bindSoundListeners() {
       ensureAudioCtx();
       if (!adminAudio[ch.audioKey]) await initAdminAudio();
       playSoundAdmin(adminAudio[ch.audioKey], Number(ch.slider.value) || 0);
+    });
+    // Browse button (Electron file picker)
+    ch.browseBtn.addEventListener('click', async () => {
+      if (!isElectron) return;
+      const result = await window.challachat.invoke('pick-file', {
+        title: `Choose ${ch.audioKey} sound`,
+        filters: [{ name: 'Audio', extensions: ['mp3', 'wav', 'ogg', 'flac', 'aac', 'm4a'] }],
+      });
+      if (!result) return;
+      try {
+        const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: result });
+        if (resp?.ok) {
+          ch.filenameEl.textContent = resp.filename || result.split(/[\\/]/).pop();
+          await reloadCustomSound(ch.audioKey);
+        }
+      } catch {}
     });
   }
 }

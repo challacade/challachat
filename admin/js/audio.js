@@ -63,9 +63,31 @@ export function playSoundAdmin(handle, vol = 1) {
 
 export async function initAdminAudio() {
   ensureAudioCtx();
-  adminAudio.message  = await loadAudioBuffer('/sounds/message.mp3');
-  adminAudio.donation = await loadAudioBuffer('/sounds/donation.mp3');
-  adminAudio.member   = await loadAudioBuffer('/sounds/member.mp3');
+  // For each type, try custom sound first, fall back to default
+  for (const type of ['message', 'donation', 'member']) {
+    const handle = await loadCustomOrDefault(type);
+    adminAudio[type] = handle;
+  }
+}
+
+async function loadCustomOrDefault(type) {
+  // Try loading custom sound from server
+  try {
+    const resp = await fetch(`/api/sounds/file/${type}`);
+    if (resp.ok) {
+      const handle = await loadAudioBuffer(resp.url);
+      if (handle) return handle;
+    }
+  } catch {}
+  // Fall back to default
+  return loadAudioBuffer(`/sounds/${type}.mp3`);
+}
+
+/** Reload a single sound type (after user picks a custom file). */
+export async function reloadCustomSound(type) {
+  ensureAudioCtx();
+  const handle = await loadCustomOrDefault(type);
+  adminAudio[type] = handle;
 }
 
 /** Start SSE listener for play-sound events from server. */

@@ -70,6 +70,12 @@ export const memMuteIcon       = $('memMuteIcon');
 export const testMsgBtn        = $('testMsgBtn');
 export const testDonBtn        = $('testDonBtn');
 export const testMemBtn        = $('testMemBtn');
+export const browseMsgBtn      = $('browseMsgBtn');
+export const browseDonBtn      = $('browseDonBtn');
+export const browseMemBtn      = $('browseMemBtn');
+export const msgFilename       = $('msgFilename');
+export const donFilename       = $('donFilename');
+export const memFilename       = $('memFilename');
 // Music
 export const musicNowPlaying   = $('musicNowPlaying');
 export const musicPrevBtn      = $('musicPrevBtn');

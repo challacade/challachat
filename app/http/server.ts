@@ -69,7 +69,7 @@ class App extends EventEmitter {
   private appearance: Record<string, number | string | boolean> = getSavedAppearance();
 
   // Sound settings (loaded from settings.json)
-  private sounds: Record<string, number> = getSavedSounds();
+  private sounds: Record<string, number | string> = getSavedSounds();
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 

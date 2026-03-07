@@ -28,7 +28,7 @@ export interface RouteContext {
   readonly sse: SSEHub<any>;
   readonly io: SocketIOServer;
   readonly appearance: Record<string, number | string | boolean>;
-  readonly sounds: Record<string, number>;
+  readonly sounds: Record<string, number | string>;
 
   // ── State accessors ──
   getStatus(): Record<string, unknown>;

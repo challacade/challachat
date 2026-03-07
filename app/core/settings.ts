@@ -43,6 +43,11 @@ export type AppSettings = {
   donationVolume?: number;
   memberVolume?: number;
 
+  // ── Custom sound file paths ──
+  messageSoundPath?: string;
+  donationSoundPath?: string;
+  memberSoundPath?: string;
+
   // ── Toggles ──
   loggerEnabled?: boolean;
   jamEnabled?: boolean;
@@ -180,10 +185,13 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
 };
 
 // ── Sound defaults ──
-const SOUND_DEFAULTS: Record<string, number> = {
+const SOUND_DEFAULTS: Record<string, number | string> = {
   messageVolume: 1,
   donationVolume: 1,
   memberVolume: 1,
+  messageSoundPath: '',
+  donationSoundPath: '',
+  memberSoundPath: '',
 };
 
 /** Load saved appearance, merging with defaults for any missing keys. */
@@ -198,14 +206,14 @@ export function getSavedAppearance(): Record<string, number | string | boolean> 
   return result;
 }
 
-/** Load saved sound volumes, merging with defaults for any missing keys. */
-export function getSavedSounds(): Record<string, number> {
+/** Load saved sound volumes and paths, merging with defaults for any missing keys. */
+export function getSavedSounds(): Record<string, number | string> {
   const { settings } = readSettings();
   const result = { ...SOUND_DEFAULTS };
   const record = settings as Record<string, unknown>;
   for (const key of Object.keys(SOUND_DEFAULTS)) {
     const val = record[key];
-    if (typeof val === 'number') result[key] = val;
+    if (val !== undefined && (typeof val === 'number' || typeof val === 'string')) result[key] = val;
   }
   return result;
 }

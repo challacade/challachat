@@ -1,4 +1,6 @@
 import { Router, type Request, type Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import { getMusicDisplaySettings, updateSettings } from '../../core/settings';
 import { getNowPlaying } from '../../core/nowPlaying';
 import type { RouteContext } from './context';
@@ -91,6 +93,42 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     ctx.sse.send('sounds', ctx.sounds);
     updateSettings(ctx.sounds as any);
     res.json({ ok: true, ...ctx.sounds });
+  });
+
+  // ── Custom sound file path ──
+
+  const SOUND_PATH_KEYS: Record<string, string> = {
+    message: 'messageSoundPath',
+    donation: 'donationSoundPath',
+    member: 'memberSoundPath',
+  };
+
+  router.post('/sounds/path', (req: Request, res: Response) => {
+    const { type, filePath: soundPath } = req.body || {};
+    const pathKey = SOUND_PATH_KEYS[type];
+    if (!pathKey || typeof soundPath !== 'string') {
+      res.status(400).json({ ok: false, error: 'Invalid type or filePath.' });
+      return;
+    }
+    if (soundPath && !fs.existsSync(soundPath)) {
+      res.status(400).json({ ok: false, error: 'File not found.' });
+      return;
+    }
+    ctx.sounds[pathKey] = soundPath;
+    updateSettings({ [pathKey]: soundPath } as any);
+    res.json({ ok: true, type, filePath: soundPath, filename: soundPath ? path.basename(soundPath) : '' });
+  });
+
+  // Serve custom sound file to admin browser
+  router.get('/sounds/file/:type', (req: Request, res: Response) => {
+    const pathKey = SOUND_PATH_KEYS[req.params.type];
+    if (!pathKey) { res.status(400).json({ ok: false, error: 'Invalid type.' }); return; }
+    const filePath = ctx.sounds[pathKey];
+    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) {
+      res.status(404).json({ ok: false, error: 'No custom sound set.' });
+      return;
+    }
+    res.sendFile(filePath);
   });
 
   // ── SSE event stream ──
