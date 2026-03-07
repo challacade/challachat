@@ -12,7 +12,7 @@
 import { isElectron } from './js/dom.js';
 import { initAdminAudio, startAdminSSE } from './js/audio.js';
 import { initMusic, bindMusicListeners } from './js/music.js';
-import { initPreview, fetchAppearance, bindAppearanceListeners } from './js/appearance.js';
+import { fetchAppearance, bindAppearanceListeners } from './js/appearance.js';
 import { fetchSounds, bindSoundListeners } from './js/sounds.js';
 import { fetchStatus, fetchSettings, bindConnectionListeners } from './js/connections.js';
 
@@ -28,7 +28,7 @@ bindSoundListeners();
 fetchStatus();
 fetchSettings();
 fetchSounds();
-initPreview().then(() => fetchAppearance());
+fetchAppearance();
 initAdminAudio().catch(() => {});
 initMusic().catch(() => {});
 startAdminSSE();

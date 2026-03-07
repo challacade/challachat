@@ -50,7 +50,6 @@ export const showBubblesToggle = $('showBubblesToggle');
 export const showAvatarsToggle = $('showAvatarsToggle');
 export const showBadgesToggle  = $('showBadgesToggle');
 export const presetSelect      = $('presetSelect');
-export const previewHost       = $('previewHost');
 // Sound
 export const msgVolSlider      = $('msgVolSlider');
 export const msgVolLabel       = $('msgVolLabel');

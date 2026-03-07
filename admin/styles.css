@@ -506,13 +506,7 @@ footer {
 .toggle-row {
   margin-top: 20px !important;
 }
-.preview-host {
-  overflow: hidden;
-  min-height: 40px;
-}
-.preview-card {
-  padding: 0 !important;
-}
+
 .a-toggle {
   display: flex;
   align-items: center;
