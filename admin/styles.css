@@ -6,9 +6,9 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root {
-  --bg:       #0f1117;
-  --surface:  #1a1d27;
-  --border:   #2a2d3a;
+  --bg:       #181b2a;
+  --surface:  #232738;
+  --border:   #33374a;
   --text:     #f0f1f4;
   --text-dim: #a8adb8;
   --accent:   #4a5ad0;
@@ -138,6 +138,9 @@ main {
   gap: 12px;
   overflow-y: auto;
   -webkit-app-region: no-drag;
+  max-width: 800px;
+  width: 100%;
+  margin: 0 auto;
   /* Thin custom scrollbar */
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
