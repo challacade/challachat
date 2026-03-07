@@ -42,12 +42,14 @@ export async function fetchSounds() {
         ch.labelEl.textContent = `${Math.round(data[ch.key] * 100)}%`;
         updateMuteIcon(ch);
       }
-      // Display custom filename or <default>
+      // Display custom filename or <default>, and set button mode
       const customPath = data[ch.pathKey];
       if (customPath && typeof customPath === 'string') {
         ch.filenameEl.textContent = customPath.split(/[\\/]/).pop();
+        setBrowseMode(ch, 'reset');
       } else {
         ch.filenameEl.textContent = '<default>';
+        setBrowseMode(ch, 'browse');
       }
     }
   } catch {}
@@ -83,8 +85,21 @@ export function bindSoundListeners() {
       if (!adminAudio[ch.audioKey]) await initAdminAudio();
       playSoundAdmin(adminAudio[ch.audioKey], Number(ch.slider.value) || 0);
     });
-    // Browse button (Electron file picker)
+    // Browse / Reset button
     ch.browseBtn.addEventListener('click', async () => {
+      if (ch.browseBtn.dataset.mode === 'reset') {
+        // Reset to default
+        try {
+          const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: '' });
+          if (resp?.ok) {
+            ch.filenameEl.textContent = '<default>';
+            setBrowseMode(ch, 'browse');
+            await reloadCustomSound(ch.audioKey);
+          }
+        } catch {}
+        return;
+      }
+      // Browse for custom file
       if (!isElectron) return;
       const result = await window.challachat.invoke('pick-file', {
         title: `Choose ${ch.audioKey} sound`,
@@ -95,9 +110,23 @@ export function bindSoundListeners() {
         const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: result });
         if (resp?.ok) {
           ch.filenameEl.textContent = resp.filename || result.split(/[\\/]/).pop();
+          setBrowseMode(ch, 'reset');
           await reloadCustomSound(ch.audioKey);
         }
       } catch {}
     });
+  }
+}
+
+function setBrowseMode(ch, mode) {
+  ch.browseBtn.dataset.mode = mode;
+  if (mode === 'reset') {
+    ch.browseBtn.textContent = 'Reset';
+    ch.browseBtn.classList.remove('primary');
+    ch.browseBtn.classList.add('danger');
+  } else {
+    ch.browseBtn.textContent = 'Browse';
+    ch.browseBtn.classList.remove('danger');
+    ch.browseBtn.classList.add('primary');
   }
 }
