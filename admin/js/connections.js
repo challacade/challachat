@@ -5,7 +5,7 @@ import {
   isElectron,
   logoImg, urlInput, connectBtn, connectError,
   connectionsContainer, overlayUrl, copyBtn,
-  demoModeToggle, startWithoutConnecting,
+  dummyChattersToggle, startWithoutConnecting,
   welcomeView, activeView,
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink,
   filterPathInput, filterBrowseBtn, filterToggle, filterMeta,
@@ -131,14 +131,14 @@ function removeConnectionCard(connId) {
 }
 
 function updateUI(status) {
-  const isActive = status.sessionActive || status.demoMode;
+  const isActive = status.sessionActive;
   setServerActive(isActive);
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
 
   welcomeView.classList.toggle('hidden', isActive);
   activeView.classList.toggle('hidden', !isActive);
 
-  demoModeToggle.checked = !!status.demoMode;
+  dummyChattersToggle.checked = !!status.dummyChatters;
 
   const connections = status.connections || [];
   const activeIds = new Set(connections.map(c => c.id));
@@ -343,7 +343,7 @@ export function bindConnectionListeners() {
     { toggle: filterToggle,   endpoint: '/api/filter/toggle', payloadKey: 'active',  updateFn: updateFilterUI },
     { toggle: loggerToggle,   endpoint: '/api/logger/toggle', payloadKey: 'enabled', updateFn: updateLoggerUI },
     { toggle: jamToggle,      endpoint: '/api/jam/toggle',    payloadKey: 'enabled', updateFn: updateJamUI },
-    { toggle: demoModeToggle, endpoint: '/api/demo-mode',     payloadKey: 'enabled', updateFn: () => fetchStatus() },
+    { toggle: dummyChattersToggle, endpoint: '/api/dummy-chatters',     payloadKey: 'enabled', updateFn: () => fetchStatus() },
   ];
 
   for (const { toggle, endpoint, payloadKey, updateFn } of SETTINGS_TOGGLES) {

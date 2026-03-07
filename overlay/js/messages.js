@@ -1,9 +1,9 @@
 /**
  * ChallaChat Overlay - Message Rendering
- * Message rendering, avatar handling, push/remove/update, and demo mode
+ * Message rendering, avatar handling, push/remove/update, and dummy chatters
  */
 
-import { state, elements, DEMO_MESSAGES, showToast } from './state.js';
+import { state, elements, DUMMY_MESSAGES, showToast } from './state.js';
 import { handleAvatarError } from './utils.js';
 
 // ================================
@@ -33,52 +33,52 @@ function renderSegments(container, segments) {
 }
 
 // ================================
-// Demo Mode
+// Dummy Chatters
 // ================================
 
-let demoMessageIndex = 0;
-let demoModeInterval = null;
-let demoMessageCount = 0;
+let dummyMessageIndex = 0;
+let dummyChattersInterval = null;
+let dummyMessageCount = 0;
 
-export function startDemoMode() {
-  if (demoModeInterval) return;
-  showToast('Demo mode started');
-  demoMessageCount = 0;
-  addDemoMessage();
-  scheduleNextDemoMessage();
+export function startDummyChatters() {
+  if (dummyChattersInterval) return;
+  showToast('Dummy chatters started');
+  dummyMessageCount = 0;
+  addDummyMessage();
+  scheduleNextDummyMessage();
 }
 
-function scheduleNextDemoMessage() {
+function scheduleNextDummyMessage() {
   let delay;
-  if (demoMessageCount === 1) {
+  if (dummyMessageCount === 1) {
     delay = 2000;
-  } else if (demoMessageCount === 2) {
+  } else if (dummyMessageCount === 2) {
     delay = 3000;
   } else {
     delay = Math.random() * 3000 + 3000;
   }
-  demoModeInterval = setTimeout(() => {
-    addDemoMessage();
-    scheduleNextDemoMessage();
+  dummyChattersInterval = setTimeout(() => {
+    addDummyMessage();
+    scheduleNextDummyMessage();
   }, delay);
 }
 
-export function stopDemoMode() {
-  if (demoModeInterval) {
-    clearTimeout(demoModeInterval);
-    demoModeInterval = null;
-    demoMessageCount = 0;
-    showToast('Demo mode stopped');
+export function stopDummyChatters() {
+  if (dummyChattersInterval) {
+    clearTimeout(dummyChattersInterval);
+    dummyChattersInterval = null;
+    dummyMessageCount = 0;
+    showToast('Dummy chatters stopped');
   }
 }
 
-function addDemoMessage() {
-  const message = DEMO_MESSAGES[demoMessageIndex];
-  demoMessageIndex = (demoMessageIndex + 1) % DEMO_MESSAGES.length;
-  demoMessageCount++;
+function addDummyMessage() {
+  const message = DUMMY_MESSAGES[dummyMessageIndex];
+  dummyMessageIndex = (dummyMessageIndex + 1) % DUMMY_MESSAGES.length;
+  dummyMessageCount++;
   
   const demoEvent = {
-    id: `demo_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
+    id: `dummy_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
     author: message.author,
     text: message.text,
     kind: message.kind,

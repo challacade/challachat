@@ -53,8 +53,6 @@ export function createCaptureRouter(ctx: RouteContext): Router {
   router.post('/end-session', async (_req: Request, res: Response) => {
     await ctx.shutdownCapture();
     ctx.setSessionActive(false);
-    ctx.setDemoMode(false);
-    ctx.sse.send('demo-mode', { enabled: false });
     res.json({ ok: true });
   });
 

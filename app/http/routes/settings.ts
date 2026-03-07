@@ -4,7 +4,7 @@ import { getLoggerStatus, setLogEnabled, startLogging } from '../../core/logger'
 import { updateSettings, readSettings } from '../../core/settings';
 import type { RouteContext } from './context';
 
-/** Routes: /api/filter/*, /api/logger/*, /api/demo-mode */
+/** Routes: /api/filter/*, /api/logger/*, /api/dummy-chatters */
 export function createSettingsRouter(ctx: RouteContext): Router {
   const router = Router();
 
@@ -92,18 +92,18 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     }
   });
 
-  // ── Demo mode ──
+  // ── Dummy chatters ──
 
-  router.post('/demo-mode', (req: Request, res: Response) => {
+  router.post('/dummy-chatters', (req: Request, res: Response) => {
     const enabled = req.body?.enabled;
     if (typeof enabled !== 'boolean') {
       res.status(400).json({ ok: false, error: 'Missing enabled boolean.' });
       return;
     }
-    ctx.setDemoMode(enabled);
-    ctx.sse.send('demo-mode', { enabled });
-    updateSettings({ demoMode: enabled });
-    res.json({ ok: true, demoMode: enabled });
+    ctx.setDummyChatters(enabled);
+    ctx.sse.send('dummy-chatters', { enabled });
+    updateSettings({ dummyChatters: enabled });
+    res.json({ ok: true, dummyChatters: enabled });
   });
 
   return router;

@@ -29,10 +29,10 @@ import { PRESETS as _SHARED_PRESETS } from '/shared/presets.js';
 export const PRESETS = { ..._SHARED_PRESETS, Custom: null };
 
 // ================================
-// Demo Mode Messages
+// Dummy Chatter Messages
 // ================================
 
-export const DEMO_MESSAGES = [
+export const DUMMY_MESSAGES = [
   {
     author: { 
       name: 'StreamHelper', 
@@ -156,7 +156,7 @@ export const state = {
   textureColor: '#ffffff',
   preset: 'Dark',
   startedAt: null,
-  demoMode: false,
+  dummyChatters: false,
   songDisplay: {
     position: 'none',  // 'none' | 'top' | 'bottom'
     scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
@@ -199,7 +199,7 @@ export function saveToLocal() {
     pageBgColor: state.pageBgColor,
     pageBgOpacity: state.pageBgOpacity,
     preset: state.preset || 'Custom',
-    demoMode: state.demoMode
+    dummyChatters: state.dummyChatters
   };
   try {
     localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave));

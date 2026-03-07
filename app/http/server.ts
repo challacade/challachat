@@ -55,7 +55,7 @@ class App extends EventEmitter {
   private connections = new Map<string, Connection>();
   private headless: boolean;
   private tui: TerminalUI | null = null;
-  private demoMode = false;
+  private dummyChatters = false;
   private sessionActive = false;
   private nextConnId = 1;
 
@@ -121,7 +121,7 @@ class App extends EventEmitter {
     }
     if (toggles.loggerEnabled) setLogEnabled(true);
     if (toggles.jamEnabled) setJamEnabled(true);
-    this.demoMode = toggles.demoMode;
+    this.dummyChatters = toggles.dummyChatters;
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -139,8 +139,8 @@ class App extends EventEmitter {
       sounds: this.sounds,
       getStatus: () => this.getStatus(),
       isRunning: () => this.isRunning,
-      isDemoMode: () => this.demoMode,
-      setDemoMode: (v) => { this.demoMode = v; },
+      isDummyChatters: () => this.dummyChatters,
+      setDummyChatters: (v) => { this.dummyChatters = v; },
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -546,7 +546,7 @@ class App extends EventEmitter {
     return {
       isRunning: this.isRunning,
       sessionActive: this.sessionActive,
-      demoMode: this.demoMode,
+      dummyChatters: this.dummyChatters,
       connections,
       overlayUrl: `http://localhost:${this.port}/`,
     };
@@ -572,6 +572,7 @@ class App extends EventEmitter {
 
   async shutdown(): Promise<void> {
     await this.shutdownCapture();
+    this.sessionActive = false;
     await closeBrowser();
     return new Promise<void>((resolve) => {
       this.server.close(() => {

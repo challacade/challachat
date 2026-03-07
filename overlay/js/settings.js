@@ -238,7 +238,7 @@ export function loadFromLocal() {
     if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles;
     if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem;
     if (typeof data.preset === 'string') state.preset = data.preset;
-    if (typeof data.demoMode === 'boolean') state.demoMode = data.demoMode;
+    if (typeof data.dummyChatters === 'boolean') state.dummyChatters = data.dummyChatters;
   } catch {}
 }
 

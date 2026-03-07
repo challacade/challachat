@@ -114,7 +114,7 @@ The Electron admin panel provides a full GUI for managing ChallaChat:
 - **Profanity filter** — Load a CSV word list, toggle on/off. Matched words are replaced with the first letter + asterisks (e.g. `word` → `w***`).
 - **Message logger** — Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
 - **Jam mode** — Toggle the `!jam` command. Viewers jam once per track; songs with ≥ 3 jams get a finale message on track change.
-- **Demo mode** — Display sample messages at random intervals for testing without a live stream.
+- **Dummy chatters** — Display sample messages at random intervals for testing the overlay without a live stream.
 - **Write song to file** — Writes current track to `song.txt` for OBS text sources.
 
 ## Multi-connection
@@ -186,7 +186,7 @@ Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/
   "filterActive": true,
   "loggerEnabled": false,
   "jamEnabled": false,
-  "demoMode": false
+  "dummyChatters": false
 }
 ```
 
@@ -216,14 +216,14 @@ Stored in `%LOCALAPPDATA%\ChallaChat\settings.json` (Windows) or `~/.challachat/
 | `POST` | `/api/music/songfile` | Write current track to song.txt |
 | `GET/POST` | `/api/music/display-settings` | Song display settings |
 | `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop |
-| `POST` | `/api/demo-mode` | Enable/disable demo mode |
+| `POST` | `/api/dummy-chatters` | Enable/disable dummy chatters |
 | `GET` | `/api/jam` | Jam mode status |
 | `POST` | `/api/jam/toggle` | Enable/disable jam mode |
 | `GET` | `/api/stream` | SSE event stream |
 
 ## SSE event types
 
-Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-playing`, `demo-mode`, `play-sound`, `ping` (heartbeat every 15s).
+Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-playing`, `dummy-chatters`, `play-sound`, `ping` (heartbeat every 15s).
 
 ## Releases (GitHub Actions)
 

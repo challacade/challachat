@@ -33,8 +33,8 @@ export interface RouteContext {
   // ── State accessors ──
   getStatus(): Record<string, unknown>;
   isRunning(): boolean;
-  isDemoMode(): boolean;
-  setDemoMode(enabled: boolean): void;
+  isDummyChatters(): boolean;
+  setDummyChatters(enabled: boolean): void;
   isSessionActive(): boolean;
   setSessionActive(active: boolean): void;
 

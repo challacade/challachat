@@ -10,7 +10,7 @@
 // ================================
 
 import { state, elements, isDemoSite } from './js/state.js';
-import { startDemoMode, adjustMessageAlignment } from './js/messages.js';
+import { startDummyChatters, adjustMessageAlignment } from './js/messages.js';
 import {
   recomputeAutoScale,
   applyTheme,
@@ -54,18 +54,18 @@ function start() {
     state.preset = 'Custom';
   }
   
-  // Enable demo mode on demo site
+  // Enable dummy chatters on demo site
   if (isDemoSite()) {
-    state.demoMode = true;
+    state.dummyChatters = true;
   }
   
   // Apply settings
   applyPreset(state.preset);
   applyTheme();
   
-  // Start demo mode if enabled
-  if (state.demoMode) {
-    startDemoMode();
+  // Start dummy chatters if enabled
+  if (state.dummyChatters) {
+    startDummyChatters();
   }
   
   // Start SSE connection

@@ -8,7 +8,7 @@ import { clamp } from '/shared/utils.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById,
-  startDemoMode, stopDemoMode
+  startDummyChatters, stopDummyChatters
 } from './messages.js';
 import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
 
@@ -135,16 +135,16 @@ export function startSSE() {
     } catch {}
   });
 
-  // Demo mode toggle from admin UI
-  eventSource.addEventListener('demo-mode', (event) => {
+  // Dummy chatters toggle from admin UI
+  eventSource.addEventListener('dummy-chatters', (event) => {
     try {
       const data = JSON.parse(event.data || '{}');
       if (typeof data.enabled === 'boolean') {
-        state.demoMode = data.enabled;
+        state.dummyChatters = data.enabled;
         if (data.enabled) {
-          startDemoMode();
+          startDummyChatters();
         } else {
-          stopDemoMode();
+          stopDummyChatters();
         }
       }
     } catch {}
