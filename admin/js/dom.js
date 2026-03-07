@@ -80,7 +80,8 @@ export const songTextSizeLabel  = $('songTextSizeLabel');
 export const writeSongFileToggle = $('writeSongFileToggle');
 export const autoShuffleToggle  = $('autoShuffleToggle');
 export const playlistLoopToggle = $('playlistLoopToggle');
-// UI Zoom
+// UI Theme & Zoom
+export const uiThemeSelect     = $('uiThemeSelect');
 export const uiZoomSelect      = $('uiZoomSelect');
 // Navigation
 export const navHome         = $('navHome');

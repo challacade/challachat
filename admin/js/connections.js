@@ -10,7 +10,7 @@ import {
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink,
   filterPathInput, filterBrowseBtn, filterToggle, filterMeta,
   loggerToggle, jamToggle,
-  uiZoomSelect,
+  uiThemeSelect, uiZoomSelect,
   navButtons, pages,
 } from './dom.js';
 import { api } from './api.js';
@@ -194,6 +194,10 @@ function updateJamUI(j) {
   jamToggle.checked = j.enabled;
 }
 
+function applyUiTheme(theme) {
+  document.documentElement.setAttribute('data-theme', theme);
+}
+
 function applyUiZoom(pct) {
   const zoom = 1 + (pct / 100);
   document.documentElement.style.setProperty('--ui-zoom', zoom);
@@ -201,15 +205,20 @@ function applyUiZoom(pct) {
 
 export async function fetchSettings() {
   try {
-    const [filter, logger, jam, zoom] = await Promise.all([
+    const [filter, logger, jam, theme, zoom] = await Promise.all([
       api('GET', '/api/filter'),
       api('GET', '/api/logger'),
       api('GET', '/api/jam'),
+      api('GET', '/api/ui-theme'),
       api('GET', '/api/ui-zoom'),
     ]);
     updateFilterUI(filter);
     updateLoggerUI(logger);
     updateJamUI(jam);
+    if (theme && theme.uiTheme) {
+      uiThemeSelect.value = theme.uiTheme;
+      applyUiTheme(theme.uiTheme);
+    }
     if (zoom && typeof zoom.uiZoom === 'number') {
       uiZoomSelect.value = String(zoom.uiZoom);
       applyUiZoom(zoom.uiZoom);
@@ -345,6 +354,13 @@ export function bindConnectionListeners() {
       } catch { toggle.checked = !toggle.checked; }
     });
   }
+
+  // UI Theme dropdown
+  uiThemeSelect.addEventListener('change', async () => {
+    const theme = uiThemeSelect.value;
+    applyUiTheme(theme);
+    try { await api('POST', '/api/ui-theme', { uiTheme: theme }); } catch {}
+  });
 
   // UI Zoom dropdown
   uiZoomSelect.addEventListener('change', async () => {

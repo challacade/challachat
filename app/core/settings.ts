@@ -50,6 +50,7 @@ export type AppSettings = {
 
   // ── UI ──
   uiZoom?: number;
+  uiTheme?: string;
 };
 
 function getSettingsDir(): string {

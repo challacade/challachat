@@ -23,6 +23,20 @@
   --radius:   10px;
 }
 
+/* ── Light theme overrides ────────────────────────────────────── */
+:root[data-theme="light"] {
+  --bg:       #d8dbe4;
+  --surface:  #e8eaef;
+  --border:   #c8cbd6;
+  --text:     #1a1d27;
+  --text-dim: #555a68;
+  --accent:   #4a5ad0;
+  --accent-h: #3b49b5;
+  --slider:   #5c6fe0;
+  --red-bg:   #fde8e8;
+  --red-bdr:  #f5c6c6;
+}
+
 body {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background: var(--bg);
@@ -181,7 +195,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f9fafb;
+  color: var(--text);
   font-size: 13px;
   font-family: inherit;
   outline: none;
@@ -534,11 +548,18 @@ footer {
   grid-template-columns: repeat(3, 1fr);
   gap: 14px;
 }
+.sound-grid.two-col {
+  grid-template-columns: repeat(2, 1fr);
+}
 .sound-item {
   display: flex;
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+}
+.sound-item.horizontal {
+  flex-direction: row;
+  align-items: center;
 }
 .sound-label {
   font-size: 12px;
@@ -610,26 +631,6 @@ footer {
   gap: 6px;
   margin-bottom: 18px;
 }
-.music-btn {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  border: 1px solid #4a5590;
-  background: #1e2240;
-  color: var(--text);
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 11px;
-  padding: 0 0 2px 0;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-  flex-shrink: 0;
-}
-.music-btn:hover {
-  background: #282e52;
-  border-color: #6070aa;
-}
 .music-path-row {
   display: flex;
   gap: 8px;
@@ -640,7 +641,7 @@ footer {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f9fafb;
+  color: var(--text);
   font-size: 12px;
   font-family: inherit;
   outline: none;
@@ -663,7 +664,7 @@ footer {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  color: #f9fafb;
+  color: var(--text);
   font-size: 12px;
   padding: 6px 10px;
   outline: none;

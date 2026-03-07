@@ -58,6 +58,23 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     res.json({ ok: true, ...getLoggerStatus() });
   });
 
+  // ── UI Theme ──
+
+  router.get('/ui-theme', (_req: Request, res: Response) => {
+    const { settings } = readSettings();
+    res.json({ uiTheme: settings.uiTheme || 'dark' });
+  });
+
+  router.post('/ui-theme', (req: Request, res: Response) => {
+    const uiTheme = req.body?.uiTheme;
+    if (uiTheme === 'dark' || uiTheme === 'light') {
+      updateSettings({ uiTheme });
+      res.json({ ok: true, uiTheme });
+    } else {
+      res.status(400).json({ ok: false, error: 'Invalid uiTheme value (dark or light).' });
+    }
+  });
+
   // ── UI Zoom ──
 
   router.get('/ui-zoom', (_req: Request, res: Response) => {

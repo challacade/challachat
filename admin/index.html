@@ -192,9 +192,9 @@
             <span class="music-vol-label" id="musicVolLabel">100%</span>
           </div>
           <div class="music-controls">
-            <button class="music-btn" id="musicPrevBtn" title="Previous track">⏮</button>
-            <button class="music-btn" id="musicPlayBtn" title="Play / Pause">▶</button>
-            <button class="music-btn" id="musicNextBtn" title="Next track">⏭</button>
+            <button class="btn small primary" id="musicPrevBtn" title="Previous track">⏮</button>
+            <button class="btn small primary" id="musicPlayBtn" title="Play / Pause">▶</button>
+            <button class="btn small primary" id="musicNextBtn" title="Next track">⏭</button>
           </div>
           <div class="music-path-row">
             <input type="text" class="music-path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
@@ -253,15 +253,24 @@
         </section>
 
         <section class="card sound-card">
-          <div class="preset-row">
-            <div class="sound-label">UI Zoom</div>
-            <select id="uiZoomSelect" class="music-select">
-              <option value="0">0%</option>
-              <option value="25">25%</option>
-              <option value="50">50%</option>
-              <option value="75">75%</option>
-              <option value="100">100%</option>
-            </select>
+          <div class="sound-grid two-col">
+            <div class="sound-item horizontal">
+              <div class="sound-label">UI Theme</div>
+              <select id="uiThemeSelect" class="music-select">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div class="sound-item horizontal">
+              <div class="sound-label">UI Zoom</div>
+              <select id="uiZoomSelect" class="music-select">
+                <option value="0">0%</option>
+                <option value="25">25%</option>
+                <option value="50">50%</option>
+                <option value="75">75%</option>
+                <option value="100">100%</option>
+              </select>
+            </div>
           </div>
         </section>
 
