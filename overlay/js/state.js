@@ -154,6 +154,7 @@ export const state = {
   textureIntensity: 0.25,
   textureScale: 1,
   textureColor: '#ffffff',
+  overlayFont: 'Inter',
   preset: 'Dark',
   startedAt: null,
   dummyChatters: false,

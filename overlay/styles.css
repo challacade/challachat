@@ -2,7 +2,7 @@
 * { box-sizing: border-box; }
 html, body { height: 100%; margin: 0; }
 /* Emoji-capable fonts for Windows/OBS */
-body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: transparent; }
+body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: transparent; }
 .name, .content { font-family: inherit; }
 
 :root {

@@ -37,6 +37,7 @@ export type AppSettings = {
   showAvatars?: boolean;
   showBadges?: boolean;
   preset?: string;
+  overlayFont?: string;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -182,6 +183,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   showAvatars: true,
   showBadges: true,
   preset: 'Dark',
+  overlayFont: 'Inter',
 };
 
 // ── Sound defaults ──

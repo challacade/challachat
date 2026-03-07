@@ -29,7 +29,7 @@ function sendToRenderer(channel: string, ...args: any[]) {
 async function createWindow(port: number) {
   mainWindow = new BrowserWindow({
     width: 528,
-    height: 520,
+    height: 562,
     minWidth: 420,
     minHeight: 430,
     title: 'ChallaChat',

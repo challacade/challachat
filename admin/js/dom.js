@@ -50,6 +50,8 @@ export const showBubblesToggle = $('showBubblesToggle');
 export const showAvatarsToggle = $('showAvatarsToggle');
 export const showBadgesToggle  = $('showBadgesToggle');
 export const presetSelect      = $('presetSelect');
+// Font
+export const overlayFontSelect       = $('overlayFontSelect');
 // Texture
 export const textureSelect          = $('textureSelect');
 export const textureIntensitySlider  = $('textureIntensitySlider');

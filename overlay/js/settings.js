@@ -43,6 +43,11 @@ export function applyTheme() {
 
   document.documentElement.classList.toggle('no-bubbles', !state.showBubbles);
   document.documentElement.classList.toggle('no-badges', !state.showBadges);
+
+  // Font
+  if (state.overlayFont) {
+    document.documentElement.style.setProperty('--font', `'${state.overlayFont}', sans-serif`);
+  }
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 
   // Texture

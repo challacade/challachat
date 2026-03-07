@@ -101,6 +101,9 @@ export function startSSE() {
       if (typeof data.textureColor === 'string') {
         state.textureColor = data.textureColor;
       }
+      if (typeof data.overlayFont === 'string') {
+        state.overlayFont = data.overlayFont;
+      }
       applyTheme();
     } catch {
       // ignore
