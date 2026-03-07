@@ -44,6 +44,17 @@ export function applyTheme() {
   document.documentElement.classList.toggle('no-bubbles', !state.showBubbles);
   document.documentElement.classList.toggle('no-badges', !state.showBadges);
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
+
+  // Texture
+  const overlay = elements.overlay;
+  if (overlay) {
+    overlay.classList.remove('texture-noise');
+    if (state.texture && state.texture !== 'none') {
+      overlay.classList.add(`texture-${state.texture}`);
+    }
+    overlay.style.setProperty('--texture-intensity', String(state.textureIntensity ?? 0.5));
+    overlay.style.setProperty('--texture-scale', String(state.textureScale ?? 1));
+  }
 }
 
 // ================================

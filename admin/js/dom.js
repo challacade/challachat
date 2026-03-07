@@ -50,6 +50,12 @@ export const showBubblesToggle = $('showBubblesToggle');
 export const showAvatarsToggle = $('showAvatarsToggle');
 export const showBadgesToggle  = $('showBadgesToggle');
 export const presetSelect      = $('presetSelect');
+// Texture
+export const textureSelect          = $('textureSelect');
+export const textureIntensitySlider  = $('textureIntensitySlider');
+export const textureIntensityLabel   = $('textureIntensityLabel');
+export const textureScaleSlider      = $('textureScaleSlider');
+export const textureScaleLabel       = $('textureScaleLabel');
 // Sound
 export const msgVolSlider      = $('msgVolSlider');
 export const msgVolLabel       = $('msgVolLabel');

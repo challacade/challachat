@@ -89,6 +89,15 @@ export function startSSE() {
       if (typeof data.preset === 'string') {
         state.preset = data.preset;
       }
+      if (typeof data.texture === 'string') {
+        state.texture = data.texture;
+      }
+      if (typeof data.textureIntensity === 'number') {
+        state.textureIntensity = clamp(data.textureIntensity, 0, 1);
+      }
+      if (typeof data.textureScale === 'number') {
+        state.textureScale = clamp(data.textureScale, 0.25, 4);
+      }
       applyTheme();
     } catch {
       // ignore

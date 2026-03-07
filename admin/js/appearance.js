@@ -7,6 +7,8 @@ import {
   gapSlider, gapLabel, textColorPicker, bubbleColorPicker, bgColorPicker,
   showBubblesToggle, showAvatarsToggle, showBadgesToggle,
   presetSelect,
+  textureSelect, textureIntensitySlider, textureIntensityLabel,
+  textureScaleSlider, textureScaleLabel,
 } from './dom.js';
 import { api } from './api.js';
 import { PRESETS } from '/shared/presets.js';
@@ -38,6 +40,16 @@ function updateAppearanceUI(a) {
     if (typeof a[key] === 'boolean') toggle.checked = a[key];
   }
   if (typeof a.preset === 'string') presetSelect.value = a.preset;
+  // Texture
+  if (typeof a.texture === 'string' && textureSelect) textureSelect.value = a.texture;
+  if (typeof a.textureIntensity === 'number' && textureIntensitySlider) {
+    textureIntensitySlider.value = a.textureIntensity;
+    textureIntensityLabel.textContent = 'Intensity: ' + Math.round(a.textureIntensity * 100) + '%';
+  }
+  if (typeof a.textureScale === 'number' && textureScaleSlider) {
+    textureScaleSlider.value = a.textureScale;
+    textureScaleLabel.textContent = 'Scale: ' + a.textureScale.toFixed(2);
+  }
 }
 
 const sendAppearance = debounce(async (patch) => {
@@ -93,6 +105,27 @@ export function bindAppearanceListeners() {
       sendAppearance({ [key]: toggle.checked, preset: 'Custom' });
     });
   });
+
+  // Texture controls
+  if (textureSelect) {
+    textureSelect.addEventListener('change', () => {
+      sendAppearance({ texture: textureSelect.value });
+    });
+  }
+  if (textureIntensitySlider) {
+    textureIntensitySlider.addEventListener('input', () => {
+      const val = Number(textureIntensitySlider.value);
+      textureIntensityLabel.textContent = 'Intensity: ' + Math.round(val * 100) + '%';
+      sendAppearance({ textureIntensity: val });
+    });
+  }
+  if (textureScaleSlider) {
+    textureScaleSlider.addEventListener('input', () => {
+      const val = Number(textureScaleSlider.value);
+      textureScaleLabel.textContent = 'Scale: ' + val.toFixed(2);
+      sendAppearance({ textureScale: val });
+    });
+  }
 
   presetSelect.addEventListener('change', () => {
     const name = presetSelect.value;

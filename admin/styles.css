@@ -474,6 +474,7 @@ footer {
 
 /* ── Appearance grid spacing ───────────────────────────────────── */
 .sound-card .sound-grid + .sound-grid { margin-top: 20px; }
+.sound-card .preset-row + .sound-grid { margin-top: 14px; }
 .sound-item input[type="color"] {
   -webkit-appearance: none;
   appearance: none;
