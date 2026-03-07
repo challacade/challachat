@@ -46,9 +46,11 @@ export async function fetchSounds() {
       const customPath = data[ch.pathKey];
       if (customPath && typeof customPath === 'string') {
         ch.filenameEl.textContent = customPath.split(/[\\/]/).pop();
+        ch.filenameEl.style.display = '';
         setBrowseMode(ch, 'reset');
       } else {
-        ch.filenameEl.textContent = '<default>';
+        ch.filenameEl.textContent = '';
+        ch.filenameEl.style.display = 'none';
         setBrowseMode(ch, 'browse');
       }
     }
@@ -92,7 +94,8 @@ export function bindSoundListeners() {
         try {
           const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: '' });
           if (resp?.ok) {
-            ch.filenameEl.textContent = '<default>';
+            ch.filenameEl.textContent = '';
+            ch.filenameEl.style.display = 'none';
             setBrowseMode(ch, 'browse');
             await reloadCustomSound(ch.audioKey);
           }
@@ -110,6 +113,7 @@ export function bindSoundListeners() {
         const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: result });
         if (resp?.ok) {
           ch.filenameEl.textContent = resp.filename || result.split(/[\\/]/).pop();
+          ch.filenameEl.style.display = '';
           setBrowseMode(ch, 'reset');
           await reloadCustomSound(ch.audioKey);
         }
