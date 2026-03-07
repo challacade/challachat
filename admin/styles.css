@@ -538,6 +538,7 @@ footer {
   display: flex;
   flex-direction: column;
   gap: 8px;
+  min-width: 0;
 }
 .sound-label {
   font-size: 12px;
@@ -548,6 +549,7 @@ footer {
 }
 .sound-item input[type="range"] {
   width: 100%;
+  min-width: 0;
   height: 4px;
   accent-color: var(--slider);
   cursor: pointer;
@@ -577,6 +579,9 @@ footer {
   gap: 6px;
   margin-bottom: 8px;
   padding: 0 2px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .music-vol-icon {
   font-size: 13px;
