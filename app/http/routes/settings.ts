@@ -1,7 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import { getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
 import { getLoggerStatus, setLogEnabled, startLogging } from '../../core/logger';
-import { updateSettings } from '../../core/settings';
+import { updateSettings, readSettings } from '../../core/settings';
 import type { RouteContext } from './context';
 
 /** Routes: /api/filter/*, /api/logger/*, /api/demo-mode */
@@ -56,6 +56,23 @@ export function createSettingsRouter(ctx: RouteContext): Router {
       }
     }
     res.json({ ok: true, ...getLoggerStatus() });
+  });
+
+  // ── UI Zoom ──
+
+  router.get('/ui-zoom', (_req: Request, res: Response) => {
+    const { settings } = readSettings();
+    res.json({ uiZoom: typeof settings.uiZoom === 'number' ? settings.uiZoom : 0 });
+  });
+
+  router.post('/ui-zoom', (req: Request, res: Response) => {
+    const uiZoom = req.body?.uiZoom;
+    if (typeof uiZoom === 'number' && uiZoom >= 0 && uiZoom <= 100) {
+      updateSettings({ uiZoom });
+      res.json({ ok: true, uiZoom });
+    } else {
+      res.status(400).json({ ok: false, error: 'Invalid uiZoom value (0–100).' });
+    }
   });
 
   // ── Demo mode ──

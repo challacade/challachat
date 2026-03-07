@@ -10,6 +10,7 @@ import {
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink,
   filterPathInput, filterBrowseBtn, filterToggle, filterMeta,
   loggerToggle, jamToggle,
+  uiZoomSelect,
   navButtons, pages,
 } from './dom.js';
 import { api } from './api.js';
@@ -193,16 +194,26 @@ function updateJamUI(j) {
   jamToggle.checked = j.enabled;
 }
 
+function applyUiZoom(pct) {
+  const zoom = 1 + (pct / 100);
+  document.documentElement.style.setProperty('--ui-zoom', zoom);
+}
+
 export async function fetchSettings() {
   try {
-    const [filter, logger, jam] = await Promise.all([
+    const [filter, logger, jam, zoom] = await Promise.all([
       api('GET', '/api/filter'),
       api('GET', '/api/logger'),
       api('GET', '/api/jam'),
+      api('GET', '/api/ui-zoom'),
     ]);
     updateFilterUI(filter);
     updateLoggerUI(logger);
     updateJamUI(jam);
+    if (zoom && typeof zoom.uiZoom === 'number') {
+      uiZoomSelect.value = String(zoom.uiZoom);
+      applyUiZoom(zoom.uiZoom);
+    }
   } catch {
     // Server may not be ready yet — ignore
   }
@@ -334,6 +345,13 @@ export function bindConnectionListeners() {
       } catch { toggle.checked = !toggle.checked; }
     });
   }
+
+  // UI Zoom dropdown
+  uiZoomSelect.addEventListener('change', async () => {
+    const pct = Number(uiZoomSelect.value);
+    applyUiZoom(pct);
+    try { await api('POST', '/api/ui-zoom', { uiZoom: pct }); } catch {}
+  });
 
   // Real-time Electron events
   if (isElectron) {

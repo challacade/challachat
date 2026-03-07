@@ -47,6 +47,9 @@ export type AppSettings = {
   loggerEnabled?: boolean;
   jamEnabled?: boolean;
   demoMode?: boolean;
+
+  // ── UI ──
+  uiZoom?: number;
 };
 
 function getSettingsDir(): string {

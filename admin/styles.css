@@ -6,6 +6,7 @@
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root {
+  --ui-zoom:  1;
   --bg:       #181b2a;
   --surface:  #232738;
   --border:   #33374a;
@@ -39,8 +40,9 @@ a:hover { text-decoration: underline; }
 .app {
   display: flex;
   flex-direction: column;
-  height: 100vh;
+  height: calc(100vh / var(--ui-zoom));
   padding: 16px 20px 12px;
+  zoom: var(--ui-zoom);
 }
 
 /* ── Header ───────────────────────────────────────────────────── */
