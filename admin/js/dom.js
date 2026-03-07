@@ -54,10 +54,13 @@ export const previewHost       = $('previewHost');
 // Sound
 export const msgVolSlider      = $('msgVolSlider');
 export const msgVolLabel       = $('msgVolLabel');
+export const msgMuteIcon       = $('msgMuteIcon');
 export const donVolSlider      = $('donVolSlider');
 export const donVolLabel       = $('donVolLabel');
+export const donMuteIcon       = $('donMuteIcon');
 export const memVolSlider      = $('memVolSlider');
 export const memVolLabel       = $('memVolLabel');
+export const memMuteIcon       = $('memMuteIcon');
 export const testMsgBtn        = $('testMsgBtn');
 export const testDonBtn        = $('testDonBtn');
 export const testMemBtn        = $('testMemBtn');

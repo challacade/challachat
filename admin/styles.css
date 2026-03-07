@@ -543,6 +543,34 @@ footer {
 
 /* ── Sound card ───────────────────────────────────────────────── */
 .sound-card { padding: 12px 16px; }
+/* ── Sound effect card ────────────────────────────────────────── */
+.sound-effect-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sfx-volume-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sfx-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.sfx-mute-icon {
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
 .sound-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);

@@ -219,23 +219,45 @@
         </section>
 
         <!-- ── Sound effects ────────────────────────────────── -->
-        <section class="card sound-card">
-          <div class="sound-grid">
-            <div class="sound-item">
-              <div class="sound-label" id="msgVolLabel">Message: 100%</div>
-              <input type="range" id="msgVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small primary" id="testMsgBtn" title="Play sample message sound">Test</button>
-            </div>
-            <div class="sound-item">
-              <div class="sound-label" id="donVolLabel">Donation: 100%</div>
-              <input type="range" id="donVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small primary" id="testDonBtn" title="Play sample donation sound">Test</button>
-            </div>
-            <div class="sound-item">
-              <div class="sound-label" id="memVolLabel">Membership: 100%</div>
-              <input type="range" id="memVolSlider" min="0" max="2" step="0.05" value="1" />
-              <button class="btn small primary" id="testMemBtn" title="Play sample membership sound">Test</button>
-            </div>
+        <section class="card sound-effect-card">
+          <div class="sfx-volume-row">
+            <span class="sfx-label">Message</span>
+            <span class="sfx-mute-icon" id="msgMuteIcon" title="Mute / Unmute">🔊</span>
+            <input type="range" id="msgVolSlider" class="music-vol-slider" min="0" max="2" step="0.01" value="1" />
+            <span class="music-vol-label" id="msgVolLabel">100%</span>
+          </div>
+          <div class="music-path-row">
+            <input type="text" class="music-path-input" placeholder="Custom sound file…" readonly />
+            <button class="btn small primary">Browse</button>
+            <button class="btn small primary" id="testMsgBtn" title="Play sample sound">Test</button>
+          </div>
+        </section>
+
+        <section class="card sound-effect-card">
+          <div class="sfx-volume-row">
+            <span class="sfx-label">Donation</span>
+            <span class="sfx-mute-icon" id="donMuteIcon" title="Mute / Unmute">🔊</span>
+            <input type="range" id="donVolSlider" class="music-vol-slider" min="0" max="2" step="0.01" value="1" />
+            <span class="music-vol-label" id="donVolLabel">100%</span>
+          </div>
+          <div class="music-path-row">
+            <input type="text" class="music-path-input" placeholder="Custom sound file…" readonly />
+            <button class="btn small primary">Browse</button>
+            <button class="btn small primary" id="testDonBtn" title="Play sample sound">Test</button>
+          </div>
+        </section>
+
+        <section class="card sound-effect-card">
+          <div class="sfx-volume-row">
+            <span class="sfx-label">Membership</span>
+            <span class="sfx-mute-icon" id="memMuteIcon" title="Mute / Unmute">🔊</span>
+            <input type="range" id="memVolSlider" class="music-vol-slider" min="0" max="2" step="0.01" value="1" />
+            <span class="music-vol-label" id="memVolLabel">100%</span>
+          </div>
+          <div class="music-path-row">
+            <input type="text" class="music-path-input" placeholder="Custom sound file…" readonly />
+            <button class="btn small primary">Browse</button>
+            <button class="btn small primary" id="testMemBtn" title="Play sample sound">Test</button>
           </div>
         </section>
 
