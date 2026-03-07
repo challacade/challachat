@@ -30,7 +30,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     showAvatars:   { type: 'boolean' },
     showBadges:    { type: 'boolean' },
     preset:        { type: 'enum', values: ['Dark', 'Light', 'Transparent', 'Custom'] },
-    overlayFont:      { type: 'enum', values: ['Inter', 'Roboto', 'Poppins', 'Nunito', 'Bangers'] },
+    overlayFont:      { type: 'enum', values: ['System', 'Inter', 'Roboto', 'Poppins', 'Nunito', 'Bangers'] },
     texture:          { type: 'enum', values: ['none', 'noise', 'dots', 'grid', 'stripes', 'crosshatch'] },
     textureIntensity: { type: 'number', min: 0, max: 1 },
     textureScale:     { type: 'number', min: 0.25, max: 4 },
