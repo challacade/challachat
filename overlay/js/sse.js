@@ -98,6 +98,9 @@ export function startSSE() {
       if (typeof data.textureScale === 'number') {
         state.textureScale = clamp(data.textureScale, 0.25, 4);
       }
+      if (typeof data.textureColor === 'string') {
+        state.textureColor = data.textureColor;
+      }
       applyTheme();
     } catch {
       // ignore

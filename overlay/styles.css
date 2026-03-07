@@ -30,65 +30,60 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   transition: opacity 0.2s;
 }
 .overlay.texture-noise::before {
-  opacity: var(--texture-intensity, 0.5);
+  opacity: var(--texture-intensity, 0.25);
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
   background-size: calc(200px * var(--texture-scale, 1));
   background-repeat: repeat;
-  mix-blend-mode: overlay;
 }
 .overlay.texture-dots::before {
-  opacity: var(--texture-intensity, 0.5);
+  opacity: var(--texture-intensity, 0.25);
   --dot-size: calc(20px * var(--texture-scale, 1));
   --dot-r: calc(1px * var(--texture-scale, 1));
-  background-image: radial-gradient(circle, rgba(255,255,255,0.4) var(--dot-r), transparent var(--dot-r));
+  background-image: radial-gradient(circle, var(--texture-color, #fff) var(--dot-r), transparent var(--dot-r));
   background-size: var(--dot-size) var(--dot-size);
   background-repeat: repeat;
-  mix-blend-mode: overlay;
 }
 .overlay.texture-grid::before {
-  opacity: var(--texture-intensity, 0.5);
+  opacity: var(--texture-intensity, 0.25);
   --grid-size: calc(24px * var(--texture-scale, 1));
   --grid-line: calc(1px * var(--texture-scale, 1));
   background-image:
-    linear-gradient(to right, rgba(255,255,255,0.3) var(--grid-line), transparent var(--grid-line)),
-    linear-gradient(to bottom, rgba(255,255,255,0.3) var(--grid-line), transparent var(--grid-line));
+    linear-gradient(to right, var(--texture-color, #fff) var(--grid-line), transparent var(--grid-line)),
+    linear-gradient(to bottom, var(--texture-color, #fff) var(--grid-line), transparent var(--grid-line));
   background-size: var(--grid-size) var(--grid-size);
   background-repeat: repeat;
-  mix-blend-mode: overlay;
 }
 .overlay.texture-stripes::before {
-  opacity: var(--texture-intensity, 0.5);
+  opacity: var(--texture-intensity, 0.25);
   --stripe-size: calc(8px * var(--texture-scale, 1));
   --stripe-line: calc(1px * var(--texture-scale, 1));
   background-image: repeating-linear-gradient(
     45deg,
-    rgba(255,255,255,0.25) 0px,
-    rgba(255,255,255,0.25) var(--stripe-line),
+    var(--texture-color, #fff) 0px,
+    var(--texture-color, #fff) var(--stripe-line),
     transparent var(--stripe-line),
     transparent var(--stripe-size)
   );
-  mix-blend-mode: overlay;
 }
 .overlay.texture-crosshatch::before {
-  opacity: var(--texture-intensity, 0.5);
+  opacity: var(--texture-intensity, 0.25);
   --hatch-size: calc(10px * var(--texture-scale, 1));
   --hatch-line: calc(1px * var(--texture-scale, 1));
   background-image:
     repeating-linear-gradient(
       45deg,
-      rgba(255,255,255,0.2) 0px,
-      rgba(255,255,255,0.2) var(--hatch-line),
+      var(--texture-color, #fff) 0px,
+      var(--texture-color, #fff) var(--hatch-line),
       transparent var(--hatch-line),
       transparent var(--hatch-size)
     ),
     repeating-linear-gradient(
       -45deg,
-      rgba(255,255,255,0.2) 0px,
-      rgba(255,255,255,0.2) var(--hatch-line),
+      var(--texture-color, #fff) 0px,
+      var(--texture-color, #fff) var(--hatch-line),
       transparent var(--hatch-line),
       transparent var(--hatch-size)
     );
-  mix-blend-mode: overlay;
 }
 .overlay > * { position: relative; z-index: 1; }
 .messages {

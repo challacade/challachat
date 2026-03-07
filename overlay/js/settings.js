@@ -52,8 +52,9 @@ export function applyTheme() {
     if (state.texture && state.texture !== 'none') {
       overlay.classList.add(`texture-${state.texture}`);
     }
-    overlay.style.setProperty('--texture-intensity', String(state.textureIntensity ?? 0.5));
+    overlay.style.setProperty('--texture-intensity', String(state.textureIntensity ?? 0.25));
     overlay.style.setProperty('--texture-scale', String(state.textureScale ?? 1));
+    overlay.style.setProperty('--texture-color', state.textureColor || '#ffffff');
   }
 }
 

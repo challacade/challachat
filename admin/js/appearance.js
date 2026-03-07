@@ -8,7 +8,7 @@ import {
   showBubblesToggle, showAvatarsToggle, showBadgesToggle,
   presetSelect,
   textureSelect, textureIntensitySlider, textureIntensityLabel,
-  textureScaleSlider, textureScaleLabel,
+  textureScaleSlider, textureScaleLabel, textureColorPicker,
 } from './dom.js';
 import { api } from './api.js';
 import { PRESETS } from '/shared/presets.js';
@@ -49,6 +49,9 @@ function updateAppearanceUI(a) {
   if (typeof a.textureScale === 'number' && textureScaleSlider) {
     textureScaleSlider.value = a.textureScale;
     textureScaleLabel.textContent = 'Scale: ' + a.textureScale.toFixed(2);
+  }
+  if (typeof a.textureColor === 'string' && textureColorPicker) {
+    textureColorPicker.value = a.textureColor;
   }
 }
 
@@ -124,6 +127,11 @@ export function bindAppearanceListeners() {
       const val = Number(textureScaleSlider.value);
       textureScaleLabel.textContent = 'Scale: ' + val.toFixed(2);
       sendAppearance({ textureScale: val });
+    });
+  }
+  if (textureColorPicker) {
+    textureColorPicker.addEventListener('input', () => {
+      sendAppearance({ textureColor: textureColorPicker.value });
     });
   }
 
