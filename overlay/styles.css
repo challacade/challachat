@@ -36,6 +36,60 @@ body { font-family: Inter, "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Em
   background-repeat: repeat;
   mix-blend-mode: overlay;
 }
+.overlay.texture-dots::before {
+  opacity: var(--texture-intensity, 0.5);
+  --dot-size: calc(20px * var(--texture-scale, 1));
+  --dot-r: calc(1px * var(--texture-scale, 1));
+  background-image: radial-gradient(circle, rgba(255,255,255,0.4) var(--dot-r), transparent var(--dot-r));
+  background-size: var(--dot-size) var(--dot-size);
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+}
+.overlay.texture-grid::before {
+  opacity: var(--texture-intensity, 0.5);
+  --grid-size: calc(24px * var(--texture-scale, 1));
+  --grid-line: calc(1px * var(--texture-scale, 1));
+  background-image:
+    linear-gradient(to right, rgba(255,255,255,0.3) var(--grid-line), transparent var(--grid-line)),
+    linear-gradient(to bottom, rgba(255,255,255,0.3) var(--grid-line), transparent var(--grid-line));
+  background-size: var(--grid-size) var(--grid-size);
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+}
+.overlay.texture-stripes::before {
+  opacity: var(--texture-intensity, 0.5);
+  --stripe-size: calc(8px * var(--texture-scale, 1));
+  --stripe-line: calc(1px * var(--texture-scale, 1));
+  background-image: repeating-linear-gradient(
+    45deg,
+    rgba(255,255,255,0.25) 0px,
+    rgba(255,255,255,0.25) var(--stripe-line),
+    transparent var(--stripe-line),
+    transparent var(--stripe-size)
+  );
+  mix-blend-mode: overlay;
+}
+.overlay.texture-crosshatch::before {
+  opacity: var(--texture-intensity, 0.5);
+  --hatch-size: calc(10px * var(--texture-scale, 1));
+  --hatch-line: calc(1px * var(--texture-scale, 1));
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      rgba(255,255,255,0.2) 0px,
+      rgba(255,255,255,0.2) var(--hatch-line),
+      transparent var(--hatch-line),
+      transparent var(--hatch-size)
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      rgba(255,255,255,0.2) 0px,
+      rgba(255,255,255,0.2) var(--hatch-line),
+      transparent var(--hatch-line),
+      transparent var(--hatch-size)
+    );
+  mix-blend-mode: overlay;
+}
 .overlay > * { position: relative; z-index: 1; }
 .messages {
   position: absolute;

@@ -48,7 +48,7 @@ export function applyTheme() {
   // Texture
   const overlay = elements.overlay;
   if (overlay) {
-    overlay.classList.remove('texture-noise');
+    overlay.classList.remove('texture-noise', 'texture-dots', 'texture-grid', 'texture-stripes', 'texture-crosshatch');
     if (state.texture && state.texture !== 'none') {
       overlay.classList.add(`texture-${state.texture}`);
     }
