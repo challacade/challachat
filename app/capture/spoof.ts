@@ -10,7 +10,8 @@ interface SpoofMessage {
   kind: ChatKind;
 }
 
-const DUMMY_MESSAGES: SpoofMessage[] = [
+const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
+  welcome: [
   {
     author: {
       name: 'StreamHelper',
@@ -101,7 +102,22 @@ const DUMMY_MESSAGES: SpoofMessage[] = [
     text: 'Perfect for building community engagement! 💬',
     kind: 'text'
   }
-];
+  ],
+  trailer: [
+    {
+      author: { name: 'TrailerViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=TrailerViewer&backgroundColor=ff6b6b', flags: {} },
+      text: 'Trailer placeholder message',
+      kind: 'text'
+    },
+  ],
+  custom: [
+    {
+      author: { name: 'CustomViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=CustomViewer&backgroundColor=a8e6cf', flags: {} },
+      text: 'Custom placeholder message',
+      kind: 'text'
+    },
+  ],
+};
 
 export interface SpoofCallbacks {
   onMessage: (m: ChatEvent) => void;
@@ -119,6 +135,7 @@ export class SpoofCapture {
   private running = false;
   private callbacks: SpoofCallbacks;
   private intervalMs = 3000;
+  private preset = 'welcome';
 
   constructor(callbacks: SpoofCallbacks, intervalMs?: number) {
     this.callbacks = callbacks;
@@ -133,6 +150,15 @@ export class SpoofCapture {
 
   setIntervalMs(ms: number) {
     if (ms > 0) this.intervalMs = ms;
+  }
+
+  getPreset(): string { return this.preset; }
+
+  setPreset(preset: string) {
+    if (preset in SPOOF_PRESETS) {
+      this.preset = preset;
+      this.index = 0;
+    }
   }
 
   async start(): Promise<void> {
@@ -159,8 +185,10 @@ export class SpoofCapture {
   }
 
   private emitNext() {
-    const msg = DUMMY_MESSAGES[this.index];
-    this.index = (this.index + 1) % DUMMY_MESSAGES.length;
+    const messages = SPOOF_PRESETS[this.preset] || SPOOF_PRESETS.welcome;
+    if (messages.length === 0) return;
+    const msg = messages[this.index % messages.length];
+    this.index = (this.index + 1) % messages.length;
     const event: ChatEvent = {
       id: `spoof_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       author: msg.author,

@@ -144,6 +144,7 @@ class App extends EventEmitter {
       isDummyChatters: () => this.isSpoofActive(),
       setDummyChatters: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
       setSpoofInterval: (ms) => this.setSpoofInterval(ms),
+      setSpoofPreset: (p) => this.setSpoofPreset(p),
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -582,6 +583,15 @@ class App extends EventEmitter {
     for (const conn of this.connections.values()) {
       if (conn.platform === 'spoof' && 'setIntervalMs' in conn.capture) {
         (conn.capture as SpoofCapture).setIntervalMs(ms);
+      }
+    }
+  }
+
+  /** Update the preset on all active spoof connections. */
+  private setSpoofPreset(preset: string) {
+    for (const conn of this.connections.values()) {
+      if (conn.platform === 'spoof' && 'setPreset' in conn.capture) {
+        (conn.capture as SpoofCapture).setPreset(preset);
       }
     }
   }

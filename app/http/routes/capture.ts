@@ -37,6 +37,16 @@ export function createCaptureRouter(ctx: RouteContext): Router {
     res.json({ ok: true, intervalMs: ms });
   });
 
+  router.post('/spoof-preset', (req: Request, res: Response) => {
+    const preset = req.body?.preset;
+    if (!preset || typeof preset !== 'string') {
+      res.status(400).json({ ok: false, error: 'Invalid preset.' });
+      return;
+    }
+    ctx.setSpoofPreset(preset);
+    res.json({ ok: true, preset });
+  });
+
   router.post('/connect', async (req: Request, res: Response) => {
     const url = req.body?.url;
     if (!url || typeof url !== 'string') {

@@ -59,7 +59,9 @@ function createSpoofCard(conn) {
       <div class="spoof-control">
         <div class="control-label">Spoof Chat</div>
         <select class="dropdown spoof-preset-select">
-          <option value="default">Default messages</option>
+          <option value="welcome">Welcome</option>
+          <option value="trailer">Trailer</option>
+          <option value="custom">Custom</option>
         </select>
       </div>
       <div class="spoof-control">
@@ -69,6 +71,10 @@ function createSpoofCard(conn) {
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
+  const presetSelect = card.querySelector('.spoof-preset-select');
+  presetSelect.addEventListener('change', async () => {
+    try { await api('POST', '/api/spoof-preset', { preset: presetSelect.value }); } catch {}
+  });
   const intervalInput = card.querySelector('.spoof-interval-input');
   const sendInterval = debounce(async (ms) => {
     try { await api('POST', '/api/spoof-interval', { intervalMs: ms }); } catch {}
