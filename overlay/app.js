@@ -9,8 +9,8 @@
 // Module Imports
 // ================================
 
-import { state, elements, isDemoSite } from './js/state.js';
-import { startDummyChatters, adjustMessageAlignment } from './js/messages.js';
+import { state, elements } from './js/state.js';
+import { adjustMessageAlignment } from './js/messages.js';
 import {
   recomputeAutoScale,
   applyTheme,
@@ -54,19 +54,9 @@ function start() {
     state.preset = 'Custom';
   }
   
-  // Enable dummy chatters on demo site
-  if (isDemoSite()) {
-    state.dummyChatters = true;
-  }
-  
   // Apply settings
   applyPreset(state.preset);
   applyTheme();
-  
-  // Start dummy chatters if enabled
-  if (state.dummyChatters) {
-    startDummyChatters();
-  }
   
   // Start SSE connection
   startSSE();

@@ -16,6 +16,7 @@ import { runChatCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
+import { SpoofCapture } from '../capture/spoof';
 import type { ChatEvent, Platform } from '../capture/types';
 import { closeBrowser } from '../capture/browserPool';
 import type { Connection, RouteContext } from './routes/context';
@@ -55,7 +56,6 @@ class App extends EventEmitter {
   private connections = new Map<string, Connection>();
   private headless: boolean;
   private tui: TerminalUI | null = null;
-  private dummyChatters = false;
   private sessionActive = false;
   private nextConnId = 1;
   /** Sound types already played in the current synchronous poll batch. */
@@ -123,7 +123,7 @@ class App extends EventEmitter {
     }
     if (toggles.loggerEnabled) setLogEnabled(true);
     if (toggles.jamEnabled) setJamEnabled(true);
-    this.dummyChatters = toggles.dummyChatters;
+    if (toggles.dummyChatters) this.startSpoof();
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -141,8 +141,8 @@ class App extends EventEmitter {
       sounds: this.sounds,
       getStatus: () => this.getStatus(),
       isRunning: () => this.isRunning,
-      isDummyChatters: () => this.dummyChatters,
-      setDummyChatters: (v) => { this.dummyChatters = v; },
+      isDummyChatters: () => this.isSpoofActive(),
+      setDummyChatters: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -543,6 +543,39 @@ class App extends EventEmitter {
 
   // --- Public API (used by Electron main process and REST endpoints) ---
 
+  /** Check if a spoof connection is currently active. */
+  private isSpoofActive(): boolean {
+    for (const conn of this.connections.values()) {
+      if (conn.platform === 'spoof') return true;
+    }
+    return false;
+  }
+
+  /** Start the spoof connection (dummy chatters). No-op if already active. */
+  private startSpoof() {
+    if (this.isSpoofActive()) return;
+    const connId = this.generateConnId();
+    const spoof = new SpoofCapture({
+      onMessage: (msg: ChatEvent) => this.onCaptureMessage(connId, msg),
+    });
+    this.connections.set(connId, {
+      id: connId, capture: spoof, platform: 'spoof', url: 'Dummy Chatters',
+      videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      pollIntervalMs: 0, firstPollDone: true,
+    });
+    void spoof.start();
+  }
+
+  /** Stop and remove the spoof connection. */
+  private async stopSpoof() {
+    for (const [id, conn] of this.connections) {
+      if (conn.platform === 'spoof') {
+        try { await conn.capture.stop(); } catch { /* ignore */ }
+        this.connections.delete(id);
+      }
+    }
+  }
+
   /** Wait for the HTTP server to be listening. Resolves with the bound port. */
   waitForReady(): Promise<number> {
     return this.serverReadyPromise;
@@ -555,20 +588,22 @@ class App extends EventEmitter {
 
   /** Return the current application status (mirrors /api/status). */
   getStatus() {
-    const connections = Array.from(this.connections.values()).map(c => ({
-      id: c.id,
-      platform: c.platform,
-      url: c.url,
-      videoId: c.videoId,
-      messageCount: c.messageCount,
-      chatters: c.chatters.size,
-      uptime: c.startTime ? Date.now() - c.startTime : 0,
-      pollIntervalMs: c.pollIntervalMs,
-    }));
+    const connections = Array.from(this.connections.values())
+      .filter(c => c.platform !== 'spoof')
+      .map(c => ({
+        id: c.id,
+        platform: c.platform,
+        url: c.url,
+        videoId: c.videoId,
+        messageCount: c.messageCount,
+        chatters: c.chatters.size,
+        uptime: c.startTime ? Date.now() - c.startTime : 0,
+        pollIntervalMs: c.pollIntervalMs,
+      }));
     return {
       isRunning: this.isRunning,
       sessionActive: this.sessionActive,
-      dummyChatters: this.dummyChatters,
+      dummyChatters: this.isSpoofActive(),
       connections,
       overlayUrl: `http://localhost:${this.port}/`,
     };

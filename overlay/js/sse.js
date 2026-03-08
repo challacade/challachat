@@ -3,12 +3,11 @@
  * SSE connection handling for chat events
  */
 
-import { state, isDemoSite, showToast } from './state.js';
+import { state, showToast } from './state.js';
 import { clamp } from '/shared/utils.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById,
-  startDummyChatters, stopDummyChatters,
   clearAllMessages
 } from './messages.js';
 import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
@@ -18,7 +17,6 @@ import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.
 // ================================
 
 export function startSSE() {
-  if (isDemoSite()) return;
   showToast('Connecting…');
   const eventSource = new EventSource('/api/stream');
 
@@ -142,21 +140,6 @@ export function startSSE() {
         state.songDisplay.songId = data.songId;
       }
       updateSongDisplayText();
-    } catch {}
-  });
-
-  // Dummy chatters toggle from admin UI
-  eventSource.addEventListener('dummy-chatters', (event) => {
-    try {
-      const data = JSON.parse(event.data || '{}');
-      if (typeof data.enabled === 'boolean') {
-        state.dummyChatters = data.enabled;
-        if (data.enabled) {
-          startDummyChatters();
-        } else {
-          stopDummyChatters();
-        }
-      }
     } catch {}
   });
 

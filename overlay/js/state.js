@@ -29,103 +29,6 @@ import { PRESETS as _SHARED_PRESETS } from '/shared/presets.js';
 export const PRESETS = { ..._SHARED_PRESETS, Custom: null };
 
 // ================================
-// Dummy Chatter Messages
-// ================================
-
-export const DUMMY_MESSAGES = [
-  {
-    author: { 
-      name: 'StreamHelper', 
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=StreamHelper&backgroundColor=b6e3f4',
-      flags: { mod: true }
-    },
-    text: 'Welcome to ChallaChat! 👋',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'TechGuru',
-      avatar: 'https://api.dicebear.com/7.x/shapes/svg?seed=TechGuru&backgroundColor=c0aede',
-      flags: {}
-    },
-    text: 'Add this page\'s URL as a browser source in your streaming software!',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'OBSExpert',
-      avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=OBSExpert&backgroundColor=ffd93d',
-      flags: { verified: true }
-    },
-    text: 'OBS, Streamlabs, anything works! 🎬',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'ChatMaster',
-      avatar: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=ChatMaster&backgroundColor=ffb3ba',
-      flags: { member: true }
-    },
-    text: 'The overlay displays all your chat messages in real-time ⚡',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'DesignPro',
-      avatar: 'https://api.dicebear.com/7.x/shapes/svg?seed=DesignPro&backgroundColor=bae1ff',
-      flags: {}
-    },
-    text: 'Customize themes and colors from the admin panel! 🎨',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'SupportBot',
-      avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=SupportBot&backgroundColor=a8e6cf',
-      flags: { owner: true }
-    },
-    text: 'Manage everything from the admin panel ⚙️',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'StreamFan',
-      avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=StreamFan&backgroundColor=ffc9de',
-      flags: {}
-    },
-    text: 'This works with Twitch, YouTube, Kick, and more!',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'PrivacyAdvocate',
-      avatar: 'https://api.dicebear.com/7.x/shapes/svg?seed=PrivacyAdvocate&backgroundColor=d4a574',
-      flags: { verified: true }
-    },
-    text: 'All data stays local - no cloud services needed! 🔐',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'AudioEngineer',
-      avatar: 'https://api.dicebear.com/7.x/bottts-neutral/svg?seed=AudioEngineer&backgroundColor=c7ceea',
-      flags: { member: true }
-    },
-    text: 'Sound effects for donations and new members play in the admin panel! 🔊',
-    kind: 'text'
-  },
-  {
-    author: { 
-      name: 'CommunityMod',
-      avatar: 'https://api.dicebear.com/7.x/identicon/svg?seed=CommunityMod&backgroundColor=b5ead7',
-      flags: { mod: true }
-    },
-    text: 'Perfect for building community engagement! 💬',
-    kind: 'text'
-  }
-];
-
-// ================================
 // Application State
 // ================================
 
@@ -159,7 +62,6 @@ export const state = {
   edgePadding: 0.5,
   preset: 'Dark',
   startedAt: null,
-  dummyChatters: false,
   songDisplay: {
     position: 'none',  // 'none' | 'top' | 'bottom'
     scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
@@ -171,10 +73,6 @@ export const state = {
 // ================================
 // Utility Functions
 // ================================
-
-export function isDemoSite() {
-  return window.location.hostname.toLowerCase() === 'demo.challachat.com';
-}
 
 export function showToast(message, duration = 1600) {
   if (!elements.toast) return;
@@ -201,8 +99,7 @@ export function saveToLocal() {
     messageGapRem: state.messageGapRem,
     pageBgColor: state.pageBgColor,
     pageBgOpacity: state.pageBgOpacity,
-    preset: state.preset || 'Custom',
-    dummyChatters: state.dummyChatters
+    preset: state.preset || 'Custom'
   };
   try {
     localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave));

@@ -147,9 +147,6 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     res.write(`event: appearance\ndata: ${JSON.stringify(ctx.appearance)}\n\n`);
     res.write(`event: sounds\ndata: ${JSON.stringify(ctx.sounds)}\n\n`);
     res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
-    if (ctx.isDummyChatters()) {
-      res.write(`event: dummy-chatters\ndata: ${JSON.stringify({ enabled: true })}\n\n`);
-    }
     const np = getNowPlaying();
     if (np) {
       res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);

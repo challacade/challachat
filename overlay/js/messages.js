@@ -1,9 +1,9 @@
 /**
  * ChallaChat Overlay - Message Rendering
- * Message rendering, avatar handling, push/remove/update, and dummy chatters
+ * Message rendering, avatar handling, push/remove/update
  */
 
-import { state, elements, DUMMY_MESSAGES, showToast } from './state.js';
+import { state, elements, showToast } from './state.js';
 import { handleAvatarError } from './utils.js';
 
 // ================================
@@ -29,67 +29,6 @@ function renderSegments(container, segments) {
       img.loading = 'lazy';
       container.appendChild(img);
     }
-  }
-}
-
-// ================================
-// Dummy Chatters
-// ================================
-
-let dummyMessageIndex = 0;
-let dummyChattersInterval = null;
-let dummyMessageCount = 0;
-
-export function startDummyChatters() {
-  if (dummyChattersInterval) return;
-  showToast('Dummy chatters started');
-  dummyMessageCount = 0;
-  addDummyMessage();
-  scheduleNextDummyMessage();
-}
-
-function scheduleNextDummyMessage() {
-  let delay;
-  if (dummyMessageCount === 1) {
-    delay = 2000;
-  } else if (dummyMessageCount === 2) {
-    delay = 3000;
-  } else {
-    delay = Math.random() * 3000 + 3000;
-  }
-  dummyChattersInterval = setTimeout(() => {
-    addDummyMessage();
-    scheduleNextDummyMessage();
-  }, delay);
-}
-
-export function stopDummyChatters() {
-  if (dummyChattersInterval) {
-    clearTimeout(dummyChattersInterval);
-    dummyChattersInterval = null;
-    dummyMessageCount = 0;
-    showToast('Dummy chatters stopped');
-  }
-}
-
-function addDummyMessage() {
-  const message = DUMMY_MESSAGES[dummyMessageIndex];
-  dummyMessageIndex = (dummyMessageIndex + 1) % DUMMY_MESSAGES.length;
-  dummyMessageCount++;
-  
-  const demoEvent = {
-    id: `dummy_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-    author: message.author,
-    text: message.text,
-    kind: message.kind,
-    ts: Date.now()
-  };
-  
-  const item = extEventToItem(demoEvent);
-  const messageNode = renderMessage(item);
-  
-  if (messageNode) {
-    pushMessageElement(messageNode, item.snippet.publishedAt);
   }
 }
 

@@ -108,7 +108,6 @@ export function createSettingsRouter(ctx: RouteContext): Router {
       return;
     }
     ctx.setDummyChatters(enabled);
-    ctx.sse.send('dummy-chatters', { enabled });
     updateSettings({ dummyChatters: enabled });
     res.json({ ok: true, dummyChatters: enabled });
   });

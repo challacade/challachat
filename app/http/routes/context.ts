@@ -2,12 +2,13 @@ import type { Server as SocketIOServer } from 'socket.io';
 import type { SSEHub } from '../../core/sseHub';
 import type { ChatEvent } from '../../capture/types';
 import type { BaseChatCapture } from '../../capture/base';
+import type { SpoofCapture } from '../../capture/spoof';
 
 /** Per-connection state tracked by the server. */
 export interface Connection {
   id: string;
-  capture: BaseChatCapture;
-  platform: 'youtube' | 'twitch' | 'kick';
+  capture: BaseChatCapture | SpoofCapture;
+  platform: 'youtube' | 'twitch' | 'kick' | 'spoof';
   url: string;
   videoId: string | null;
   messageCount: number;
