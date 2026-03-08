@@ -443,11 +443,31 @@ footer {
   align-items: center;
   gap: 10px;
 }
-.spoof-preset-select {
+.spoof-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   flex: 1;
   min-width: 0;
-  width: auto;
 }
+.spoof-preset-select {
+  width: 100%;
+}
+.spoof-interval-input {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.spoof-interval-input:focus { border-color: var(--accent); }
+.spoof-row .conn-disconnect-btn { flex-shrink: 0; }
 .capture-header {
   display: flex;
   align-items: center;

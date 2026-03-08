@@ -143,6 +143,7 @@ class App extends EventEmitter {
       isRunning: () => this.isRunning,
       isDummyChatters: () => this.isSpoofActive(),
       setDummyChatters: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
+      setSpoofInterval: (ms) => this.setSpoofInterval(ms),
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -576,6 +577,15 @@ class App extends EventEmitter {
     }
   }
 
+  /** Update the interval on all active spoof connections. */
+  private setSpoofInterval(ms: number) {
+    for (const conn of this.connections.values()) {
+      if (conn.platform === 'spoof' && 'setIntervalMs' in conn.capture) {
+        (conn.capture as SpoofCapture).setIntervalMs(ms);
+      }
+    }
+  }
+
   /** Wait for the HTTP server to be listening. Resolves with the bound port. */
   waitForReady(): Promise<number> {
     return this.serverReadyPromise;
@@ -598,6 +608,9 @@ class App extends EventEmitter {
         chatters: c.chatters.size,
         uptime: c.startTime ? Date.now() - c.startTime : 0,
         pollIntervalMs: c.pollIntervalMs,
+        ...(c.platform === 'spoof' && 'getIntervalMs' in c.capture
+          ? { spoofIntervalMs: (c.capture as SpoofCapture).getIntervalMs() }
+          : {}),
       }));
     return {
       isRunning: this.isRunning,

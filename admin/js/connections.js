@@ -53,14 +53,30 @@ function createSpoofCard(conn) {
   const card = document.createElement('section');
   card.className = 'card spoof-card';
   card.dataset.connId = conn.id;
+  const intervalMs = conn.spoofIntervalMs || 3000;
   card.innerHTML = `
     <div class="spoof-row">
-      <select class="dropdown spoof-preset-select">
-        <option value="default">Default messages</option>
-      </select>
+      <div class="spoof-control">
+        <div class="control-label">Spoof Chat</div>
+        <select class="dropdown spoof-preset-select">
+          <option value="default">Default messages</option>
+        </select>
+      </div>
+      <div class="spoof-control">
+        <div class="control-label">Interval (ms)</div>
+        <input type="text" class="spoof-interval-input" inputmode="numeric" value="${intervalMs}" />
+      </div>
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
+  const intervalInput = card.querySelector('.spoof-interval-input');
+  const sendInterval = debounce(async (ms) => {
+    try { await api('POST', '/api/spoof-interval', { intervalMs: ms }); } catch {}
+  }, 300);
+  intervalInput.addEventListener('input', () => {
+    const ms = parseInt(intervalInput.value, 10);
+    if (ms >= 500) sendInterval(ms);
+  });
   connectionCards.set(conn.id, card);
   connectionsContainer.appendChild(card);
   return card;

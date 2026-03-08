@@ -116,22 +116,28 @@ export interface SpoofCallbacks {
 export class SpoofCapture {
   private timer: ReturnType<typeof setTimeout> | null = null;
   private index = 0;
-  private count = 0;
   private running = false;
   private callbacks: SpoofCallbacks;
+  private intervalMs = 3000;
 
-  constructor(callbacks: SpoofCallbacks) {
+  constructor(callbacks: SpoofCallbacks, intervalMs?: number) {
     this.callbacks = callbacks;
+    if (intervalMs != null && intervalMs > 0) this.intervalMs = intervalMs;
   }
 
   get pollInterval(): number { return 0; }
 
   setPollInterval(_ms: number) { /* no-op for spoof */ }
 
+  getIntervalMs(): number { return this.intervalMs; }
+
+  setIntervalMs(ms: number) {
+    if (ms > 0) this.intervalMs = ms;
+  }
+
   async start(): Promise<void> {
     if (this.running) return;
     this.running = true;
-    this.count = 0;
     this.emitNext();
     this.scheduleNext();
   }
@@ -146,24 +152,15 @@ export class SpoofCapture {
 
   private scheduleNext() {
     if (!this.running) return;
-    let delay: number;
-    if (this.count === 1) {
-      delay = 2000;
-    } else if (this.count === 2) {
-      delay = 3000;
-    } else {
-      delay = Math.random() * 3000 + 3000;
-    }
     this.timer = setTimeout(() => {
       this.emitNext();
       this.scheduleNext();
-    }, delay);
+    }, this.intervalMs);
   }
 
   private emitNext() {
     const msg = DUMMY_MESSAGES[this.index];
     this.index = (this.index + 1) % DUMMY_MESSAGES.length;
-    this.count++;
     const event: ChatEvent = {
       id: `spoof_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
       author: msg.author,

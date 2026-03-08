@@ -27,6 +27,16 @@ export function createCaptureRouter(ctx: RouteContext): Router {
     res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
   });
 
+  router.post('/spoof-interval', (req: Request, res: Response) => {
+    const ms = Number(req.body?.intervalMs);
+    if (!ms || ms <= 0) {
+      res.status(400).json({ ok: false, error: 'Invalid intervalMs.' });
+      return;
+    }
+    ctx.setSpoofInterval(ms);
+    res.json({ ok: true, intervalMs: ms });
+  });
+
   router.post('/connect', async (req: Request, res: Response) => {
     const url = req.body?.url;
     if (!url || typeof url !== 'string') {

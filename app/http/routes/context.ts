@@ -38,6 +38,7 @@ export interface RouteContext {
   isRunning(): boolean;
   isDummyChatters(): boolean;
   setDummyChatters(enabled: boolean): void;
+  setSpoofInterval(ms: number): void;
   isSessionActive(): boolean;
   setSessionActive(active: boolean): void;
 
