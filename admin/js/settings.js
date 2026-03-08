@@ -4,7 +4,7 @@
 import {
   isElectron,
   filterPathInput, filterBrowseBtn, filterToggle, filterMeta,
-  loggerToggle, jamToggle,
+  loggerToggle, jamToggle, clearMessagesBtn,
   uiThemeSelect, uiZoomSelect,
 } from './dom.js';
 import { api } from './api.js';
@@ -110,5 +110,10 @@ export function bindSettingsListeners() {
     const pct = Number(uiZoomSelect.value);
     applyUiZoom(pct);
     try { await api('POST', '/api/ui-zoom', { uiZoom: pct }); } catch {}
+  });
+
+  // Clear all overlay messages
+  clearMessagesBtn.addEventListener('click', async () => {
+    try { await api('POST', '/api/clear-messages'); } catch {}
   });
 }

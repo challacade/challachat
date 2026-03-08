@@ -32,6 +32,7 @@ export const filterToggle    = $('filterToggle');
 export const filterMeta      = $('filterMeta');
 export const loggerToggle    = $('loggerToggle');
 export const jamToggle       = $('jamToggle');
+export const clearMessagesBtn = $('clearMessagesBtn');
 // Appearance
 export const scaleSlider     = $('scaleSlider');
 export const scaleLabel      = $('scaleLabel');

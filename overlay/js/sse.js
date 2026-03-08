@@ -8,7 +8,8 @@ import { clamp } from '/shared/utils.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
   removeMessageById, updateMessageById,
-  startDummyChatters, stopDummyChatters
+  startDummyChatters, stopDummyChatters,
+  clearAllMessages
 } from './messages.js';
 import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.js';
 
@@ -157,6 +158,10 @@ export function startSSE() {
         }
       }
     } catch {}
+  });
+
+  eventSource.addEventListener('clear-messages', () => {
+    clearAllMessages();
   });
 
   eventSource.addEventListener('end', () => {

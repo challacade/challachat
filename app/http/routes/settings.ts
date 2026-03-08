@@ -92,6 +92,13 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     }
   });
 
+  // ── Clear overlay messages ──
+
+  router.post('/clear-messages', (_req: Request, res: Response) => {
+    ctx.sse.send('clear-messages', {});
+    res.json({ ok: true });
+  });
+
   // ── Dummy chatters ──
 
   router.post('/dummy-chatters', (req: Request, res: Response) => {
