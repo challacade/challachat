@@ -45,10 +45,8 @@ export function applyTheme() {
   document.documentElement.classList.toggle('no-badges', !state.showBadges);
 
   // Font
-  if (state.overlayFont && state.overlayFont !== 'System') {
+  if (state.overlayFont) {
     document.documentElement.style.setProperty('--font', `'${state.overlayFont}', sans-serif`);
-  } else {
-    document.documentElement.style.removeProperty('--font');
   }
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 
