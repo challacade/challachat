@@ -88,7 +88,10 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 .overlay > * { position: relative; z-index: 1; }
 .messages {
   position: absolute;
-  inset: var(--edge-padding, 0.5rem);
+  top: 0;
+  right: var(--edge-padding, 0.5rem);
+  bottom: var(--edge-padding, 0.5rem);
+  left: var(--edge-padding, 0.5rem);
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
@@ -96,6 +99,8 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   overflow: hidden;
 }
 .messages.top-down {
+  top: var(--edge-padding, 0.5rem);
+  bottom: 0;
   justify-content: flex-start;
 }
 

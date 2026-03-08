@@ -69,7 +69,7 @@ export function startSSE() {
         state.messageGapRem = clamp(data.messageGap, 0, 1.5);
       }
       if (typeof data.edgePadding === 'number') {
-        state.edgePadding = clamp(data.edgePadding, 0, 5);
+        state.edgePadding = clamp(data.edgePadding, 0, 10);
       }
       if (typeof data.textColor === 'string') {
         state.theme.text = data.textColor;

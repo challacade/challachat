@@ -23,7 +23,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     bubbleOpacity: { type: 'number', min: 0, max: 1 },
     bgOpacity:     { type: 'number', min: 0, max: 1 },
     messageGap:    { type: 'number', min: 0, max: 1.5 },
-    edgePadding:   { type: 'number', min: 0, max: 5 },
+    edgePadding:   { type: 'number', min: 0, max: 10 },
     textColor:     { type: 'color' },
     bubbleColor:   { type: 'color' },
     bgColor:       { type: 'color' },
