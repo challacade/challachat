@@ -20,7 +20,10 @@ export function createCaptureRouter(ctx: RouteContext): Router {
     const connId = String(req.body?.connectionId || '');
     const conn = connId ? ctx.connections.get(connId) : ctx.connections.values().next().value;
     const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-    if (conn) conn.capture.setPollInterval(next);
+    if (conn) {
+      conn.capture.setPollInterval(next);
+      conn.pollIntervalMs = next;
+    }
     res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
   });
 
