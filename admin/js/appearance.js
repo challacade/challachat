@@ -4,7 +4,7 @@
 import {
   scaleSlider, scaleLabel, textOpSlider, textOpLabel,
   bubbleOpSlider, bubbleOpLabel, bgOpSlider, bgOpLabel,
-  gapSlider, gapLabel, textColorPicker, bubbleColorPicker, bgColorPicker,
+  gapSlider, gapLabel, edgePaddingSlider, edgePaddingLabel, textColorPicker, bubbleColorPicker, bgColorPicker,
   showBubblesToggle, showAvatarsToggle, showBadgesToggle,
   presetSelect,
   textureSelect, textureIntensitySlider, textureIntensityLabel,
@@ -25,6 +25,7 @@ function updateAppearanceUI(a) {
     { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
     { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
     { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
+    { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
   ];
   for (const { key, slider, label, format } of sliders) {
     if (typeof a[key] === 'number') {
@@ -81,6 +82,7 @@ export function bindAppearanceListeners() {
     { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
     { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
     { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
+    { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
   ].forEach(({ key, slider, label, format }) => {
     slider.addEventListener('input', () => {
       const val = Number(slider.value);

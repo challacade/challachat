@@ -31,6 +31,7 @@ export function applyTheme() {
 
   document.documentElement.style.setProperty('--base-scale', String(finalScale));
   document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem));
+  document.documentElement.style.setProperty('--edge-padding', (state.edgePadding ?? 0.5) + 'rem');
 
   const bubbleOpacity = state.showBubbles ? state.theme.bgOpacity : 0;
   const bubbleColor = hexToRgba(state.theme.bubbleColor || '#000000', bubbleOpacity);

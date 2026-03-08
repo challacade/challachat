@@ -156,6 +156,7 @@ export const state = {
   textureColor: '#ffffff',
   overlayFont: 'Inter',
   chatDirection: 'bottom-up',
+  edgePadding: 0.5,
   preset: 'Dark',
   startedAt: null,
   dummyChatters: false,
