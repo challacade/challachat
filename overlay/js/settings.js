@@ -48,6 +48,9 @@ export function applyTheme() {
   if (state.overlayFont) {
     document.documentElement.style.setProperty('--font', `'${state.overlayFont}', sans-serif`);
   }
+
+  // Chat direction
+  elements.messages.classList.toggle('top-down', state.chatDirection === 'top-down');
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 
   // Texture

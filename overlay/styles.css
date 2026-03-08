@@ -95,6 +95,10 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   gap: calc(var(--message-gap) * 1rem * var(--scale));
   overflow: hidden;
 }
+.messages.top-down {
+  justify-content: flex-start;
+  top: 0.5rem;
+}
 
 .message {
   display: grid;

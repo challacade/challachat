@@ -104,6 +104,9 @@ export function startSSE() {
       if (typeof data.overlayFont === 'string') {
         state.overlayFont = data.overlayFont;
       }
+      if (typeof data.chatDirection === 'string') {
+        state.chatDirection = data.chatDirection;
+      }
       applyTheme();
     } catch {
       // ignore

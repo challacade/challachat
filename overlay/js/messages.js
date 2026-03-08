@@ -383,7 +383,11 @@ export function renderMessage(item) {
 
 export function pushMessageElement(node, timestamp) {
   node.dataset.ts = String(timestamp || Date.now());
-  elements.messages.appendChild(node);
+  if (state.chatDirection === 'top-down') {
+    elements.messages.prepend(node);
+  } else {
+    elements.messages.appendChild(node);
+  }
   try { adjustMessageAlignment(node); } catch {}
 }
 

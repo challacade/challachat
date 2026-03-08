@@ -9,7 +9,7 @@ import {
   presetSelect,
   textureSelect, textureIntensitySlider, textureIntensityLabel,
   textureScaleSlider, textureScaleLabel, textureColorPicker,
-  overlayFontSelect,
+  overlayFontSelect, chatDirectionSelect,
 } from './dom.js';
 import { api } from './api.js';
 import { PRESETS } from '/shared/presets.js';
@@ -43,6 +43,8 @@ function updateAppearanceUI(a) {
   if (typeof a.preset === 'string') presetSelect.value = a.preset;
   // Font
   if (typeof a.overlayFont === 'string' && overlayFontSelect) overlayFontSelect.value = a.overlayFont;
+  // Chat direction
+  if (typeof a.chatDirection === 'string' && chatDirectionSelect) chatDirectionSelect.value = a.chatDirection;
   // Texture
   if (typeof a.texture === 'string' && textureSelect) textureSelect.value = a.texture;
   if (typeof a.textureIntensity === 'number' && textureIntensitySlider) {
@@ -116,6 +118,13 @@ export function bindAppearanceListeners() {
   if (overlayFontSelect) {
     overlayFontSelect.addEventListener('change', () => {
       sendAppearance({ overlayFont: overlayFontSelect.value });
+    });
+  }
+
+  // Chat direction control
+  if (chatDirectionSelect) {
+    chatDirectionSelect.addEventListener('change', () => {
+      sendAppearance({ chatDirection: chatDirectionSelect.value });
     });
   }
 
