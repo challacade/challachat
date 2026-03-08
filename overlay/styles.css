@@ -162,6 +162,10 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 .no-avatars .message .body { grid-column: 1 / -1; }
 .no-avatars .message .avatar { display: none !important; }
 
+/* When a specific message has no avatar (e.g. Twitch), span body across both columns */
+.message:not(:has(.avatar)) { grid-template-columns: 1fr; }
+.message:not(:has(.avatar)) .body { grid-column: 1 / -1; }
+
 .ring-owner .avatar { outline: 3px solid #ff5a5a; outline-offset: 3px; }
 .ring-mod .avatar { outline: 3px solid #419dff; outline-offset: 3px; }
 .ring-member .avatar { outline: 3px solid #25e186; outline-offset: 3px; }
