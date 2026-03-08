@@ -701,6 +701,15 @@ footer {
   gap: 6px;
   margin-bottom: 18px;
 }
+.music-controls .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 32px;
+  padding: 0;
+  line-height: 1;
+}
 .music-path-row {
   display: flex;
   gap: 8px;
