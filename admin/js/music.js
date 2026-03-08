@@ -10,7 +10,7 @@ import {
   songTextSizeSlider, songTextSizeLabel,
   writeSongFileToggle, autoShuffleToggle, playlistLoopToggle,
 } from './dom.js';
-import { postJsonQuiet } from './api.js';
+import { api, postJsonQuiet } from './api.js';
 
 // ─── Music state ───────────────────────────────────────────────
 
@@ -62,9 +62,7 @@ function trackTitleFromPath(filePath) {
 }
 
 async function fetchTrackMeta(serverIndex) {
-  const resp = await fetch(`/api/music/track/${serverIndex}/meta`, { cache: 'no-store' });
-  if (!resp.ok) throw new Error('HTTP error');
-  return resp.json();
+  return api('GET', `/api/music/track/${serverIndex}/meta`);
 }
 
 async function ensureMetaLoaded(serverIndex) {
@@ -167,9 +165,7 @@ function syncMusicDisplayUI() {
 
 async function loadMusicPlaylist() {
   try {
-    const resp = await fetch('/api/music/playlist', { cache: 'no-store' });
-    if (!resp.ok) return;
-    const data = await resp.json();
+    const data = await api('GET', '/api/music/playlist');
     const list = Array.isArray(data?.playlist) ? data.playlist : [];
     music.playlist = list;
     music.meta = Array.from({ length: list.length });
@@ -179,9 +175,7 @@ async function loadMusicPlaylist() {
 
 async function fetchMusicConfig() {
   try {
-    const resp = await fetch('/api/music', { cache: 'no-store' });
-    if (!resp.ok) return;
-    const data = await resp.json();
+    const data = await api('GET', '/api/music');
     const mPath = typeof data?.musicPath === 'string' ? data.musicPath.trim() : '';
     music.isConfigured = !!mPath;
     music.playlistLoop = data?.playlistLoop !== false;
@@ -288,12 +282,7 @@ async function musicShuffle() {
 
 async function postMusicDisplaySettings(patch) {
   try {
-    const resp = await fetch('/api/music/display-settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    });
-    const data = await resp.json();
+    const data = await api('POST', '/api/music/display-settings', patch);
     if (data) {
       if (typeof data.songDisplay === 'string') music.songDisplay = data.songDisplay;
       if (typeof data.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
@@ -306,12 +295,7 @@ async function postMusicDisplaySettings(patch) {
 
 async function postMusicSettings(patch) {
   try {
-    const resp = await fetch('/api/music/settings', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(patch),
-    });
-    const data = await resp.json();
+    const data = await api('POST', '/api/music/settings', patch);
     if (data) {
       if (typeof data.autoShuffle === 'boolean') music.autoShuffle = data.autoShuffle;
       if (typeof data.playlistLoop === 'boolean') music.playlistLoop = data.playlistLoop;
@@ -357,12 +341,7 @@ export function bindMusicListeners() {
     musicPathInput.value = folder;
     // Save to server settings + reload playlist
     try {
-      const resp = await fetch('/api/music/path', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ musicPath: folder }),
-      });
-      const data = await resp.json();
+      const data = await api('POST', '/api/music/path', { musicPath: folder });
       if (data?.ok) {
         music.isConfigured = true;
         music.playlist = Array.isArray(data.playlist) ? data.playlist : [];

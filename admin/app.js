@@ -14,11 +14,15 @@ import { initAdminAudio, startAdminSSE } from './js/audio.js';
 import { initMusic, bindMusicListeners } from './js/music.js';
 import { fetchAppearance, bindAppearanceListeners } from './js/appearance.js';
 import { fetchSounds, bindSoundListeners } from './js/sounds.js';
-import { fetchStatus, fetchSettings, bindConnectionListeners } from './js/connections.js';
+import { fetchStatus, bindConnectionListeners } from './js/connections.js';
+import { fetchSettings, bindSettingsListeners } from './js/settings.js';
+import { bindNavigationListeners } from './js/navigation.js';
 
 // ─── Bind all event listeners ──────────────────────────────────
 
+bindNavigationListeners();
 bindConnectionListeners();
+bindSettingsListeners();
 bindMusicListeners();
 bindAppearanceListeners();
 bindSoundListeners();
@@ -33,3 +37,8 @@ initAdminAudio().catch(() => {});
 initMusic().catch(() => {});
 startAdminSSE();
 setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);
+
+// Electron capture events also refresh settings
+if (isElectron) {
+  window.challachat.on('capture-status', () => fetchSettings());
+}

@@ -1,8 +1,11 @@
-/* ────────────────────────────────────────────────────────────────
-   ChallaChat Admin Panel – Phase 2 Styles
-   ──────────────────────────────────────────────────────────────── */
+﻿/* ------------------------------------------------------------
+   ChallaChat Admin Panel Styles
+   ------------------------------------------------------------ */
 
-/* ── Reset + base ─────────────────────────────────────────────── */
+/* =============================================================
+   1. Reset, Variables & Theming
+   ============================================================= */
+
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
 
 :root {
@@ -23,7 +26,6 @@
   --radius:   10px;
 }
 
-/* ── Light theme overrides ────────────────────────────────────── */
 :root[data-theme="light"] {
   --bg:       #d8dbe4;
   --surface:  #e8eaef;
@@ -50,7 +52,10 @@ body {
 a { color: #8b9cf7; text-decoration: none; }
 a:hover { text-decoration: underline; }
 
-/* ── App shell ────────────────────────────────────────────────── */
+/* =============================================================
+   2. App Shell (layout, header, nav, main, footer)
+   ============================================================= */
+
 .app {
   display: flex;
   flex-direction: column;
@@ -59,7 +64,6 @@ a:hover { text-decoration: underline; }
   zoom: var(--ui-zoom);
 }
 
-/* ── Header ───────────────────────────────────────────────────── */
 header {
   display: flex;
   align-items: center;
@@ -68,7 +72,6 @@ header {
   flex-shrink: 0;
 }
 
-/* ── Logo image ────────────────────────────────────────────────── */
 .logo-group {
   display: flex;
   align-items: center;
@@ -81,14 +84,13 @@ header {
   object-fit: contain;
   margin: -6px 0;
 }
-/* ── Nav tabs (circle icon buttons) ───────────────────────────── */
+
 .nav-tabs {
   display: flex;
   align-items: center;
   gap: 6px;
   -webkit-app-region: no-drag;
 }
-
 .nav-tab {
   width: 34px;
   height: 34px;
@@ -103,10 +105,7 @@ header {
   transition: background 0.15s, color 0.15s, border-color 0.15s, box-shadow 0.15s;
   padding: 0;
 }
-.nav-tab svg {
-  width: 16px;
-  height: 16px;
-}
+.nav-tab svg { width: 16px; height: 16px; }
 .nav-tab:hover {
   background: rgba(255,255,255,0.06);
   color: var(--text);
@@ -119,15 +118,13 @@ header {
   box-shadow: 0 0 10px rgba(99,102,241,0.35);
 }
 
-/* ── Pages ────────────────────────────────────────────────────── */
 .page {
   display: none;
   flex-direction: column;
   gap: 12px;
 }
-.page.active {
-  display: flex;
-}
+.page.active { display: flex; }
+
 .active-view {
   display: flex;
   flex-direction: column;
@@ -139,14 +136,6 @@ header {
   gap: 12px;
 }
 
-/* ── Placeholder text (Appearance / Sound pages) ──────────────── */
-.placeholder-text {
-  font-size: 13px;
-  color: var(--text-dim);
-  line-height: 1.5;
-}
-
-/* ── Scrollable main area ─────────────────────────────────────── */
 main {
   flex: 1;
   display: flex;
@@ -157,7 +146,6 @@ main {
   max-width: 800px;
   width: 100%;
   margin: 0 auto;
-  /* Thin custom scrollbar */
   scrollbar-width: thin;
   scrollbar-color: var(--border) transparent;
 }
@@ -165,14 +153,25 @@ main::-webkit-scrollbar { width: 6px; }
 main::-webkit-scrollbar-track { background: transparent; }
 main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
-/* ── Card ─────────────────────────────────────────────────────── */
+footer {
+  flex-shrink: 0;
+  text-align: center;
+  padding-top: 10px;
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* =============================================================
+   3. Shared Components (cards, buttons, inputs, grids, dropdowns, toggles)
+   ============================================================= */
+
+/* -- Cards ---------------------------------------------------- */
 .card {
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 16px;
 }
-
 .card h3 {
   font-size: 11px;
   font-weight: 600;
@@ -181,14 +180,35 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   letter-spacing: 0.06em;
   margin-bottom: 10px;
 }
+.panel-card { padding: 12px 16px; }
 
-/* ── Input row ────────────────────────────────────────────────── */
+/* -- Buttons -------------------------------------------------- */
+.btn {
+  padding: 9px 18px;
+  border: none;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background 0.15s, opacity 0.15s;
+  white-space: nowrap;
+}
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.primary:hover:not(:disabled) { background: var(--accent-h); }
+.btn.danger { background: var(--red); color: #fff; }
+.btn.danger:hover:not(:disabled) { background: #b91c1c; }
+.btn.small { padding: 5px 10px; font-size: 13px; border-radius: 6px; }
+.btn.compact { padding: 3px 10px; font-size: 11px; border-radius: 5px; }
+.btn.full-width { width: 100%; }
+
+/* -- Input row ------------------------------------------------ */
 .input-row {
   display: flex;
   gap: 8px;
   width: 100%;
 }
-
 .input-row input {
   flex: 1;
   padding: 9px 12px;
@@ -204,31 +224,149 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 .input-row input::placeholder { color: #555a6e; }
 .input-row input:focus { border-color: var(--accent); }
 
-/* ── Buttons ──────────────────────────────────────────────────── */
-.btn {
-  padding: 9px 18px;
-  border: none;
+/* -- Path input (shared by music + filter) -------------------- */
+.path-input {
+  flex: 1;
+  padding: 6px 12px;
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
-  font-size: 13px;
-  font-weight: 600;
+  color: var(--text);
+  font-size: 12px;
   font-family: inherit;
+  outline: none;
+  transition: border-color 0.2s;
+  min-width: 0;
+}
+.path-input::placeholder { color: #555a6e; }
+.path-input:focus { border-color: var(--accent); }
+
+/* -- Dropdown (shared select styling) ------------------------- */
+.dropdown {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  font-size: 12px;
+  padding: 6px 10px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.dropdown:focus { border-color: var(--accent); }
+
+/* -- Control grid (3-col layout for sliders/pickers/toggles) -- */
+.control-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+}
+.control-grid.two-col {
+  grid-template-columns: repeat(2, 1fr);
+}
+
+/* -- Control item (label + slider/picker pair) ---------------- */
+.control-item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+.control-item.horizontal {
+  flex-direction: row;
+  align-items: center;
+}
+.control-item input[type="range"] {
+  width: 100%;
+  min-width: 0;
+  height: 4px;
+  accent-color: var(--slider);
   cursor: pointer;
-  transition: background 0.15s, opacity 0.15s;
+  margin: 4px 0;
+}
+.control-item input[type="color"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 28px;
+  margin-top: -3px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: none;
+  cursor: pointer;
+  padding: 2px;
+}
+.control-item input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+.control-item input[type="color"]::-webkit-color-swatch { border: none; border-radius: 3px; }
+
+/* -- Control label -------------------------------------------- */
+.control-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.01em;
   white-space: nowrap;
 }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-.btn.primary { background: var(--accent); color: #fff; }
-.btn.primary:hover:not(:disabled) { background: var(--accent-h); }
+/* -- Volume slider row (shared by music + SFX) ---------------- */
+.vol-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--slider);
+  cursor: pointer;
+}
+.vol-label {
+  font-size: 10px;
+  color: var(--text-dim, #b3b5c6);
+  min-width: 32px;
+  text-align: left;
+  flex-shrink: 0;
+}
 
-.btn.danger { background: var(--red); color: #fff; }
-.btn.danger:hover:not(:disabled) { background: #b91c1c; }
+/* -- Preset row ----------------------------------------------- */
+.preset-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 220px;
+}
+.preset-row .dropdown {
+  flex: 1;
+  min-width: 0;
+}
 
-.btn.small { padding: 5px 10px; font-size: 13px; border-radius: 6px; }
-.btn.compact { padding: 3px 10px; font-size: 11px; border-radius: 5px; }
-.btn.full-width { width: 100%; }
+/* -- Toggles -------------------------------------------------- */
+.toggle-row {
+  margin-top: 20px !important;
+}
+.a-toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  cursor: pointer;
+  user-select: none;
+}
+.a-toggle input[type="checkbox"] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--slider);
+  cursor: pointer;
+  margin: 0;
+}
+.a-toggle.has-sub { align-items: center; }
+.a-toggle-sub {
+  display: block;
+  font-size: 10px;
+  font-weight: 400;
+  color: var(--text-dim);
+  line-height: 1.2;
+}
 
-/* ── Error banner ─────────────────────────────────────────────── */
+/* -- Error banner --------------------------------------------- */
 .error {
   margin-top: 8px;
   padding: 8px 12px;
@@ -239,7 +377,13 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   font-size: 12px;
 }
 
-/* ── Welcome view ─────────────────────────────────────────────── */
+/* -- Utilities ------------------------------------------------ */
+.hidden { display: none !important; }
+
+/* =============================================================
+   4. Page: Home (welcome, overlay URL, connections)
+   ============================================================= */
+
 .welcome-platforms {
   display: flex;
   justify-content: center;
@@ -262,7 +406,6 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   height: 42px;
   animation-delay: -1.5s;
 }
-
 @keyframes float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }
@@ -275,11 +418,8 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   color: var(--text-dim);
   margin-bottom: 20px;
 }
-.welcome-tagline.welcome-sub {
-  margin-top: -12px;
-}
+.welcome-tagline.welcome-sub { margin-top: -12px; }
 
-/* ── Dummy chatters link ──────────────────────────────────────── */
 .demo-link {
   display: inline-block;
   margin-top: 10px;
@@ -293,9 +433,8 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 }
 .demo-link:hover { color: var(--slider); }
 
-/* ── Capture card (compact) ────────────────────────────────────── */
+/* -- Capture card --------------------------------------------- */
 .capture-card { padding: 12px 14px; }
-
 .capture-header {
   display: flex;
   align-items: center;
@@ -315,7 +454,6 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   white-space: nowrap;
   flex: 1;
 }
-
 .capture-detail-row {
   display: flex;
   align-items: center;
@@ -343,7 +481,6 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
-
 .capture-poll-row {
   display: flex;
   align-items: center;
@@ -377,33 +514,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   text-align: left;
 }
 
-/* ── Settings card ────────────────────────────────────────────── */
-/* ── Settings: filter row ─────────────────────────────────────── */
-.filter-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-.filter-row .music-path-input {
-  flex: 1;
-  min-width: 0;
-}
-
-/* ── Add connection card ──────────────────────────────────────── */
-#connectSection {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.add-connection-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 12px 14px;
-}
-
-/* ── Overlay URL card ─────────────────────────────────────────── */
+/* -- Overlay URL card ----------------------------------------- */
 .overlay-row {
   display: flex;
   align-items: center;
@@ -433,10 +544,7 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   min-width: 34px;
   min-height: 28px;
 }
-#copyBtn svg {
-  display: block;
-  flex-shrink: 0;
-}
+#copyBtn svg { display: block; flex-shrink: 0; }
 .copy-row {
   display: flex;
   align-items: center;
@@ -461,85 +569,90 @@ main::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
   color: var(--text-dim);
 }
 
-/* ── Footer ───────────────────────────────────────────────────── */
-footer {
-  flex-shrink: 0;
-  text-align: center;
-  padding-top: 10px;
-  font-size: 11px;
-  color: var(--text-dim);
-}
-
-/* ── Utilities ────────────────────────────────────────────────── */
-.hidden { display: none !important; }
-
-/* ── Appearance grid spacing ───────────────────────────────────── */
-.sound-card .sound-grid + .sound-grid { margin-top: 20px; }
-.sound-card .preset-row + .sound-grid { margin-top: 14px; }
-.sound-item input[type="color"] {
-  -webkit-appearance: none;
-  appearance: none;
-  width: 100%;
-  height: 28px;
-  margin-top: -3px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: none;
-  cursor: pointer;
-  padding: 2px;
-}
-.sound-item input[type="color"]::-webkit-color-swatch-wrapper {
-  padding: 0;
-}
-.sound-item input[type="color"]::-webkit-color-swatch {
-  border: none;
-  border-radius: 3px;
-}
-.preset-row {
+/* -- Add connection card -------------------------------------- */
+#connectSection {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 10px;
-  max-width: 220px;
 }
-.preset-row .music-select {
-  flex: 1;
-  min-width: 0;
-}
-.toggle-row {
-  margin-top: 20px !important;
+.add-connection-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 14px;
 }
 
-.a-toggle {
+/* =============================================================
+   5. Page: Appearance
+   ============================================================= */
+
+.panel-card .control-grid + .control-grid { margin-top: 20px; }
+.panel-card .preset-row + .control-grid { margin-top: 14px; }
+.font-row { margin-top: 16px; }
+
+/* =============================================================
+   6. Page: Sound (music player + SFX cards)
+   ============================================================= */
+
+/* -- Music player card ---------------------------------------- */
+.music-card { padding: 14px 16px; }
+
+.music-now-playing {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 10px;
+}
+.music-volume-row {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
+  margin-bottom: 8px;
+  padding: 0 2px;
+  max-width: 400px;
+  margin-left: auto;
+  margin-right: auto;
+}
+.music-vol-icon {
+  font-size: 13px;
   cursor: pointer;
   user-select: none;
+  flex-shrink: 0;
+  min-width: 32px;
+  text-align: right;
 }
-.a-toggle input[type="checkbox"] {
-  width: 14px;
-  height: 14px;
-  accent-color: var(--slider);
-  cursor: pointer;
-  margin: 0;
+.music-controls {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin-bottom: 18px;
 }
-.a-toggle.has-sub {
+.music-controls .btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 28px;
+  width: 32px;
+  padding: 0;
+  line-height: 1;
+}
+.music-path-row {
+  display: flex;
+  gap: 8px;
+}
+.music-options {
+  margin-top: 21px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px 14px;
   align-items: center;
 }
-.a-toggle-sub {
-  display: block;
-  font-size: 10px;
-  font-weight: 400;
-  color: var(--text-dim);
-  line-height: 1.2;
-}
 
-/* ── Sound card ───────────────────────────────────────────────── */
-.sound-card { padding: 12px 16px; }
-/* ── Sound effect card ────────────────────────────────────────── */
+/* -- Sound effect cards --------------------------------------- */
 .sound-effect-card {
   background: var(--surface);
   border: 1px solid var(--border);
@@ -592,14 +705,7 @@ footer {
   gap: 6px;
   width: 100%;
 }
-.sfx-buttons .btn {
-  flex: 1;
-}
-.sfx-volume-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
+.sfx-buttons .btn { flex: 1; }
 .sfx-label {
   font-size: 12px;
   font-weight: 600;
@@ -613,143 +719,17 @@ footer {
   user-select: none;
   flex-shrink: 0;
 }
-.sound-grid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 14px;
-}
-.sound-grid.two-col {
-  grid-template-columns: repeat(2, 1fr);
-}
-.sound-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  min-width: 0;
-}
-.sound-item.horizontal {
-  flex-direction: row;
-  align-items: center;
-}
-.sound-label {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text-dim);
-  letter-spacing: 0.01em;
-  white-space: nowrap;
-}
-.sound-item input[type="range"] {
-  width: 100%;
-  min-width: 0;
-  height: 4px;
-  accent-color: var(--slider);
-  cursor: pointer;
-  margin: 4px 0;
-}
-.sound-test {
-  margin-top: 2px;
-}
-.sound-item .btn.small {
-  margin-top: 4px;
-}
 
-/* ── Music player card ──────────────────────────────────────── */
-.music-card { padding: 14px 16px; }.music-now-playing {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  margin-bottom: 10px;
-}
-.music-volume-row {
+/* =============================================================
+   7. Page: Settings
+   ============================================================= */
+
+.filter-row {
   display: flex;
   align-items: center;
-  gap: 6px;
-  margin-bottom: 8px;
-  padding: 0 2px;
-  max-width: 400px;
-  margin-left: auto;
-  margin-right: auto;
-}
-.music-vol-icon {
-  font-size: 13px;
-  cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
-  min-width: 32px;
-  text-align: right;
-}
-.music-vol-slider {
-  flex: 1;
-  height: 4px;
-  accent-color: var(--slider);
-  cursor: pointer;
-}
-.music-vol-label {
-  font-size: 10px;
-  color: var(--text-dim, #b3b5c6);
-  min-width: 32px;
-  text-align: left;
-  flex-shrink: 0;
-}
-.music-controls {
-  display: flex;
-  justify-content: center;
-  gap: 6px;
-  margin-bottom: 18px;
-}
-.music-controls .btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 28px;
-  width: 32px;
-  padding: 0;
-  line-height: 1;
-}
-.music-path-row {
-  display: flex;
   gap: 8px;
 }
-.music-path-input {
+.filter-row .path-input {
   flex: 1;
-  padding: 6px 12px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 12px;
-  font-family: inherit;
-  outline: none;
-  transition: border-color 0.2s;
   min-width: 0;
-}
-.music-path-input::placeholder { color: #555a6e; }
-.music-path-input:focus {
-  border-color: var(--accent);
-}
-.music-options {
-  margin-top: 21px;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px 14px;
-  align-items: center;
-}
-.music-select {
-  width: 100%;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  color: var(--text);
-  font-size: 12px;
-  padding: 6px 10px;
-  outline: none;
-  font-family: inherit;
-  transition: border-color 0.2s;
-}
-.music-select:focus {
-  border-color: var(--accent);
 }

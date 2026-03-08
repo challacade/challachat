@@ -15,19 +15,21 @@ import { api } from './api.js';
 import { PRESETS } from '/shared/presets.js';
 import { debounce } from '/shared/utils.js';
 
+// ─── Shared slider descriptors ─────────────────────────────────
+
+const APPEARANCE_SLIDERS = [
+  { key: 'scale',         slider: scaleSlider,    label: scaleLabel,    format: v => 'Scale: ' + v.toFixed(2) },
+  { key: 'textOpacity',   slider: textOpSlider,   label: textOpLabel,   format: v => 'Text opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
+  { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
+  { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
+];
+
 // ─── Appearance UI ─────────────────────────────────────────────
 
 function updateAppearanceUI(a) {
-  // Slider controls: { key, slider, label, format }
-  const sliders = [
-    { key: 'scale',         slider: scaleSlider,    label: scaleLabel,    format: v => 'Scale: ' + v.toFixed(2) },
-    { key: 'textOpacity',   slider: textOpSlider,   label: textOpLabel,   format: v => 'Text opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
-    { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
-  ];
-  for (const { key, slider, label, format } of sliders) {
+  for (const { key, slider, label, format } of APPEARANCE_SLIDERS) {
     if (typeof a[key] === 'number') {
       slider.value = a[key];
       label.textContent = format(a[key]);
@@ -76,14 +78,7 @@ export async function fetchAppearance() {
 
 export function bindAppearanceListeners() {
   // Data-driven appearance listeners — sliders
-  [
-    { key: 'scale',         slider: scaleSlider,    label: scaleLabel,    format: v => 'Scale: ' + v.toFixed(2) },
-    { key: 'textOpacity',   slider: textOpSlider,   label: textOpLabel,   format: v => 'Text opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'bubbleOpacity', slider: bubbleOpSlider, label: bubbleOpLabel, format: v => 'Bubble opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
-    { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
-    { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
-  ].forEach(({ key, slider, label, format }) => {
+  APPEARANCE_SLIDERS.forEach(({ key, slider, label, format }) => {
     slider.addEventListener('input', () => {
       const val = Number(slider.value);
       label.textContent = format(val);
