@@ -14,6 +14,8 @@ export interface Connection {
   chatters: Set<string>;
   startTime: number;
   pollIntervalMs: number;
+  /** Set to true after the first poll completes (suppresses sounds for initial backlog). */
+  firstPollDone: boolean;
 }
 
 /**

@@ -58,6 +58,8 @@ class App extends EventEmitter {
   private dummyChatters = false;
   private sessionActive = false;
   private nextConnId = 1;
+  /** Sound types already played in the current synchronous poll batch. */
+  private soundBatchPlayed = new Set<string>();
 
   /** True when at least one capture connection is active. */
   private get isRunning(): boolean { return this.connections.size > 0; }
@@ -361,6 +363,7 @@ class App extends EventEmitter {
       id: connId, capture, platform, url: displayUrl,
       videoId: identifier, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: DEFAULT_POLL_INTERVAL,
+      firstPollDone: false,
     });
     this.tui?.setUrl(displayUrl);
     startLogging(config.logPrefix);
@@ -397,6 +400,20 @@ class App extends EventEmitter {
   private onCaptureMessage(connId: string, message: ChatEvent) {
     const conn = this.connections.get(connId);
     if (conn) {
+      // Mark first poll as done after initial batch (suppress sounds for backlog)
+      if (!conn.firstPollDone) {
+        conn.messageCount++;
+        if (message.author?.name) conn.chatters.add(message.author.name);
+        // Process message normally but skip sound
+        try { runChatCommands(message, { nowPlaying: getNowPlaying() }); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
+        const filtered = censorMessage(message);
+        logMessage(filtered);
+        this.io.emit('chat-message', filtered);
+        this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
+        // Schedule first-poll completion after current tick (all messages from the same poll arrive synchronously)
+        queueMicrotask(() => { conn.firstPollDone = true; });
+        return;
+      }
       conn.messageCount++;
       if (message.author?.name) conn.chatters.add(message.author.name);
     }
@@ -428,7 +445,12 @@ class App extends EventEmitter {
     } else {
       soundType = 'message';
     }
-    if (soundType) {
+    if (soundType && !this.soundBatchPlayed.has(soundType)) {
+      this.soundBatchPlayed.add(soundType);
+      // Reset after the current synchronous batch finishes
+      if (this.soundBatchPlayed.size === 1) {
+        queueMicrotask(() => this.soundBatchPlayed.clear());
+      }
       this.sse.send('play-sound', { type: soundType, ts: Date.now() });
     }
   }
