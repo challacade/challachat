@@ -49,6 +49,23 @@ const MAX_CONNECTIONS = 5;
 const connectionCards = new Map();
 const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/kick.png' };
 
+function createSpoofCard(conn) {
+  const card = document.createElement('section');
+  card.className = 'card spoof-card';
+  card.dataset.connId = conn.id;
+  card.innerHTML = `
+    <div class="spoof-row">
+      <select class="dropdown spoof-preset-select">
+        <option value="default">Default messages</option>
+      </select>
+      <button class="btn small danger conn-disconnect-btn">Disconnect</button>
+    </div>`;
+  card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
+  connectionCards.set(conn.id, card);
+  connectionsContainer.appendChild(card);
+  return card;
+}
+
 function createConnectionCard(conn) {
   const card = document.createElement('section');
   card.className = 'card capture-card';
@@ -135,16 +152,18 @@ function updateUI(status) {
   for (const conn of connections) {
     const existing = connectionCards.get(conn.id);
     if (existing) {
-      updateConnectionCard(existing, conn);
+      if (conn.platform !== 'spoof') updateConnectionCard(existing, conn);
     } else {
-      createConnectionCard(conn);
+      if (conn.platform === 'spoof') createSpoofCard(conn);
+      else createConnectionCard(conn);
     }
   }
 
-  const showAddCard = isActive && connections.length < MAX_CONNECTIONS;
+  const realConnections = connections.filter(c => c.platform !== 'spoof');
+  const showAddCard = isActive && realConnections.length < MAX_CONNECTIONS;
   addConnectionCard.classList.toggle('hidden', !showAddCard);
 
-  if (connections.length === 0) {
+  if (realConnections.length === 0) {
     addUrlInput.placeholder = 'Enter a livestream URL…';
   } else {
     addUrlInput.placeholder = 'Add another livestream URL…';
@@ -221,6 +240,7 @@ async function handleStartWithoutConnecting(e) {
   e.preventDefault();
   try {
     await api('POST', '/api/start-session');
+    await api('POST', '/api/dummy-chatters', { enabled: true });
     await fetchStatus();
   } catch {}
 }

@@ -435,6 +435,19 @@ footer {
 
 /* -- Capture card --------------------------------------------- */
 .capture-card { padding: 12px 14px; }
+
+/* -- Spoof card ----------------------------------------------- */
+.spoof-card { padding: 8px 14px; }
+.spoof-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spoof-preset-select {
+  flex: 1;
+  min-width: 0;
+  width: auto;
+}
 .capture-header {
   display: flex;
   align-items: center;

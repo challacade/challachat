@@ -589,7 +589,6 @@ class App extends EventEmitter {
   /** Return the current application status (mirrors /api/status). */
   getStatus() {
     const connections = Array.from(this.connections.values())
-      .filter(c => c.platform !== 'spoof')
       .map(c => ({
         id: c.id,
         platform: c.platform,
