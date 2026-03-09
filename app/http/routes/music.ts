@@ -37,6 +37,9 @@ export function createMusicRouter(ctx: RouteContext): Router {
     if (typeof req.body?.writeSongFile === 'boolean') {
       patch.writeSongFile = req.body.writeSongFile;
     }
+    if (typeof req.body?.songFilePath === 'string') {
+      patch.songFilePath = req.body.songFilePath;
+    }
     if (typeof req.body?.songScrollSpeed === 'number') {
       patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));
     }

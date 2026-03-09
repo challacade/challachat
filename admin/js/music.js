@@ -8,7 +8,8 @@ import {
   musicPathInput, musicBrowseBtn,
   songDisplaySelect, scrollSpeedSlider, scrollSpeedLabel,
   songTextSizeSlider, songTextSizeLabel,
-  writeSongFileToggle, autoShuffleToggle, playlistLoopToggle,
+  writeSongFileToggle, songFilePathInput, songFileBrowseBtn,
+  autoShuffleToggle, playlistLoopToggle,
 } from './dom.js';
 import { api, postJsonQuiet } from './api.js';
 
@@ -26,6 +27,7 @@ const music = {
   isConfigured: false,
   songDisplay: 'none',
   writeSongFile: false,
+  songFilePath: '',
   songScrollSpeed: 0,
   songTextSize: 1,
   volume: 1,
@@ -97,6 +99,13 @@ function displayTitle(pos) {
 
 // ─── UI sync ───────────────────────────────────────────────────
 
+function triggerSongFileWrite() {
+  if (music.writeSongFile && music.playlist.length) {
+    const si = serverIndexAtPos(music.index);
+    void postJsonQuiet('/api/music/songfile', { index: si, songId: displayTitle(music.index) });
+  }
+}
+
 function syncMusicUI() {
   // Title
   if (musicNowPlaying) {
@@ -157,6 +166,7 @@ function syncMusicDisplayUI() {
   if (songTextSizeSlider) songTextSizeSlider.value = String(music.songTextSize ?? 1);
   if (songTextSizeLabel) songTextSizeLabel.textContent = `Text size: ${Math.round((music.songTextSize ?? 1) * 100)}%`;
   if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
+  if (songFilePathInput) songFilePathInput.value = music.songFilePath || '';
   if (autoShuffleToggle) autoShuffleToggle.checked = !!music.autoShuffle;
   if (playlistLoopToggle) playlistLoopToggle.checked = music.playlistLoop !== false;
 }
@@ -184,6 +194,7 @@ async function fetchMusicConfig() {
     // Display settings are included in the main music config response
     if (typeof data?.songDisplay === 'string') music.songDisplay = data.songDisplay;
     if (typeof data?.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
+    if (typeof data?.songFilePath === 'string') music.songFilePath = data.songFilePath;
     if (typeof data?.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
     if (typeof data?.songTextSize === 'number') music.songTextSize = data.songTextSize;
     syncMusicDisplayUI();
@@ -286,6 +297,7 @@ async function postMusicDisplaySettings(patch) {
     if (data) {
       if (typeof data.songDisplay === 'string') music.songDisplay = data.songDisplay;
       if (typeof data.writeSongFile === 'boolean') music.writeSongFile = data.writeSongFile;
+      if (typeof data.songFilePath === 'string') music.songFilePath = data.songFilePath;
       if (typeof data.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
       if (typeof data.songTextSize === 'number') music.songTextSize = data.songTextSize;
       syncMusicDisplayUI();
@@ -378,6 +390,21 @@ export function bindMusicListeners() {
   writeSongFileToggle?.addEventListener('change', () => {
     music.writeSongFile = writeSongFileToggle.checked;
     postMusicDisplaySettings({ writeSongFile: writeSongFileToggle.checked });
+    triggerSongFileWrite();
+  });
+  songFileBrowseBtn?.addEventListener('click', async () => {
+    const filePath = isElectron
+      ? await window.challachat.invoke('save-file', {
+          title: 'Choose song text file location',
+          defaultPath: 'song.txt',
+          filters: [{ name: 'Text Files', extensions: ['txt'] }],
+        })
+      : null;
+    if (!filePath) return;
+    music.songFilePath = filePath;
+    if (songFilePathInput) songFilePathInput.value = filePath;
+    await postMusicDisplaySettings({ songFilePath: filePath });
+    triggerSongFileWrite();
   });
   autoShuffleToggle?.addEventListener('change', () => {
     music.autoShuffle = autoShuffleToggle.checked;

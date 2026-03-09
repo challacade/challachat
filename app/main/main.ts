@@ -107,6 +107,17 @@ function registerIpcHandlers() {
     if (result.canceled || !result.filePaths.length) return null;
     return result.filePaths[0];
   });
+
+  ipcMain.handle('save-file', async (_event, options?: { title?: string; defaultPath?: string; filters?: { name: string; extensions: string[] }[] }) => {
+    if (!mainWindow) return null;
+    const result = await dialog.showSaveDialog(mainWindow, {
+      title: options?.title ?? 'Save File',
+      defaultPath: options?.defaultPath,
+      filters: options?.filters,
+    });
+    if (result.canceled || !result.filePath) return null;
+    return result.filePath;
+  });
 }
 
 /* ── Wire App events → renderer ────────────────────────────────────── */

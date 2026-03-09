@@ -100,7 +100,9 @@ export const scrollSpeedSlider = $('scrollSpeedSlider');
 export const scrollSpeedLabel  = $('scrollSpeedLabel');
 export const songTextSizeSlider = $('songTextSizeSlider');
 export const songTextSizeLabel  = $('songTextSizeLabel');
-export const writeSongFileToggle = $('writeSongFileToggle');
+export const writeSongFileToggle  = $('writeSongFileToggle');
+export const songFilePathInput   = $('songFilePathInput');
+export const songFileBrowseBtn   = $('songFileBrowseBtn');
 export const autoShuffleToggle  = $('autoShuffleToggle');
 export const playlistLoopToggle = $('playlistLoopToggle');
 // UI Theme & Zoom

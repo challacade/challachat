@@ -13,6 +13,8 @@ export type AppSettings = {
   songDisplay?: string;
   /** Write the currently-playing song info to a text file. */
   writeSongFile?: boolean;
+  /** Custom file path for the song text file. */
+  songFilePath?: string;
   /** Scroll speed for the song display text (0 = off, 1 = 100% = 60px/s). */
   songScrollSpeed?: number;
   /** Extra scale factor for song display text size (0–2, where 1 = 100%). */
@@ -85,9 +87,13 @@ function getSettingsPath(): string {
 }
 
 export function writeSongTxt(line: string): { ok: boolean; path: string } {
-  const settingsDir = ensureSettingsDirExists();
-  const songPath = path.join(settingsDir, 'song.txt');
+  const { settings } = readSettings();
+  const songPath = (typeof settings.songFilePath === 'string' && settings.songFilePath.trim())
+    ? settings.songFilePath.trim()
+    : path.join(ensureSettingsDirExists(), 'song.txt');
   try {
+    const dir = path.dirname(songPath);
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(songPath, String(line ?? ''), { encoding: 'utf-8' });
     return { ok: true, path: songPath };
   } catch {
@@ -146,7 +152,7 @@ function parseSongDisplay(settings: AppSettings): string {
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
   const musicPathVal = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';
   return {
@@ -156,16 +162,18 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     playlistLoop: settings.playlistLoop !== false,
     songDisplay: parseSongDisplay(settings),
     writeSongFile: settings.writeSongFile === true,
+    songFilePath: typeof settings.songFilePath === 'string' ? settings.songFilePath : '',
     songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
 }
 
-export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songScrollSpeed: number; songTextSize: number } {
+export function getMusicDisplaySettings(): { songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number } {
   const { settings } = readSettings();
   return {
     songDisplay: parseSongDisplay(settings),
     writeSongFile: settings.writeSongFile === true,
+    songFilePath: typeof settings.songFilePath === 'string' ? settings.songFilePath : '',
     songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
   };
