@@ -5,7 +5,7 @@ import {
   isElectron,
   logoImg, urlInput, connectBtn, connectError,
   connectionsContainer, overlayUrl, copyBtn,
-  dummyChattersToggle, startWithoutConnecting,
+  startWithoutConnecting,
   welcomeView, activeView,
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink,
 } from './dom.js';
@@ -162,8 +162,6 @@ function updateUI(status) {
   welcomeView.classList.toggle('hidden', isActive);
   activeView.classList.toggle('hidden', !isActive);
 
-  dummyChattersToggle.checked = !!status.dummyChatters;
-
   const connections = status.connections || [];
   const activeIds = new Set(connections.map(c => c.id));
 
@@ -262,7 +260,7 @@ async function handleStartWithoutConnecting(e) {
   e.preventDefault();
   try {
     await api('POST', '/api/start-session');
-    await api('POST', '/api/dummy-chatters', { enabled: true });
+    await api('POST', '/api/spoof', { enabled: true });
     await fetchStatus();
   } catch {}
 }
@@ -292,14 +290,6 @@ export function bindConnectionListeners() {
       copyBtn.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>';
       setTimeout(() => { copyBtn.innerHTML = orig; }, 1500);
     }).catch(() => {});
-  });
-
-  // Dummy chatters toggle
-  dummyChattersToggle.addEventListener('change', async () => {
-    try {
-      await api('POST', '/api/dummy-chatters', { enabled: dummyChattersToggle.checked });
-      await fetchStatus();
-    } catch { dummyChattersToggle.checked = !dummyChattersToggle.checked; }
   });
 
   // Real-time Electron events

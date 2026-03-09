@@ -123,7 +123,6 @@ class App extends EventEmitter {
     }
     if (toggles.loggerEnabled) setLogEnabled(true);
     if (toggles.jamEnabled) setJamEnabled(true);
-    if (toggles.dummyChatters) this.startSpoof();
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -141,8 +140,7 @@ class App extends EventEmitter {
       sounds: this.sounds,
       getStatus: () => this.getStatus(),
       isRunning: () => this.isRunning,
-      isDummyChatters: () => this.isSpoofActive(),
-      setDummyChatters: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
+      setSpoofActive: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
       setSpoofInterval: (ms) => this.setSpoofInterval(ms),
       setSpoofPreset: (p) => this.setSpoofPreset(p),
       isSessionActive: () => this.sessionActive,
@@ -625,7 +623,6 @@ class App extends EventEmitter {
     return {
       isRunning: this.isRunning,
       sessionActive: this.sessionActive,
-      dummyChatters: this.isSpoofActive(),
       connections,
       overlayUrl: `http://localhost:${this.port}/`,
     };

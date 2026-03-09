@@ -54,7 +54,7 @@ export type AppSettings = {
   // ── Toggles ──
   loggerEnabled?: boolean;
   jamEnabled?: boolean;
-  dummyChatters?: boolean;
+
 
   // ── UI ──
   uiZoom?: number;
@@ -225,12 +225,11 @@ export function getSavedSounds(): Record<string, number | string> {
 }
 
 /** Load saved toggle states (filter active, logger, jam, demo). All default to false. */
-export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; jamEnabled: boolean; dummyChatters: boolean } {
+export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; jamEnabled: boolean } {
   const { settings } = readSettings();
   return {
     filterActive: settings.filterActive === true,
     loggerEnabled: settings.loggerEnabled === true,
     jamEnabled: settings.jamEnabled === true,
-    dummyChatters: settings.dummyChatters === true,
   };
 }

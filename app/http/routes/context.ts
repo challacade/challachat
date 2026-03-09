@@ -36,8 +36,7 @@ export interface RouteContext {
   // ── State accessors ──
   getStatus(): Record<string, unknown>;
   isRunning(): boolean;
-  isDummyChatters(): boolean;
-  setDummyChatters(enabled: boolean): void;
+  setSpoofActive(enabled: boolean): void;
   setSpoofInterval(ms: number): void;
   setSpoofPreset(preset: string): void;
   isSessionActive(): boolean;
