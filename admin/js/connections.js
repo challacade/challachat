@@ -7,7 +7,7 @@ import {
   connectionsContainer, overlayUrl, copyBtn,
   startWithoutConnecting,
   welcomeView, activeView,
-  addConnectionCard, addUrlInput, addConnectBtn, closeServerLink,
+  addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink,
 } from './dom.js';
 import { api } from './api.js';
 import { debounce } from '/shared/utils.js';
@@ -278,6 +278,13 @@ export function bindConnectionListeners() {
     e.preventDefault();
     try {
       await api('POST', '/api/end-session');
+      await fetchStatus();
+    } catch {}
+  });
+  startSpoofLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      await api('POST', '/api/spoof', { enabled: true });
       await fetchStatus();
     } catch {}
   });

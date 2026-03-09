@@ -433,6 +433,15 @@ footer {
 }
 .demo-link:hover { color: var(--slider); }
 
+.hint-action {
+  color: #7b8ef8;
+  text-decoration: none;
+  font-weight: 600;
+  transition: color .15s;
+}
+:root[data-theme="light"] .hint-action { color: var(--accent); }
+.hint-action:hover { color: var(--slider); }
+
 /* -- Capture card --------------------------------------------- */
 .capture-card { padding: 12px 14px; }
 

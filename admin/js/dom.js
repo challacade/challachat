@@ -25,6 +25,7 @@ export const addConnectionCard = $('addConnectionCard');
 export const addUrlInput     = $('addUrlInput');
 export const addConnectBtn   = $('addConnectBtn');
 export const closeServerLink = $('closeServerLink');
+export const startSpoofLink  = $('startSpoofLink');
 // Settings
 export const filterPathInput = $('filterPathInput');
 export const filterBrowseBtn = $('filterBrowseBtn');
