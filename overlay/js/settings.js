@@ -36,7 +36,8 @@ export function applyTheme() {
   const bubbleOpacity = state.showBubbles ? state.theme.bgOpacity : 0;
   const bubbleColor = hexToRgba(state.theme.bubbleColor || '#000000', bubbleOpacity);
   document.documentElement.style.setProperty('--bubble', bubbleColor);
-  document.documentElement.style.setProperty('--bubble-blur', bubbleOpacity > 0 ? 'blur(8px)' : 'none');
+  const hasTexture = state.texture && state.texture !== 'none';
+  document.documentElement.style.setProperty('--bubble-blur', (bubbleOpacity > 0 && !hasTexture) ? 'blur(8px)' : 'none');
 
   const pageBg = hexToRgba(state.pageBgColor || '#000000', state.pageBgOpacity);
   document.body.style.background = pageBg;
