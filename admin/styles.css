@@ -634,6 +634,7 @@ footer {
 
 .panel-card .control-grid + .control-grid { margin-top: 20px; }
 .panel-card .preset-row + .control-grid { margin-top: 14px; }
+.panel-card .control-grid + .filter-row { margin-top: 14px; }
 .font-row { margin-top: 16px; }
 
 /* =============================================================
