@@ -63,6 +63,8 @@ export const textureIntensityLabel   = $('textureIntensityLabel');
 export const textureScaleSlider      = $('textureScaleSlider');
 export const textureScaleLabel       = $('textureScaleLabel');
 export const textureColorPicker      = $('textureColorPicker');
+export const textureGapSlider        = $('textureGapSlider');
+export const textureGapLabel         = $('textureGapLabel');
 // Sound
 export const msgVolSlider      = $('msgVolSlider');
 export const msgVolLabel       = $('msgVolLabel');

@@ -58,13 +58,14 @@ export function applyTheme() {
   // Texture
   const overlay = elements.overlay;
   if (overlay) {
-    overlay.classList.remove('texture-noise', 'texture-dots', 'texture-grid', 'texture-stripes', 'texture-crosshatch');
+    overlay.classList.remove('texture-dots', 'texture-grid', 'texture-stripes', 'texture-crosshatch');
     if (state.texture && state.texture !== 'none') {
       overlay.classList.add(`texture-${state.texture}`);
     }
     overlay.style.setProperty('--texture-intensity', String(state.textureIntensity ?? 0.25));
     overlay.style.setProperty('--texture-scale', String(state.textureScale ?? 1));
     overlay.style.setProperty('--texture-color', state.textureColor || '#ffffff');
+    overlay.style.setProperty('--texture-gap', String(state.textureGap ?? 1));
   }
 }
 

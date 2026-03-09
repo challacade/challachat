@@ -56,6 +56,7 @@ export const state = {
   texture: 'none',
   textureIntensity: 0.25,
   textureScale: 1,
+  textureGap: 1,
   textureColor: '#ffffff',
   overlayFont: 'Inter',
   chatDirection: 'bottom-up',

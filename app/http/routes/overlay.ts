@@ -33,9 +33,10 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     preset:        { type: 'enum', values: ['Dark', 'Light', 'Transparent', 'Custom'] },
     overlayFont:      { type: 'enum', values: ['Inter', 'News Cycle', 'Lexend', 'Lora', 'Arvo', 'Exo 2', 'Acme', 'Cousine'] },
     chatDirection:    { type: 'enum', values: ['bottom-up', 'top-down'] },
-    texture:          { type: 'enum', values: ['none', 'noise', 'dots', 'grid', 'stripes', 'crosshatch'] },
+    texture:          { type: 'enum', values: ['none', 'dots', 'grid', 'stripes', 'crosshatch'] },
     textureIntensity: { type: 'number', min: 0, max: 1 },
     textureScale:     { type: 'number', min: 0.25, max: 4 },
+    textureGap:       { type: 'number', min: 0.5, max: 5 },
     textureColor:     { type: 'color' },
   };
 

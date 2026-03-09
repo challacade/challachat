@@ -29,15 +29,9 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   opacity: 0;
   transition: opacity 0.2s;
 }
-.overlay.texture-noise::before {
-  opacity: var(--texture-intensity, 0.25);
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='1'/%3E%3C/svg%3E");
-  background-size: calc(200px * var(--texture-scale, 1));
-  background-repeat: repeat;
-}
 .overlay.texture-dots::before {
   opacity: var(--texture-intensity, 0.25);
-  --dot-size: calc(20px * var(--texture-scale, 1));
+  --dot-size: calc(20px * var(--texture-scale, 1) * var(--texture-gap, 1));
   --dot-r: calc(1px * var(--texture-scale, 1));
   background-image: radial-gradient(circle, var(--texture-color, #fff) var(--dot-r), transparent var(--dot-r));
   background-size: var(--dot-size) var(--dot-size);
@@ -45,7 +39,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 }
 .overlay.texture-grid::before {
   opacity: var(--texture-intensity, 0.25);
-  --grid-size: calc(24px * var(--texture-scale, 1));
+  --grid-size: calc(24px * var(--texture-scale, 1) * var(--texture-gap, 1));
   --grid-line: calc(1px * var(--texture-scale, 1));
   background-image:
     linear-gradient(to right, var(--texture-color, #fff) var(--grid-line), transparent var(--grid-line)),
@@ -55,7 +49,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 }
 .overlay.texture-stripes::before {
   opacity: var(--texture-intensity, 0.25);
-  --stripe-size: calc(8px * var(--texture-scale, 1));
+  --stripe-size: calc(8px * var(--texture-scale, 1) * var(--texture-gap, 1));
   --stripe-line: calc(1px * var(--texture-scale, 1));
   background-image: repeating-linear-gradient(
     45deg,
@@ -67,7 +61,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 }
 .overlay.texture-crosshatch::before {
   opacity: var(--texture-intensity, 0.25);
-  --hatch-size: calc(10px * var(--texture-scale, 1));
+  --hatch-size: calc(10px * var(--texture-scale, 1) * var(--texture-gap, 1));
   --hatch-line: calc(1px * var(--texture-scale, 1));
   background-image:
     repeating-linear-gradient(

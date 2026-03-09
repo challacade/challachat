@@ -9,6 +9,7 @@ import {
   presetSelect,
   textureSelect, textureIntensitySlider, textureIntensityLabel,
   textureScaleSlider, textureScaleLabel, textureColorPicker,
+  textureGapSlider, textureGapLabel,
   overlayFontSelect, chatDirectionSelect,
 } from './dom.js';
 import { api } from './api.js';
@@ -60,6 +61,10 @@ function updateAppearanceUI(a) {
   }
   if (typeof a.textureColor === 'string' && textureColorPicker) {
     textureColorPicker.value = a.textureColor;
+  }
+  if (typeof a.textureGap === 'number' && textureGapSlider) {
+    textureGapSlider.value = a.textureGap;
+    textureGapLabel.textContent = 'Gap: ' + a.textureGap.toFixed(2);
   }
 }
 
@@ -148,6 +153,13 @@ export function bindAppearanceListeners() {
   if (textureColorPicker) {
     textureColorPicker.addEventListener('input', () => {
       sendAppearance({ textureColor: textureColorPicker.value });
+    });
+  }
+  if (textureGapSlider) {
+    textureGapSlider.addEventListener('input', () => {
+      const val = Number(textureGapSlider.value);
+      textureGapLabel.textContent = 'Gap: ' + val.toFixed(2);
+      sendAppearance({ textureGap: val });
     });
   }
 
