@@ -773,9 +773,19 @@ footer {
 .filter-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
 .filter-row .path-input {
   flex: 1;
   min-width: 0;
+}
+.clear-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 28px;
+  height: 28px;
+  line-height: 1;
+  font-size: 14px;
 }

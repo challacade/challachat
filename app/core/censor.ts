@@ -61,6 +61,12 @@ export function getFilterStatus(): { loaded: boolean; active: boolean; wordCount
   };
 }
 
+export function clearFilter(): void {
+  filterLoaded = false;
+  loadedPath = null;
+  badWords.clear();
+}
+
 // Enable or disable the censor filter at runtime
 export function setFilterActive(active: boolean): void {
   filterActive = active;

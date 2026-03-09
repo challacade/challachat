@@ -29,6 +29,7 @@ export const startSpoofLink  = $('startSpoofLink');
 // Settings
 export const filterPathInput = $('filterPathInput');
 export const filterBrowseBtn = $('filterBrowseBtn');
+export const filterClearBtn  = $('filterClearBtn');
 export const filterToggle    = $('filterToggle');
 export const filterMeta      = $('filterMeta');
 export const loggerToggle    = $('loggerToggle');
@@ -103,6 +104,7 @@ export const songTextSizeLabel  = $('songTextSizeLabel');
 export const writeSongFileToggle  = $('writeSongFileToggle');
 export const songFilePathInput   = $('songFilePathInput');
 export const songFileBrowseBtn   = $('songFileBrowseBtn');
+export const songFileClearBtn    = $('songFileClearBtn');
 export const autoShuffleToggle  = $('autoShuffleToggle');
 export const playlistLoopToggle = $('playlistLoopToggle');
 // UI Theme & Zoom

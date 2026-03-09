@@ -1,5 +1,5 @@
 import { Router, type Request, type Response } from 'express';
-import { getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
+import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
 import { getLoggerStatus, setLogEnabled, startLogging } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
 import type { RouteContext } from './context';
@@ -32,6 +32,10 @@ export function createSettingsRouter(ctx: RouteContext): Router {
         updateSettings({ filterPath: trimmed });
       }
       res.json({ ok: success, ...getFilterStatus() });
+    } else if (typeof filterPath === 'string' && filterPath.trim().length === 0) {
+      clearFilter();
+      updateSettings({ filterPath: '' });
+      res.json({ ok: true, ...getFilterStatus() });
     } else {
       res.json({ ok: false, error: 'No path provided', ...getFilterStatus() });
     }

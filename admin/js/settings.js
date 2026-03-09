@@ -3,7 +3,7 @@
  */
 import {
   isElectron,
-  filterPathInput, filterBrowseBtn, filterToggle, filterMeta,
+  filterPathInput, filterBrowseBtn, filterClearBtn, filterToggle, filterMeta,
   loggerToggle, jamToggle, clearMessagesBtn,
   uiThemeSelect, uiZoomSelect,
 } from './dom.js';
@@ -16,6 +16,7 @@ function updateFilterUI(f) {
   filterPathInput.value = f.path || '';
   filterToggle.checked = f.active;
   filterMeta.textContent = `(${f.wordCount || 0} words)`;
+  if (filterClearBtn) filterClearBtn.style.display = f.path ? '' : 'none';
 }
 
 function updateLoggerUI(l) {
@@ -78,6 +79,13 @@ export function bindSettingsListeners() {
     if (!filePath) return;
     try {
       const data = await api('POST', '/api/filter/path', { filterPath: filePath });
+      updateFilterUI(data);
+    } catch {}
+  });
+
+  filterClearBtn.addEventListener('click', async () => {
+    try {
+      const data = await api('POST', '/api/filter/path', { filterPath: '' });
       updateFilterUI(data);
     } catch {}
   });

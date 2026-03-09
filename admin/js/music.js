@@ -8,7 +8,7 @@ import {
   musicPathInput, musicBrowseBtn,
   songDisplaySelect, scrollSpeedSlider, scrollSpeedLabel,
   songTextSizeSlider, songTextSizeLabel,
-  writeSongFileToggle, songFilePathInput, songFileBrowseBtn,
+  writeSongFileToggle, songFilePathInput, songFileBrowseBtn, songFileClearBtn,
   autoShuffleToggle, playlistLoopToggle,
 } from './dom.js';
 import { api, postJsonQuiet } from './api.js';
@@ -167,6 +167,7 @@ function syncMusicDisplayUI() {
   if (songTextSizeLabel) songTextSizeLabel.textContent = `Text size: ${Math.round((music.songTextSize ?? 1) * 100)}%`;
   if (writeSongFileToggle) writeSongFileToggle.checked = !!music.writeSongFile;
   if (songFilePathInput) songFilePathInput.value = music.songFilePath || '';
+  if (songFileClearBtn) songFileClearBtn.style.display = music.songFilePath ? '' : 'none';
   if (autoShuffleToggle) autoShuffleToggle.checked = !!music.autoShuffle;
   if (playlistLoopToggle) playlistLoopToggle.checked = music.playlistLoop !== false;
 }
@@ -405,6 +406,11 @@ export function bindMusicListeners() {
     if (songFilePathInput) songFilePathInput.value = filePath;
     await postMusicDisplaySettings({ songFilePath: filePath });
     triggerSongFileWrite();
+  });
+  songFileClearBtn?.addEventListener('click', async () => {
+    music.songFilePath = '';
+    if (songFilePathInput) songFilePathInput.value = '';
+    await postMusicDisplaySettings({ songFilePath: '' });
   });
   autoShuffleToggle?.addEventListener('change', () => {
     music.autoShuffle = autoShuffleToggle.checked;
