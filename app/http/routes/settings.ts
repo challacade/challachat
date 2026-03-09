@@ -1,6 +1,6 @@
 import { Router, type Request, type Response } from 'express';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
-import { getLoggerStatus, setLogEnabled, startLogging } from '../../core/logger';
+import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
 import type { RouteContext } from './context';
 
@@ -60,6 +60,18 @@ export function createSettingsRouter(ctx: RouteContext): Router {
       }
     }
     res.json({ ok: true, ...getLoggerStatus() });
+  });
+
+  router.post('/logger/path', (req: Request, res: Response) => {
+    const logFolderPath = req.body?.logFolderPath;
+    if (typeof logFolderPath === 'string') {
+      const trimmed = logFolderPath.trim();
+      setLogsDir(trimmed);
+      updateSettings({ logFolderPath: trimmed || '' });
+      res.json({ ok: true, ...getLoggerStatus() });
+    } else {
+      res.json({ ok: false, error: 'No path provided', ...getLoggerStatus() });
+    }
   });
 
   // ── UI Theme ──

@@ -4,7 +4,8 @@
 import {
   isElectron,
   filterPathInput, filterBrowseBtn, filterClearBtn, filterToggle, filterMeta,
-  loggerToggle, jamToggle, clearMessagesBtn,
+  loggerToggle, logFolderPathInput, logFolderBrowseBtn, logFolderClearBtn,
+  jamToggle, clearMessagesBtn,
   uiThemeSelect, uiZoomSelect,
 } from './dom.js';
 import { api } from './api.js';
@@ -22,6 +23,8 @@ function updateFilterUI(f) {
 function updateLoggerUI(l) {
   if (!l) return;
   loggerToggle.checked = l.enabled;
+  logFolderPathInput.value = l.logFolderPath || '';
+  if (logFolderClearBtn) logFolderClearBtn.style.display = l.logFolderPath ? '' : 'none';
 }
 
 function updateJamUI(j) {
@@ -87,6 +90,25 @@ export function bindSettingsListeners() {
     try {
       const data = await api('POST', '/api/filter/path', { filterPath: '' });
       updateFilterUI(data);
+    } catch {}
+  });
+
+  // Logger folder browse (Electron IPC)
+  logFolderBrowseBtn.addEventListener('click', async () => {
+    const folderPath = isElectron
+      ? await window.challachat.invoke('pick-folder', { title: 'Select log folder' })
+      : null;
+    if (!folderPath) return;
+    try {
+      const data = await api('POST', '/api/logger/path', { logFolderPath: folderPath });
+      updateLoggerUI(data);
+    } catch {}
+  });
+
+  logFolderClearBtn.addEventListener('click', async () => {
+    try {
+      const data = await api('POST', '/api/logger/path', { logFolderPath: '' });
+      updateLoggerUI(data);
     } catch {}
   });
 

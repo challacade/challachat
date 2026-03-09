@@ -57,6 +57,10 @@ export type AppSettings = {
   loggerEnabled?: boolean;
   jamEnabled?: boolean;
 
+  // ── Logger ──
+  /** Custom folder for chat log files. */
+  logFolderPath?: string;
+
 
   // ── UI ──
   uiZoom?: number;

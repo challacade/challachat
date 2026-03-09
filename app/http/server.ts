@@ -8,7 +8,7 @@ import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
-import { startLogging, stopLogging, logMessage, setLogEnabled } from '../core/logger';
+import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir } from '../core/logger';
 import { readSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getNowPlaying } from '../core/nowPlaying';
 import { setJamEnabled } from '../core/jam';
@@ -122,6 +122,7 @@ class App extends EventEmitter {
       setFilterActive(false);
     }
     if (toggles.loggerEnabled) setLogEnabled(true);
+    if (settings.logFolderPath) setLogsDir(settings.logFolderPath);
     if (toggles.jamEnabled) setJamEnabled(true);
     
     // Serve overlay static files directly from the filesystem

@@ -1,6 +1,5 @@
 import fs from 'fs';
 import path from 'path';
-import os from 'os';
 import type { ChatEvent } from '../capture/types';
 
 // Chat message logger that writes messages to JSON Lines files.
@@ -11,20 +10,22 @@ let logEnabled = false;
 let logStream: fs.WriteStream | null = null;
 let currentLogPath: string | null = null;
 let messageCount = 0;
+let customLogsDir: string | null = null;
 
-// Get the logs directory path
-function getLogsDir(): string {
-  // Windows: %LOCALAPPDATA%\ChallaChat\logs
-  if (process.platform === 'win32' && process.env.LOCALAPPDATA) {
-    return path.join(process.env.LOCALAPPDATA, 'ChallaChat', 'logs');
-  }
-  // Linux/Mac: ~/.challachat/logs
-  return path.join(os.homedir(), '.challachat', 'logs');
+// Get the logs directory path (returns null if no folder is set)
+function getLogsDir(): string | null {
+  return customLogsDir;
+}
+
+// Set a custom logs directory (empty string clears it)
+export function setLogsDir(dir: string): void {
+  customLogsDir = dir || null;
 }
 
 // Ensure the logs directory exists
-function ensureLogsDir(): string {
+function ensureLogsDir(): string | null {
   const logsDir = getLogsDir();
+  if (!logsDir) return null;
   try {
     if (!fs.existsSync(logsDir)) {
       fs.mkdirSync(logsDir, { recursive: true });
@@ -44,10 +45,11 @@ function generateLogFilename(platform: string = 'yt'): string {
 
 // Start logging for a new capture session
 export function startLogging(platform: string = 'yt'): boolean {
-  if (!logEnabled) return false;
+  if (!logEnabled || !customLogsDir) return false;
   
   try {
     const logsDir = ensureLogsDir();
+    if (!logsDir) return false;
     const filename = generateLogFilename(platform);
     const newLogPath = path.join(logsDir, filename);
     
@@ -139,13 +141,13 @@ export function getLoggerStatus(): {
   logging: boolean;
   path: string | null;
   messageCount: number;
-  logsDir: string;
+  logFolderPath: string;
 } {
   return {
     enabled: logEnabled,
     logging: logStream !== null,
     path: currentLogPath,
     messageCount,
-    logsDir: getLogsDir()
+    logFolderPath: customLogsDir || ''
   };
 }

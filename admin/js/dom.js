@@ -32,7 +32,10 @@ export const filterBrowseBtn = $('filterBrowseBtn');
 export const filterClearBtn  = $('filterClearBtn');
 export const filterToggle    = $('filterToggle');
 export const filterMeta      = $('filterMeta');
-export const loggerToggle    = $('loggerToggle');
+export const loggerToggle       = $('loggerToggle');
+export const logFolderPathInput = $('logFolderPathInput');
+export const logFolderBrowseBtn = $('logFolderBrowseBtn');
+export const logFolderClearBtn  = $('logFolderClearBtn');
 export const jamToggle       = $('jamToggle');
 export const clearMessagesBtn = $('clearMessagesBtn');
 // Appearance

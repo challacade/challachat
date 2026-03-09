@@ -390,8 +390,11 @@
         </section>
 
         <section class="card panel-card">
-          <div class="control-grid">
-            <label class="a-toggle"><input type="checkbox" id="loggerToggle" /><span>Chat logger</span></label>
+          <div class="filter-row">
+            <label class="a-toggle has-sub"><input type="checkbox" id="loggerToggle" /><span>Chat logger</span></label>
+            <input type="text" class="path-input" id="logFolderPathInput" placeholder="Log folder…" readonly />
+            <button class="btn small danger clear-btn" id="logFolderClearBtn" title="Clear path" style="display:none">✕</button>
+            <button class="btn small primary" id="logFolderBrowseBtn">Browse</button>
           </div>
         </section>
 
