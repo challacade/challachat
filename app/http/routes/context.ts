@@ -37,8 +37,8 @@ export interface RouteContext {
   getStatus(): Record<string, unknown>;
   isRunning(): boolean;
   setSpoofActive(enabled: boolean): void;
-  setSpoofInterval(ms: number): void;
-  setSpoofPreset(preset: string): void;
+  setSpoofInterval(ms: number, connectionId?: string): void;
+  setSpoofPreset(preset: string, connectionId?: string): void;
   isSessionActive(): boolean;
   setSessionActive(active: boolean): void;
 

@@ -45,7 +45,7 @@ function setServerActive(active) {
 
 // ─── Dynamic connection cards ──────────────────────────────────
 
-const MAX_CONNECTIONS = 5;
+const MAX_CONNECTIONS = 10;
 const connectionCards = new Map();
 const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/kick.png' };
 
@@ -73,11 +73,11 @@ function createSpoofCard(conn) {
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
   const presetSelect = card.querySelector('.spoof-preset-select');
   presetSelect.addEventListener('change', async () => {
-    try { await api('POST', '/api/spoof-preset', { preset: presetSelect.value }); } catch {}
+    try { await api('POST', '/api/spoof-preset', { preset: presetSelect.value, connectionId: conn.id }); } catch {}
   });
   const intervalInput = card.querySelector('.spoof-interval-input');
   const sendInterval = debounce(async (ms) => {
-    try { await api('POST', '/api/spoof-interval', { intervalMs: ms }); } catch {}
+    try { await api('POST', '/api/spoof-interval', { intervalMs: ms, connectionId: conn.id }); } catch {}
   }, 300);
   intervalInput.addEventListener('input', () => {
     const ms = parseInt(intervalInput.value, 10);

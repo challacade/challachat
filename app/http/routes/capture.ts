@@ -43,7 +43,7 @@ export function createCaptureRouter(ctx: RouteContext): Router {
       res.status(400).json({ ok: false, error: 'Invalid intervalMs.' });
       return;
     }
-    ctx.setSpoofInterval(ms);
+    ctx.setSpoofInterval(ms, req.body?.connectionId);
     res.json({ ok: true, intervalMs: ms });
   });
 
@@ -53,7 +53,7 @@ export function createCaptureRouter(ctx: RouteContext): Router {
       res.status(400).json({ ok: false, error: 'Invalid preset.' });
       return;
     }
-    ctx.setSpoofPreset(preset);
+    ctx.setSpoofPreset(preset, req.body?.connectionId);
     res.json({ ok: true, preset });
   });
 

@@ -141,8 +141,8 @@ class App extends EventEmitter {
       getStatus: () => this.getStatus(),
       isRunning: () => this.isRunning,
       setSpoofActive: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
-      setSpoofInterval: (ms) => this.setSpoofInterval(ms),
-      setSpoofPreset: (p) => this.setSpoofPreset(p),
+      setSpoofInterval: (ms, id) => this.setSpoofInterval(ms, id),
+      setSpoofPreset: (p, id) => this.setSpoofPreset(p, id),
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -553,13 +553,12 @@ class App extends EventEmitter {
 
   /** Start the spoof connection (dummy chatters). No-op if already active. */
   private startSpoof() {
-    if (this.isSpoofActive()) return;
     const connId = this.generateConnId();
     const spoof = new SpoofCapture({
       onMessage: (msg: ChatEvent) => this.onCaptureMessage(connId, msg),
     });
     this.connections.set(connId, {
-      id: connId, capture: spoof, platform: 'spoof', url: 'Dummy Chatters',
+      id: connId, capture: spoof, platform: 'spoof', url: 'Spoof Chat',
       videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: 0, firstPollDone: true,
     });
@@ -576,19 +575,19 @@ class App extends EventEmitter {
     }
   }
 
-  /** Update the interval on all active spoof connections. */
-  private setSpoofInterval(ms: number) {
+  /** Update the interval on a specific (or all) spoof connection(s). */
+  private setSpoofInterval(ms: number, connectionId?: string) {
     for (const conn of this.connections.values()) {
-      if (conn.platform === 'spoof' && 'setIntervalMs' in conn.capture) {
+      if (conn.platform === 'spoof' && (!connectionId || conn.id === connectionId) && 'setIntervalMs' in conn.capture) {
         (conn.capture as SpoofCapture).setIntervalMs(ms);
       }
     }
   }
 
-  /** Update the preset on all active spoof connections. */
-  private setSpoofPreset(preset: string) {
+  /** Update the preset on a specific (or all) spoof connection(s). */
+  private setSpoofPreset(preset: string, connectionId?: string) {
     for (const conn of this.connections.values()) {
-      if (conn.platform === 'spoof' && 'setPreset' in conn.capture) {
+      if (conn.platform === 'spoof' && (!connectionId || conn.id === connectionId) && 'setPreset' in conn.capture) {
         (conn.capture as SpoofCapture).setPreset(preset);
       }
     }
