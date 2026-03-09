@@ -277,6 +277,10 @@ footer {
   flex-direction: row;
   align-items: center;
 }
+.control-item.horizontal > :not(.control-label) {
+  flex: 1;
+  min-width: 0;
+}
 .control-item input[type="range"] {
   width: 100%;
   min-width: 0;
