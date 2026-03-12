@@ -4,7 +4,8 @@
 import {
   scaleSlider, scaleLabel, textOpSlider, textOpLabel,
   bubbleOpSlider, bubbleOpLabel, bgOpSlider, bgOpLabel,
-  gapSlider, gapLabel, edgePaddingSlider, edgePaddingLabel, textColorPicker, bubbleColorPicker, bgColorPicker,
+  gapSlider, gapLabel, edgePaddingSlider, edgePaddingLabel,
+  textShadowSlider, textShadowLabel, textColorPicker, bubbleColorPicker, bgColorPicker,
   showBubblesToggle, showAvatarsToggle, showBadgesToggle,
   presetSelect,
   textureSelect, textureIntensitySlider, textureIntensityLabel,
@@ -25,6 +26,7 @@ const APPEARANCE_SLIDERS = [
   { key: 'bgOpacity',     slider: bgOpSlider,     label: bgOpLabel,     format: v => 'Back opacity: ' + Math.round(v * 100) + '%' },
   { key: 'messageGap',    slider: gapSlider,      label: gapLabel,      format: v => 'Vertical gap: ' + v.toFixed(2) },
   { key: 'edgePadding',   slider: edgePaddingSlider, label: edgePaddingLabel, format: v => 'Edge padding: ' + v.toFixed(2) },
+  { key: 'textShadow',    slider: textShadowSlider, label: textShadowLabel, format: v => 'Text shadow: ' + Math.round(v * 100) + '%' },
 ];
 
 // ─── Appearance UI ─────────────────────────────────────────────

@@ -61,6 +61,7 @@ export const state = {
   overlayFont: 'Inter',
   chatDirection: 'bottom-up',
   edgePadding: 0.5,
+  textShadow: 0,
   preset: 'Dark',
   startedAt: null,
   songDisplay: {

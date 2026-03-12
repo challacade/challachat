@@ -42,6 +42,7 @@ export type AppSettings = {
   overlayFont?: string;
   chatDirection?: string;
   edgePadding?: number;
+  textShadow?: number;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -200,6 +201,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   overlayFont: 'Inter',
   chatDirection: 'bottom-up',
   edgePadding: 0.5,
+  textShadow: 0,
 };
 
 // ── Sound defaults ──

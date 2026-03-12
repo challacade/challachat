@@ -3,7 +3,7 @@
 html, body { height: 100%; margin: 0; }
 /* Emoji-capable fonts for Windows/OBS */
 body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "Noto Color Emoji", "Segoe UI Symbol", system-ui, -apple-system, "Segoe UI", Roboto, Arial, sans-serif; background: transparent; }
-.name, .content { font-family: inherit; }
+.name, .content { font-family: inherit; text-shadow: var(--text-shadow, none); }
 
 :root {
   --text: #fff;

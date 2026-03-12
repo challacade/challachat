@@ -29,6 +29,13 @@ export function applyTheme() {
   const textColor = hexToRgba(state.theme.text || '#ffffff', state.theme.textOpacity ?? 1);
   document.documentElement.style.setProperty('--text', textColor);
 
+  // Text shadow (drop-shadow for readability on varied backgrounds)
+  const shadowOpacity = state.textShadow ?? 0;
+  const shadowValue = shadowOpacity > 0
+    ? `0 1px 3px rgba(0,0,0,${shadowOpacity}), 0 0 8px rgba(0,0,0,${(shadowOpacity * 0.6).toFixed(2)})`
+    : 'none';
+  document.documentElement.style.setProperty('--text-shadow', shadowValue);
+
   document.documentElement.style.setProperty('--base-scale', String(finalScale));
   document.documentElement.style.setProperty('--message-gap', String(state.messageGapRem));
   document.documentElement.style.setProperty('--edge-padding', (state.edgePadding ?? 0.5) + 'rem');

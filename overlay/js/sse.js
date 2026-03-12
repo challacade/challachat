@@ -112,6 +112,9 @@ export function startSSE() {
       if (typeof data.chatDirection === 'string') {
         state.chatDirection = data.chatDirection;
       }
+      if (typeof data.textShadow === 'number') {
+        state.textShadow = clamp(data.textShadow, 0, 1);
+      }
       applyTheme();
     } catch {
       // ignore
