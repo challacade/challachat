@@ -133,6 +133,7 @@ export class TwitchChatCapture extends BaseChatCapture {
 
       const out: any[] = [];
       const visibleIds: string[] = [];
+      const deletedIds: string[] = [];
 
       // ─────────────────────────────────────────────────────────────────────
       // Regular chat messages
@@ -145,6 +146,16 @@ export class TwitchChatCapture extends BaseChatCapture {
           if (element.closest('[data-test-selector="user-notice-line"]')) return;
 
           const msgId = element.getAttribute('data-a-id') || '';
+
+          // Detect deleted/moderated messages (ban, timeout, single message delete)
+          if (element.querySelector('[data-a-target="chat-deleted-message-placeholder"]')) {
+            if (msgId) {
+              visibleIds.push(msgId);
+              deletedIds.push(msgId);
+            }
+            return;
+          }
+
           const usernameEl = element.querySelector('[data-a-target="chat-message-username"]') as HTMLElement | null;
           const authorName = usernameEl?.textContent?.trim() || element.getAttribute('data-a-user') || 'Unknown';
           
@@ -353,7 +364,7 @@ export class TwitchChatCapture extends BaseChatCapture {
         } catch {}
       });
 
-      return { messages: out, visibleIds };
+      return { messages: out, visibleIds, deletedIds };
     });
 
     this.processRawMessages(result as any);
