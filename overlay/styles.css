@@ -312,6 +312,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  text-shadow: var(--text-shadow, none);
   transition: opacity 0.3s ease;
 }
 

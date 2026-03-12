@@ -201,7 +201,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   overlayFont: 'Inter',
   chatDirection: 'bottom-up',
   edgePadding: 0.5,
-  textShadow: 0,
+  textShadow: 0.25,
 };
 
 // ── Sound defaults ──
