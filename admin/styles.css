@@ -194,7 +194,7 @@ footer {
   transition: background 0.15s, opacity 0.15s;
   white-space: nowrap;
 }
-.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn:disabled { opacity: 1; cursor: not-allowed; }
 .btn.primary { background: var(--accent); color: #fff; }
 .btn.primary:hover:not(:disabled) { background: var(--accent-h); }
 .btn.danger { background: var(--red); color: #fff; }
@@ -621,6 +621,31 @@ footer {
   flex-direction: column;
   align-items: center;
 }
+
+/* Button spinner (filming mode) */
+.btn-spinner {
+  width: 16px;
+  height: 16px;
+  border: 2.5px solid rgba(255,255,255,0.5);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin .8s linear infinite;
+  margin: 0 auto;
+}
+#connectBtn {
+  min-width: 90px;
+}
+#connectBtn.connecting {
+  background: #3a4168;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Filming mode overrides ── */
+.filming-mode #connectSection { padding: 48px; }
+.filming-mode .welcome-tagline { color: #ffffff; }
+.filming-mode .input-row input::placeholder { color: #9ca3af; }
+.filming-mode #startWithoutConnecting { display: none !important; }
+
 .add-connection-card {
   display: flex;
   flex-direction: column;

@@ -66,6 +66,7 @@ export type AppSettings = {
   // ── UI ──
   uiZoom?: number;
   uiTheme?: string;
+  filmingMode?: boolean;
 };
 
 function getSettingsDir(): string {

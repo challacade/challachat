@@ -208,8 +208,10 @@ async function handleConnect() {
   if (!url) { showError('Please enter a livestream URL.'); return; }
 
   hideError();
+  urlInput.blur();
   connectBtn.disabled = true;
-  connectBtn.textContent = 'Connecting\u2026';
+  connectBtn.classList.add('connecting');
+  connectBtn.innerHTML = '<div class="btn-spinner"></div>';
 
   try {
     const data = await api('POST', '/api/connect', { url });
@@ -224,6 +226,7 @@ async function handleConnect() {
     showError('Failed to connect. Is the server running?');
   } finally {
     connectBtn.disabled = false;
+    connectBtn.classList.remove('connecting');
     connectBtn.textContent = 'Connect';
   }
 }

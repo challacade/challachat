@@ -45,12 +45,13 @@ function applyUiZoom(pct) {
 
 export async function fetchSettings() {
   try {
-    const [filter, logger, jam, theme, zoom] = await Promise.all([
+    const [filter, logger, jam, theme, zoom, filming] = await Promise.all([
       api('GET', '/api/filter'),
       api('GET', '/api/logger'),
       api('GET', '/api/jam'),
       api('GET', '/api/ui-theme'),
       api('GET', '/api/ui-zoom'),
+      api('GET', '/api/filming-mode'),
     ]);
     updateFilterUI(filter);
     updateLoggerUI(logger);
@@ -62,6 +63,11 @@ export async function fetchSettings() {
     if (zoom && typeof zoom.uiZoom === 'number') {
       uiZoomSelect.value = String(zoom.uiZoom);
       applyUiZoom(zoom.uiZoom);
+    }
+    if (filming && filming.filmingMode) {
+      document.body.classList.add('filming-mode');
+    } else {
+      document.body.classList.remove('filming-mode');
     }
   } catch {
     // Server may not be ready yet — ignore

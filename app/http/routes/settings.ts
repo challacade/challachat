@@ -110,6 +110,11 @@ export function createSettingsRouter(ctx: RouteContext): Router {
 
   // ── Clear overlay messages ──
 
+  router.get('/filming-mode', (_req: Request, res: Response) => {
+    const { settings } = readSettings();
+    res.json({ filmingMode: !!settings.filmingMode });
+  });
+
   router.post('/clear-messages', (_req: Request, res: Response) => {
     ctx.sse.send('clear-messages', {});
     res.json({ ok: true });
