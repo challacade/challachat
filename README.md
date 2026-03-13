@@ -48,6 +48,8 @@ website/        # Marketing / landing page (static)
 npm install
 ```
 
+> **Note:** `npm install` may show deprecation warnings for packages like `rimraf`, `inflight`, `glob`, and `boolean`. These are transitive dependencies of `electron` and `electron-builder`, not used directly by ChallaChat.
+
 #### Run in Electron (recommended)
 ```bash
 npm run electron:dev
