@@ -53,13 +53,8 @@ function Check-NodeVersion {
 function Check-Dependencies {
   $needInstall = $false
   if (-not (Test-Path "node_modules")) { $needInstall = $true }
-  elseif (Test-Path "package-lock.json") {
-    try {
-      $lockTime = (Get-Item "package-lock.json").LastWriteTimeUtc
-      $mods = Get-ChildItem -Path "node_modules" -ErrorAction SilentlyContinue
-      if (-not $mods) { $needInstall = $true }
-    } catch { $needInstall = $true }
-  }
+  elseif ($Terminal -and -not (Test-Path "node_modules/tsx")) { $needInstall = $true }
+  elseif (-not $Terminal -and -not (Test-Path "node_modules/electron")) { $needInstall = $true }
   if ($needInstall) {
     Write-Host "Installing dependencies..." -ForegroundColor Yellow
     Run "npm install"
@@ -69,9 +64,6 @@ function Check-Dependencies {
 }
 
 function Start-Application {
-  Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
-  Run "npm run build"
-
   if ($Terminal) {
     Write-Host ""
     Write-Host "Starting ChallaChat (terminal mode)..." -ForegroundColor Green
@@ -80,8 +72,11 @@ function Start-Application {
     Write-Host ""
     Write-Host "Press Ctrl+C to stop the server" -ForegroundColor Yellow
     Write-Host ""
-    Run "npm start"
+    Run "npx tsx app/http/server.ts"
   } else {
+    Write-Host "Compiling TypeScript..." -ForegroundColor Yellow
+    Run "npm run build"
+
     Write-Host ""
     Write-Host "Starting ChallaChat (Electron)..." -ForegroundColor Green
     Write-Host ""

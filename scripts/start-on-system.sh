@@ -56,11 +56,10 @@ check_dependencies() {
 
   if [ ! -d "node_modules" ]; then
     need_install=true
-  elif [ -f "package-lock.json" ]; then
-    # Check if node_modules is empty or missing key packages
-    if [ ! -d "node_modules/.package-lock.json" ] && [ -z "$(ls -A node_modules 2>/dev/null)" ]; then
-      need_install=true
-    fi
+  elif [ "$TERMINAL_MODE" = true ] && [ ! -d "node_modules/tsx" ]; then
+    need_install=true
+  elif [ "$TERMINAL_MODE" != true ] && [ ! -d "node_modules/electron" ]; then
+    need_install=true
   fi
 
   if [ "$need_install" = true ]; then
@@ -72,9 +71,6 @@ check_dependencies() {
 }
 
 start_application() {
-  echo -e "${YELLOW}Compiling TypeScript...${NC}"
-  run_cmd "npm run build"
-
   if [ "$TERMINAL_MODE" = true ]; then
     echo ""
     echo -e "${GREEN}Starting ChallaChat (terminal mode)...${NC}"
@@ -83,12 +79,19 @@ start_application() {
     echo ""
     echo -e "${YELLOW}Press Ctrl+C to stop the server${NC}"
     echo ""
-    run_cmd "npm start"
+    run_cmd "npx tsx app/http/server.ts"
   else
+    echo -e "${YELLOW}Compiling TypeScript...${NC}"
+    run_cmd "npm run build"
+
     echo ""
     echo -e "${GREEN}Starting ChallaChat (Electron)...${NC}"
     echo ""
-    run_cmd "npm run electron"
+
+    # Launch Electron as a detached process so this terminal can close
+    ELECTRON_BIN="$ROOT_DIR/node_modules/.bin/electron"
+    nohup "$ELECTRON_BIN" . > /dev/null 2>&1 &
+    echo -e "${GREEN}ChallaChat is running. You can close this terminal.${NC}"
   fi
 }
 
