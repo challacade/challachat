@@ -19,7 +19,10 @@ export function runChatCommands(message: ChatEvent, ctx: CommandContext): void {
       // Rewrite the chat text so it reads: "<username> is jamming!"
       // (the overlay renders the username separately in the header)
       message.text = 'is jamming!';
-      message.segments = undefined;
+      message.segments = [
+        { t: 'text', text: 'is jamming! ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif', alt: 'NOTED' },
+      ];
       message.effects = { ...(message.effects || {}), jam: true };
     }
   }
