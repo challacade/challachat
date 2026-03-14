@@ -11,6 +11,20 @@ interface SpoofMessage {
   effects?: { jam?: boolean; jamFinale?: boolean };
 }
 
+function jam(author: AuthorInfo, delay = 3000): SpoofMessage {
+  return {
+    author,
+    text: 'is jamming!',
+    segments: [
+      { t: 'text', text: 'is jamming! ' },
+      { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif', alt: 'NOTED' },
+    ],
+    kind: 'text',
+    effects: { jam: true },
+    delay,
+  };
+}
+
 const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   welcome: [
   {
@@ -183,17 +197,16 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       kind: 'text',
       delay: 2500,
     },
-    {
-      author: { name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' },
-      text: 'is jamming!',
-      segments: [
-        { t: 'text', text: 'is jamming! ' },
-        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif', alt: 'NOTED' },
-      ],
-      kind: 'text',
-      effects: { jam: true },
-      delay: 5000,
-    },
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 2000),
+    jam({ name: 'MusicFan', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MusicFan&backgroundColor=ffb3ba', flags: { member: true }, nameColor: '#ffffff' }, 1000),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 700),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#ff76ff' }, 300),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#828aff' }, 800),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 200),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 500),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 700),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#ff76ff' }, 300),
+    jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#828aff' }, 3000),
   ],
   custom: [
     {
