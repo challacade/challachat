@@ -5,6 +5,8 @@ interface SpoofMessage {
   text: string;
   kind: ChatKind;
   pauseAfter?: number;
+  amountDisplay?: string;
+  color?: string;
 }
 
 const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
@@ -127,33 +129,35 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   features: [
     {
-      author: { name: 'Customizer', avatar: '', flags: {}, nameColor: '#779eff' },
-      text: 'Tons of customization options',
+      author: { name: 'Artist', avatar: '', flags: {}, nameColor: '#779eff' },
+      text: 'Tons of customization options! 🎨',
       kind: 'text'
     },
     {
-      author: { name: 'Resizer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
-      text: 'Scales perfectly to any size',
+      author: { name: 'Organizer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
+      text: 'Scales perfectly to any size 📐',
       kind: 'text'
     },
     {
-      author: { name: 'Collector', avatar: '', flags: {}, nameColor: '#7bffa9' },
+      author: { name: 'MultiStreamer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Collector&backgroundColor=b6e3f4', flags: {} },
       text: 'Combine multiple livestream chats!',
       kind: 'text'
     },
     {
-      author: { name: 'Enthusiast', avatar: '', flags: {}, nameColor: '#ffcc5c' },
+      author: { name: 'Moderator', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
       text: 'Emotes, badges, avatars... all here!',
       kind: 'text'
     },
     {
       author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#c792ea' },
-      text: 'Donation alerts and sound effects',
-      kind: 'text'
+      text: 'Donation and subscriber alerts 🔔',
+      kind: 'donation',
+      amountDisplay: '$10.00',
+      color: '#1565c0'
     },
     {
-      author: { name: 'DJ', avatar: '', flags: {}, nameColor: '#80cbc4' },
-      text: 'Music player with song display!',
+      author: { name: 'DJ', avatar: '', flags: {}, nameColor: '#80cbc4', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2', alt: 'DJ' }] },
+      text: 'Music player with song display! 🎵🎶🎵',
       kind: 'text',
       pauseAfter: 5,
     },
@@ -240,6 +244,8 @@ export class SpoofCapture {
       text: msg.text,
       kind: msg.kind,
       ts: Date.now(),
+      amountDisplay: msg.amountDisplay,
+      color: msg.color,
     };
     this.callbacks.onMessage(event);
   }
