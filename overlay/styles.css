@@ -93,9 +93,13 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   overflow: hidden;
 }
 .messages.top-down,
-.messages.stack-up {
+.messages.stack-down {
   top: var(--edge-padding, 0.5rem);
   bottom: 0;
+  justify-content: flex-start;
+}
+.messages.stack-up {
+  flex-direction: column-reverse;
   justify-content: flex-start;
 }
 

@@ -176,7 +176,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       author: { name: 'DJ', avatar: '', flags: {}, nameColor: '#80cbc4', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2', alt: 'DJ' }] },
       text: 'Play your music!',
       segments: [
-        { t: 'text', text: 'Music player, song display! ' },
+        { t: 'text', text: 'Music player & song display! ' },
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MQ33FG000FFJ97ZB8MWV52/4x.avif', alt: 'catJAM' },
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01FYQZVG280006SX8JX4TD7SJA/4x.avif', alt: 'Jamming' },
       ],

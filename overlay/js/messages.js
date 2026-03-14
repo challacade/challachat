@@ -323,14 +323,22 @@ export function renderMessage(item) {
 export function pushMessageElement(node, timestamp) {
   node.dataset.ts = String(timestamp || Date.now());
 
-  // Determine insertion point based on message flow:
-  // bottom-up / stack-down: appendChild (newest at bottom)
-  // top-down / stack-up:    prepend    (newest at top)
-  if (state.messageFlow === 'top-down' || state.messageFlow === 'stack-up') {
+  // top-down: prepend (newest at top, shifts existing messages)
+  // all others: appendChild
+  if (state.messageFlow === 'top-down') {
     elements.messages.prepend(node);
   } else {
     elements.messages.appendChild(node);
   }
+
+  // Stack modes: trim oldest messages only when container overflows
+  if (state.messageFlow === 'stack-up' || state.messageFlow === 'stack-down') {
+    const container = elements.messages;
+    while (container.scrollHeight > container.clientHeight && container.children.length > 1) {
+      container.firstElementChild.remove();
+    }
+  }
+
   try { adjustMessageAlignment(node); } catch {}
 }
 
