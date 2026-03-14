@@ -157,8 +157,9 @@ export function startSSE() {
         state.showBadges = data.showBadges;
         needsImmediateApply = true;
       }
-      if (typeof data.freezeMessages === 'boolean') {
-        state.freezeMessages = data.freezeMessages;
+      if (typeof data.messageFlow === 'string') {
+        state.messageFlow = data.messageFlow;
+        needsImmediateApply = true;
       }
       if (typeof data.preset === 'string') {
         state.preset = data.preset;
@@ -173,10 +174,6 @@ export function startSSE() {
       }
       if (typeof data.overlayFont === 'string') {
         state.overlayFont = data.overlayFont;
-        needsImmediateApply = true;
-      }
-      if (typeof data.chatDirection === 'string') {
-        state.chatDirection = data.chatDirection;
         needsImmediateApply = true;
       }
 

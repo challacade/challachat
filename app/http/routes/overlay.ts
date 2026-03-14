@@ -32,7 +32,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     showBadges:    { type: 'boolean' },
     preset:        { type: 'enum', values: ['Dark', 'Light', 'Transparent', 'Custom'] },
     overlayFont:      { type: 'enum', values: ['Inter', 'News Cycle', 'Lexend', 'Lora', 'Arvo', 'Exo 2', 'Acme', 'Cousine'] },
-    chatDirection:    { type: 'enum', values: ['bottom-up', 'top-down'] },
+    messageFlow:      { type: 'enum', values: ['bottom-up', 'top-down', 'stack-up', 'stack-down'] },
     texture:          { type: 'enum', values: ['none', 'dots', 'grid', 'stripes', 'crosshatch'] },
     textShadow:        { type: 'number', min: 0, max: 1 },
     textureIntensity: { type: 'number', min: 0, max: 1 },
@@ -40,7 +40,6 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     textureGap:       { type: 'number', min: 0.5, max: 5 },
     textureColor:     { type: 'color' },
     transitionSpeed:  { type: 'number', min: 1, max: 100 },
-    freezeMessages:   { type: 'boolean' },
   };
 
   const hexColorRe = /^#[0-9a-fA-F]{6}$/;

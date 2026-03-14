@@ -58,8 +58,11 @@ export function applyTheme() {
     document.documentElement.style.setProperty('--font', `'${state.overlayFont}', sans-serif`);
   }
 
-  // Chat direction
-  elements.messages.classList.toggle('top-down', state.chatDirection === 'top-down');
+  // Message flow
+  elements.messages.classList.remove('top-down', 'stack-up', 'stack-down');
+  if (state.messageFlow === 'top-down') elements.messages.classList.add('top-down');
+  else if (state.messageFlow === 'stack-up') elements.messages.classList.add('stack-up');
+  else if (state.messageFlow === 'stack-down') elements.messages.classList.add('stack-down');
   document.documentElement.classList.toggle('no-avatars', !state.showAvatars);
 
   // Texture

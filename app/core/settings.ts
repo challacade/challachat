@@ -40,11 +40,10 @@ export type AppSettings = {
   showBadges?: boolean;
   preset?: string;
   overlayFont?: string;
-  chatDirection?: string;
+  messageFlow?: string;
   edgePadding?: number;
   textShadow?: number;
   transitionSpeed?: number;
-  freezeMessages?: boolean;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -202,11 +201,10 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   showBadges: true,
   preset: 'Dark',
   overlayFont: 'Inter',
-  chatDirection: 'bottom-up',
+  messageFlow: 'bottom-up',
   edgePadding: 0.5,
   textShadow: 0.25,
   transitionSpeed: 8,
-  freezeMessages: false,
 };
 
 // ── Sound defaults ──

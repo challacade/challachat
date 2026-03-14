@@ -115,7 +115,7 @@ export const playlistLoopToggle = $('playlistLoopToggle');
 // UI Theme & Zoom
 export const uiThemeSelect     = $('uiThemeSelect');
 export const uiZoomSelect      = $('uiZoomSelect');
-export const chatDirectionSelect = $('chatDirectionSelect');
+export const messageFlowSelect  = $('messageFlowSelect');
 // Navigation
 export const navHome         = $('navHome');
 export const navAppearance   = $('navAppearance');

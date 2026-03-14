@@ -11,7 +11,7 @@ import {
   textureSelect, textureIntensitySlider, textureIntensityLabel,
   textureScaleSlider, textureScaleLabel, textureColorPicker,
   textureGapSlider, textureGapLabel,
-  overlayFontSelect, chatDirectionSelect,
+  overlayFontSelect, messageFlowSelect,
 } from './dom.js';
 import { api } from './api.js';
 import { PRESETS } from '/shared/presets.js';
@@ -50,7 +50,7 @@ function updateAppearanceUI(a) {
   // Font
   if (typeof a.overlayFont === 'string' && overlayFontSelect) overlayFontSelect.value = a.overlayFont;
   // Chat direction
-  if (typeof a.chatDirection === 'string' && chatDirectionSelect) chatDirectionSelect.value = a.chatDirection;
+  if (typeof a.messageFlow === 'string' && messageFlowSelect) messageFlowSelect.value = a.messageFlow;
   // Texture
   if (typeof a.texture === 'string' && textureSelect) textureSelect.value = a.texture;
   if (typeof a.textureIntensity === 'number' && textureIntensitySlider) {
@@ -125,10 +125,10 @@ export function bindAppearanceListeners() {
     });
   }
 
-  // Chat direction control
-  if (chatDirectionSelect) {
-    chatDirectionSelect.addEventListener('change', () => {
-      sendAppearance({ chatDirection: chatDirectionSelect.value });
+  // Message flow control
+  if (messageFlowSelect) {
+    messageFlowSelect.addEventListener('change', () => {
+      sendAppearance({ messageFlow: messageFlowSelect.value });
     });
   }
 

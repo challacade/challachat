@@ -59,10 +59,9 @@ export const state = {
   textureGap: 1,
   textureColor: '#ffffff',
   overlayFont: 'Inter',
-  chatDirection: 'bottom-up',
+  messageFlow: 'bottom-up',
   edgePadding: 0.5,
   textShadow: 0.25,
-  freezeMessages: false,
   preset: 'Dark',
   startedAt: null,
   songDisplay: {
