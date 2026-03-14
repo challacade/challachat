@@ -61,7 +61,6 @@ function createSpoofCard(conn) {
         <select class="dropdown spoof-preset-select">
           <option value="welcome">Welcome</option>
           <option value="trailer">Trailer</option>
-          <option value="features">Features</option>
           <option value="custom">Custom</option>
         </select>
       </div>

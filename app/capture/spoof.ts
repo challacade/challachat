@@ -130,17 +130,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F73SYFT8000EAPG86BYDXPH4/4x.avif', alt: 'Clap' },
       ],
       kind: 'text',
-      pauseAfter: 2,
     },
-  ],
-  custom: [
-    {
-      author: { name: 'CustomViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=CustomViewer&backgroundColor=a8e6cf', flags: {} },
-      text: 'Custom placeholder message',
-      kind: 'text'
-    },
-  ],
-  features: [
     {
       author: { name: 'Artist', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Artist&backgroundColor=b6e3f4', flags: { verified: true } },
       text: 'Tons of customization options!',
@@ -185,7 +175,14 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01FYQZVG280006SX8JX4TD7SJA/4x.avif', alt: 'Jamming' },
       ],
       kind: 'text',
-      pauseAfter: 2,
+      pauseAfter: 5,
+    },
+  ],
+  custom: [
+    {
+      author: { name: 'CustomViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=CustomViewer&backgroundColor=a8e6cf', flags: {} },
+      text: 'Custom placeholder message',
+      kind: 'text'
     },
   ],
 };
