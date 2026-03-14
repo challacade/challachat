@@ -273,6 +273,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   vertical-align: bottom; /* bottom-align to the text baseline box */
   margin: 0 0.08em 0 0.08em;
   image-rendering: -webkit-optimize-contrast;
+  background: transparent;
 }
 @supports (height: 1lh) {
   .emoji-img { height: calc(var(--emote-scale) * 1lh); }

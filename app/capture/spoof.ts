@@ -1,4 +1,4 @@
-import type { AuthorInfo, ChatEvent, ChatKind } from './types';
+import type { AuthorInfo, ChatEvent, ChatKind, Segment } from './types';
 
 interface SpoofMessage {
   author: AuthorInfo;
@@ -7,6 +7,7 @@ interface SpoofMessage {
   pauseAfter?: number;
   amountDisplay?: string;
   color?: string;
+  segments?: Segment[];
 }
 
 const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
@@ -130,7 +131,11 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   features: [
     {
       author: { name: 'Artist', avatar: '', flags: {}, nameColor: '#779eff' },
-      text: 'Tons of customization options! 🎨',
+      text: 'Tons of customization options!',
+      segments: [
+        { t: 'text', text: 'Tons of customization options! ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif', alt: 'NOTED' },
+      ],
       kind: 'text'
     },
     {
@@ -140,12 +145,16 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     },
     {
       author: { name: 'MultiStreamer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Collector&backgroundColor=b6e3f4', flags: {} },
-      text: 'Combine multiple livestream chats!',
+      text: 'Combine multiple chatrooms!',
       kind: 'text'
     },
     {
       author: { name: 'Moderator', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
-      text: 'Emotes, badges, avatars... all here!',
+      text: 'Emotes, badges, avatars, and more!',
+      segments: [
+        { t: 'text', text: 'Emotes, badges, avatars... all here! ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6NPEJT0000B70V1XA8MNBC9/4x.avif', alt: 'peepoHappy' },
+      ],
       kind: 'text'
     },
     {
@@ -157,7 +166,12 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     },
     {
       author: { name: 'DJ', avatar: '', flags: {}, nameColor: '#80cbc4', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2', alt: 'DJ' }] },
-      text: 'Music player with song display! 🎵🎶🎵',
+      text: 'Music player with song display!',
+      segments: [
+        { t: 'text', text: 'Music player with song display! ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MQ33FG000FFJ97ZB8MWV52/4x.avif', alt: 'catJAM' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01FYQZVG280006SX8JX4TD7SJA/4x.avif', alt: 'Jamming' },
+      ],
       kind: 'text',
       pauseAfter: 5,
     },
@@ -246,6 +260,7 @@ export class SpoofCapture {
       ts: Date.now(),
       amountDisplay: msg.amountDisplay,
       color: msg.color,
+      segments: msg.segments,
     };
     this.callbacks.onMessage(event);
   }
