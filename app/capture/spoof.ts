@@ -102,17 +102,17 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   trailer: [
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#888eff' },
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#adb1ff' },
       text: 'Display messages in real-time ⚡',
       kind: 'text'
     },
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#ff7272' },
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#ffa4ac' },
       text: 'Works with OBS, Streamlabs, and more!',
       kind: 'text'
     },
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#93ffb9' },
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#beffd5' },
       text: 'Any layout, any style ✨',
       kind: 'text',
       pauseAfter: 5,
