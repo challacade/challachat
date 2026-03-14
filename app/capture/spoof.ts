@@ -130,7 +130,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F73SYFT8000EAPG86BYDXPH4/4x.avif', alt: 'Clap' },
       ],
       kind: 'text',
-      pauseAfter: 5,
+      pauseAfter: 2,
     },
   ],
   custom: [
@@ -185,7 +185,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01FYQZVG280006SX8JX4TD7SJA/4x.avif', alt: 'Jamming' },
       ],
       kind: 'text',
-      pauseAfter: 5,
+      pauseAfter: 2,
     },
   ],
 };
@@ -205,7 +205,7 @@ export class SpoofCapture {
   private index = 0;
   private running = false;
   private callbacks: SpoofCallbacks;
-  private intervalMs = 3000;
+  private intervalMs = 2500;
   private preset = 'welcome';
 
   constructor(callbacks: SpoofCallbacks, intervalMs?: number) {
