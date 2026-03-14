@@ -140,7 +140,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       delay: 3000,
     },
     {
-      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff89a3', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/bbbe0db0-a598-423e-86d0-f9fb98ca1933/2', alt: 'Verified' }] },
+      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff89a3' },
       text: 'Fits any stream layout 📐',
       kind: 'text',
       delay: 3000,
@@ -179,7 +179,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       delay: 3200,
     },
     {
-      author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#d089ff' },
+      author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#d698ff' },
       text: 'Donation alerts!',
       kind: 'donation',
       amountDisplay: '$10.00',
@@ -187,7 +187,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       delay: 2500,
     },
     {
-      author: { name: 'DJ', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DJ&backgroundColor=b6e3f4', flags: { member: true }, nameColor: '#41ff41', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2', alt: 'DJ' }] },
+      author: { name: 'DJ', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DJ&backgroundColor=b6e3f4', flags: { member: true }, nameColor: '#41ff41' },
       text: 'Play your music!',
       segments: [
         { t: 'text', text: 'Music player! ' },
@@ -200,7 +200,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     },
     jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 2000),
     jam({ name: 'MusicFan', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MusicFan&backgroundColor=ffb3ba', flags: { member: true }, nameColor: '#ffffff' }, 1000),
-    jam({ name: 'NightOwl', avatar: '', flags: {}, nameColor: '#c792ea' }, 700),
+    jam({ name: 'NightOwl', avatar: '', flags: {}, nameColor: '#c792ea', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/bbbe0db0-a598-423e-86d0-f9fb98ca1933/2', alt: 'Verified' }] }, 700),
     {
       author: { name: 'HypeFan', avatar: '', flags: {}, nameColor: '#ffda6b' },
       text: 'WOOO!!',
@@ -208,7 +208,6 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       delay: 400,
     },
     jam({ name: 'PixelPunk', avatar: '', flags: {}, nameColor: '#ff76ff' }, 300),
-    jam({ name: 'ZenMode', avatar: '', flags: {}, nameColor: '#a8d8ea' }, 400),
     {
       author: { name: 'StarGazer', avatar: '', flags: {}, nameColor: '#ffda6b' },
       text: 'WOOO!!',
@@ -220,6 +219,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       kind: 'text',
       delay: 400,
     },
+    jam({ name: 'ZenMode', avatar: '', flags: {}, nameColor: '#a8d8ea' }, 400),
     jam({ name: 'BeatDrop', avatar: '', flags: {}, nameColor: '#828aff', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/3267646d-33f0-4b17-b3df-f923a41db1d0/2', alt: 'DJ' }] }, 800),
     {
       author: { name: 'CloudNine', avatar: '', flags: {}, nameColor: '#6bffb5' },
@@ -242,15 +242,15 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01FYQZVG280006SX8JX4TD7SJA/4x.avif', alt: 'Jamming' },
       ],
       kind: 'text',
-      delay: 400,
+      delay: 300,
     },
-    jam({ name: 'EchoWave', avatar: '', flags: {}, nameColor: '#ff89a3' }, 600),
     {
       author: { name: 'HypeFan', avatar: '', flags: {}, nameColor: '#ffda6b' },
-      text: 'AWESOME!!',
+      text: 'AWESOME!',
       kind: 'text',
       delay: 400,
     },
+    jam({ name: 'EchoWave', avatar: '', flags: {}, nameColor: '#ff89a3' }, 600),
     jam({ name: 'ChillZone', avatar: '', flags: {}, nameColor: '#a8d8ea' }, 3000),
   ],
   custom: [
