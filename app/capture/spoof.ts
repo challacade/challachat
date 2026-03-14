@@ -112,6 +112,14 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     {
       author: { name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' },
       text: 'No sign-in required!',
+      segments: [
+        { t: 'text', text: 'No sign-in required! ' },
+        { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/twitch.png', alt: 'Twitch' },
+        { t: 'text', text: ' ' },
+        { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/youtube.png', alt: 'YouTube' },
+        { t: 'text', text: '   ' },
+        { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/kick.png', alt: 'Kick' },
+      ],
       kind: 'text'
     },
     {
