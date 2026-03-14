@@ -102,17 +102,17 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   trailer: [
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#779eff' },
+      author: { name: 'Speedster', avatar: '', flags: {}, nameColor: '#779eff' },
       text: 'Display messages in real-time ⚡',
       kind: 'text'
     },
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
+      author: { name: 'Newcomer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
       text: 'No sign-in required!',
       kind: 'text'
     },
     {
-      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#7bffa9' },
+      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#7bffa9' },
       text: 'Works with any stream layout ✨',
       kind: 'text',
       pauseAfter: 5,
@@ -123,6 +123,39 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       author: { name: 'CustomViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=CustomViewer&backgroundColor=a8e6cf', flags: {} },
       text: 'Custom placeholder message',
       kind: 'text'
+    },
+  ],
+  features: [
+    {
+      author: { name: 'Customizer', avatar: '', flags: {}, nameColor: '#779eff' },
+      text: 'Tons of customization options',
+      kind: 'text'
+    },
+    {
+      author: { name: 'Resizer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
+      text: 'Scales perfectly to any size',
+      kind: 'text'
+    },
+    {
+      author: { name: 'Collector', avatar: '', flags: {}, nameColor: '#7bffa9' },
+      text: 'Combine multiple livestream chats!',
+      kind: 'text'
+    },
+    {
+      author: { name: 'Enthusiast', avatar: '', flags: {}, nameColor: '#ffcc5c' },
+      text: 'Emotes, badges, avatars... all here!',
+      kind: 'text'
+    },
+    {
+      author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#c792ea' },
+      text: 'Donation alerts and sound effects',
+      kind: 'text'
+    },
+    {
+      author: { name: 'DJ', avatar: '', flags: {}, nameColor: '#80cbc4' },
+      text: 'Music player with song display!',
+      kind: 'text',
+      pauseAfter: 5,
     },
   ],
 };
