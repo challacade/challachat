@@ -108,12 +108,12 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     },
     {
       author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
-      text: 'Works with OBS, Streamlabs, and more!',
+      text: 'No sign-in required!',
       kind: 'text'
     },
     {
       author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#7bffa9' },
-      text: 'Any layout, any style ✨',
+      text: 'Works with any stream layout ✨',
       kind: 'text',
       pauseAfter: 5,
     },
