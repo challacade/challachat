@@ -157,6 +157,9 @@ export function startSSE() {
         state.showBadges = data.showBadges;
         needsImmediateApply = true;
       }
+      if (typeof data.freezeMessages === 'boolean') {
+        state.freezeMessages = data.freezeMessages;
+      }
       if (typeof data.preset === 'string') {
         state.preset = data.preset;
       }

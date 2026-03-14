@@ -322,7 +322,16 @@ export function renderMessage(item) {
 
 export function pushMessageElement(node, timestamp) {
   node.dataset.ts = String(timestamp || Date.now());
-  if (state.chatDirection === 'top-down') {
+
+  // Freeze mode: insert at the opposite end so new messages stack on top
+  // without shifting existing messages
+  if (state.freezeMessages) {
+    if (state.chatDirection === 'top-down') {
+      elements.messages.appendChild(node);
+    } else {
+      elements.messages.prepend(node);
+    }
+  } else if (state.chatDirection === 'top-down') {
     elements.messages.prepend(node);
   } else {
     elements.messages.appendChild(node);

@@ -40,6 +40,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     textureGap:       { type: 'number', min: 0.5, max: 5 },
     textureColor:     { type: 'color' },
     transitionSpeed:  { type: 'number', min: 1, max: 100 },
+    freezeMessages:   { type: 'boolean' },
   };
 
   const hexColorRe = /^#[0-9a-fA-F]{6}$/;

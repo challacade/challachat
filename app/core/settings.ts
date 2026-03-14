@@ -44,6 +44,7 @@ export type AppSettings = {
   edgePadding?: number;
   textShadow?: number;
   transitionSpeed?: number;
+  freezeMessages?: boolean;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -205,6 +206,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   edgePadding: 0.5,
   textShadow: 0.25,
   transitionSpeed: 8,
+  freezeMessages: false,
 };
 
 // ── Sound defaults ──

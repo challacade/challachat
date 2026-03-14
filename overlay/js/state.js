@@ -62,6 +62,7 @@ export const state = {
   chatDirection: 'bottom-up',
   edgePadding: 0.5,
   textShadow: 0.25,
+  freezeMessages: false,
   preset: 'Dark',
   startedAt: null,
   songDisplay: {
