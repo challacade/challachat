@@ -105,18 +105,22 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   trailer: [
     {
-      author: { name: 'Speedster', avatar: '', flags: {}, nameColor: '#779eff' },
+      author: { name: 'Mod', avatar: '', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
       text: 'Display messages in real-time ⚡',
       kind: 'text'
     },
     {
-      author: { name: 'Newcomer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
+      author: { name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' },
       text: 'No sign-in required!',
       kind: 'text'
     },
     {
-      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#7bffa9' },
-      text: 'Works with any stream layout ✨',
+      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff766f' },
+      text: 'Works with any stream layout',
+      segments: [
+        { t: 'text', text: 'Works with any stream layout ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6NE9AER000CKKT9BSDYGT0J/4x.avif', alt: 'EZ' },
+      ],
       kind: 'text',
       pauseAfter: 5,
     },
@@ -130,7 +134,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   features: [
     {
-      author: { name: 'Artist', avatar: '', flags: {}, nameColor: '#779eff' },
+      author: { name: 'Artist', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Artist&backgroundColor=b6e3f4', flags: { verified: true } },
       text: 'Tons of customization options!',
       segments: [
         { t: 'text', text: 'Tons of customization options! ' },
@@ -139,27 +143,27 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       kind: 'text'
     },
     {
-      author: { name: 'Organizer', avatar: '', flags: {}, nameColor: '#ff6e7a' },
+      author: { name: 'Organizer', avatar: 'https://api.dicebear.com/7.x/shapes/svg?seed=Organizer&backgroundColor=ffd93d', flags: { owner: true } },
       text: 'Scales perfectly to any size 📐',
       kind: 'text'
     },
     {
-      author: { name: 'MultiStreamer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Collector&backgroundColor=b6e3f4', flags: {} },
-      text: 'Combine multiple chatrooms!',
+      author: { name: 'MultiStreamer', avatar: '', flags: {}, nameColor: '#8aff7d' },
+      text: 'Combine different chatrooms!',
       kind: 'text'
     },
     {
-      author: { name: 'Moderator', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
+      author: { name: 'Mod', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
       text: 'Emotes, badges, avatars, and more!',
       segments: [
-        { t: 'text', text: 'Emotes, badges, avatars... all here! ' },
+        { t: 'text', text: 'Emotes, badges, icons, and more! ' },
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6NPEJT0000B70V1XA8MNBC9/4x.avif', alt: 'peepoHappy' },
       ],
       kind: 'text'
     },
     {
       author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#c792ea' },
-      text: 'Donation and subscriber alerts 🔔',
+      text: 'Donation and sub alerts!',
       kind: 'donation',
       amountDisplay: '$10.00',
       color: '#1565c0'
