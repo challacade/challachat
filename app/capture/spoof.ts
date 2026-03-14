@@ -1,13 +1,10 @@
-import type { ChatEvent, ChatKind } from './types';
+import type { AuthorInfo, ChatEvent, ChatKind } from './types';
 
 interface SpoofMessage {
-  author: {
-    name: string;
-    avatar: string;
-    flags: { owner?: boolean; mod?: boolean; verified?: boolean; member?: boolean };
-  };
+  author: AuthorInfo;
   text: string;
   kind: ChatKind;
+  pauseAfter?: number;
 }
 
 const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
@@ -105,9 +102,20 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   trailer: [
     {
-      author: { name: 'TrailerViewer', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=TrailerViewer&backgroundColor=ff6b6b', flags: {} },
-      text: 'Trailer placeholder message',
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#888eff' },
+      text: 'Display messages in real-time ⚡',
       kind: 'text'
+    },
+    {
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#ff7272' },
+      text: 'Works with OBS, Streamlabs, and more!',
+      kind: 'text'
+    },
+    {
+      author: { name: 'TrailerViewer', avatar: '', flags: {}, nameColor: '#93ffb9' },
+      text: 'Any layout, any style ✨',
+      kind: 'text',
+      pauseAfter: 5,
     },
   ],
   custom: [
@@ -178,10 +186,14 @@ export class SpoofCapture {
 
   private scheduleNext() {
     if (!this.running) return;
+    const messages = SPOOF_PRESETS[this.preset] || SPOOF_PRESETS.welcome;
+    const prevIndex = (this.index - 1 + messages.length) % messages.length;
+    const prevMsg = messages[prevIndex];
+    const delay = prevMsg?.pauseAfter ? this.intervalMs * prevMsg.pauseAfter : this.intervalMs;
     this.timer = setTimeout(() => {
       this.emitNext();
       this.scheduleNext();
-    }, this.intervalMs);
+    }, delay);
   }
 
   private emitNext() {
