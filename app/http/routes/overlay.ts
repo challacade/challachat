@@ -39,6 +39,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     textureScale:     { type: 'number', min: 0.25, max: 4 },
     textureGap:       { type: 'number', min: 0.5, max: 5 },
     textureColor:     { type: 'color' },
+    transitionSpeed:  { type: 'number', min: 1, max: 100 },
   };
 
   const hexColorRe = /^#[0-9a-fA-F]{6}$/;

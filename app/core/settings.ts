@@ -43,6 +43,7 @@ export type AppSettings = {
   chatDirection?: string;
   edgePadding?: number;
   textShadow?: number;
+  transitionSpeed?: number;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -203,6 +204,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   chatDirection: 'bottom-up',
   edgePadding: 0.5,
   textShadow: 0.25,
+  transitionSpeed: 8,
 };
 
 // ── Sound defaults ──
