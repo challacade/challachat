@@ -18,7 +18,7 @@ import { applyTheme, applySongDisplay, updateSongDisplayText } from './settings.
 
 // Maps SSE data keys → { get/set on state, clamp range }
 const NUMERIC_FIELDS = {
-  scale:            { get: () => state.scale,              set: v => { state.scale = v; },              min: 0.5,  max: 3    },
+  scale:            { get: () => state.scale,              set: v => { state.scale = v; },              min: 0.5,  max: 4    },
   textOpacity:      { get: () => state.theme.textOpacity,  set: v => { state.theme.textOpacity = v; },  min: 0,    max: 1    },
   bubbleOpacity:    { get: () => state.theme.bgOpacity,    set: v => { state.theme.bgOpacity = v; },    min: 0,    max: 1    },
   bgOpacity:        { get: () => state.pageBgOpacity,      set: v => { state.pageBgOpacity = v; },      min: 0,    max: 1    },

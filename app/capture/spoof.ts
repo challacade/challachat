@@ -114,20 +114,20 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       text: 'No sign-in required!',
       segments: [
         { t: 'text', text: 'No sign-in required! ' },
+        { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/youtube.png', alt: 'YouTube' },
+        { t: 'text', text: ' ' },
         { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/twitch.png', alt: 'Twitch' },
         { t: 'text', text: ' ' },
-        { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/youtube.png', alt: 'YouTube' },
-        { t: 'text', text: '   ' },
         { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/kick.png', alt: 'Kick' },
       ],
       kind: 'text'
     },
     {
-      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff766f' },
-      text: 'Works with any stream layout',
+      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff766f', badges: [{ url: 'https://static-cdn.jtvnw.net/badges/v1/bbbe0db0-a598-423e-86d0-f9fb98ca1933/2', alt: 'Verified' }] },
+      text: 'Fits any stream layout',
       segments: [
-        { t: 'text', text: 'Works with any stream layout ' },
-        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6NE9AER000CKKT9BSDYGT0J/4x.avif', alt: 'EZ' },
+        { t: 'text', text: 'Fits any stream layout ' },
+        { t: 'emote', url: 'https://cdn.7tv.app/emote/01F73SYFT8000EAPG86BYDXPH4/4x.avif', alt: 'Clap' },
       ],
       kind: 'text',
       pauseAfter: 5,
@@ -157,7 +157,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
     },
     {
       author: { name: 'MultiStreamer', avatar: '', flags: {}, nameColor: '#8aff7d' },
-      text: 'Combine different chatrooms!',
+      text: 'Merge different chatrooms together!',
       kind: 'text'
     },
     {

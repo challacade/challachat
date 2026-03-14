@@ -18,7 +18,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     | { type: 'enum'; values: string[] };
 
   const appearanceRules: Record<string, Rule> = {
-    scale:         { type: 'number', min: 0.5, max: 3 },
+    scale:         { type: 'number', min: 0.5, max: 4 },
     textOpacity:   { type: 'number', min: 0, max: 1 },
     bubbleOpacity: { type: 'number', min: 0, max: 1 },
     bgOpacity:     { type: 'number', min: 0, max: 1 },
