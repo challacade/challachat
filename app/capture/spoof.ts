@@ -120,10 +120,10 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
   ],
   trailer: [
     {
-      author: { name: 'Mod', avatar: '', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
+      author: { name: 'Mod', avatar: '', flags: { mod: true }, nameColor: '#69c8ff', badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%2369c8ff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
       text: 'Display messages in real-time ⚡',
       kind: 'text',
-      delay: 2200,
+      delay: 2150,
     },
     {
       author: { name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' },
@@ -137,13 +137,19 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://challacade.blob.core.windows.net/gallery/web/kick.png', alt: 'Kick' },
       ],
       kind: 'text',
-      delay: 2200,
+      delay: 2150,
     },
+    // {
+    //   author: { name: 'OBS', avatar: '', flags: {}, nameColor: '#5efcff' },
+    //   text: 'Add to any streaming software!',
+    //   kind: 'text',
+    //   delay: 2150,
+    // },
     {
-      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff89a3' },
-      text: 'Fits any stream layout 📐',
+      author: { name: 'Designer', avatar: '', flags: {}, nameColor: '#ff9ea1' },
+      text: 'Fits any style or layout 📐',
       kind: 'text',
-      delay: 4400,
+      delay: 4350,
     },
     {
       author: { name: 'Artist', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Artist&backgroundColor=b6e3f4', flags: { verified: true } },
@@ -153,17 +159,17 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F73SYFT8000EAPG86BYDXPH4/4x.avif', alt: 'Clap' },
       ],
       kind: 'text',
-      delay: 2200,
+      delay: 2150,
     },
     {
-      author: { name: 'Mod', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%23419dff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
+      author: { name: 'Mod', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=Enthusiast&backgroundColor=ffd93d', flags: { mod: true }, nameColor: '#69c8ff', badges: [{ url: "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' height='24' viewBox='0 0 24 24' width='24'%3E%3Cpath fill='%2369c8ff' d='M3 4.998v9.857a6 6 0 003.365 5.39L12 23l5.635-2.755A6 6 0 0021 14.855V4.998a1 1 0 00-.656-.938L12 1 3.656 4.06A1 1 0 003 4.998Z'/%3E%3C/svg%3E", alt: 'Moderator' }] },
       text: 'Emotes, badges, avatars, and more!',
       segments: [
         { t: 'text', text: 'Emotes, badges, avatars! ' },
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6NPEJT0000B70V1XA8MNBC9/4x.avif', alt: 'peepoHappy' },
       ],
       kind: 'text',
-      delay: 2200,
+      delay: 2150,
     },
     {
       author: { name: 'Streamer', avatar: '', flags: {}, nameColor: '#5effb7' },
@@ -176,7 +182,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F7A96T680001569Q2SWB43A0/4x.avif', alt: 'emote' },
       ],
       kind: 'text',
-      delay: 4400,
+      delay: 4350,
     },
     {
       author: { name: 'Supporter', avatar: '', flags: {}, nameColor: '#d698ff' },
@@ -184,7 +190,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
       kind: 'donation',
       amountDisplay: '$10.00',
       color: '#1565c0',
-      delay: 2200,
+      delay: 2150,
     },
     {
       author: { name: 'DJ', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=DJ&backgroundColor=b6e3f4', flags: { member: true }, nameColor: '#41ff41' },
@@ -196,7 +202,7 @@ const SPOOF_PRESETS: Record<string, SpoofMessage[]> = {
         { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6N71JE8000EJ3T4BS1S7P88/4x.avif', alt: 'hype' },
       ],
       kind: 'text',
-      delay: 2200,
+      delay: 2150,
     },
     jam({ name: 'Viewer', avatar: '', flags: {}, nameColor: '#76ff8f' }, 1000),
     jam({ name: 'MusicFan', avatar: 'https://api.dicebear.com/7.x/bottts/svg?seed=MusicFan&backgroundColor=ffb3ba', flags: { member: true }, nameColor: '#ffffff' }, 600),
