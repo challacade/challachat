@@ -74,6 +74,8 @@ jobs:
           git tag "$TAG"
       - name: Install dependencies
         run: npm ci || npm install
+      - name: Set version from tag
+        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
       - name: Build TypeScript
         run: npm run build
       - name: Build signed and notarized ZIP
