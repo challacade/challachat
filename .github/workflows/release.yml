@@ -87,7 +87,10 @@ jobs:
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npx electron-builder --mac dir --publish never
       - name: Package portable tar
-        run: tar -czf build/electron/ChallaChat-Mac-Portable.tar.gz -C build/electron/mac ChallaChat.app
+        run: |
+          cd build/electron
+          DIR=$(ls -d mac* | head -1)
+          tar -czf ChallaChat-Mac-Portable.tar.gz -C "$DIR" ChallaChat.app
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
