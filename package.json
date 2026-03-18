@@ -102,8 +102,8 @@
                               "icon":  "overlay/icon.icns",
                               "hardenedRuntime":  true,
                               "gatekeeperAssess":  false,
-                              "entitlements":  "build/entitlements.mac.plist",
-                              "entitlementsInherit":  "build/entitlements.mac.plist",
+                              "entitlements":  "resources/entitlements.mac.plist",
+                              "entitlementsInherit":  "resources/entitlements.mac.plist",
                               "notarize":  true
                           },
                   "linux":  {

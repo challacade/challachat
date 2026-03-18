@@ -84,7 +84,8 @@ jobs:
         run: bash ./scripts/build-portable.sh
       - name: Package portable zip
         run: |
-          cd build/electron/mac
+          MAC_DIR=$(find build/electron -maxdepth 1 -type d -name 'mac*' | head -1)
+          cd "$MAC_DIR"
           zip -r ../ChallaChat-Mac-Portable.zip ChallaChat.app
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
