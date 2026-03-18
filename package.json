@@ -87,10 +87,10 @@
                                "installerIcon":  "overlay/favicon.ico",
                                "uninstallerIcon":  "overlay/favicon.ico",
                                "deleteAppDataOnUninstall":  true,
-                               "artifactName":  "${productName}-Setup.${ext}"
+                               "artifactName":  "${productName}-Windows-Installer.${ext}"
                            },
                   "portable":  {
-                                   "artifactName":  "${productName}-Portable.${ext}"
+                                   "artifactName":  "${productName}-Windows-Portable.${ext}"
                                },
                   "mac":  {
                               "target":  [

@@ -42,14 +42,14 @@ jobs:
         run: .\scripts\windows\build-installer.ps1
       - name: Package portable zip
         shell: pwsh
-        run: Compress-Archive -Path 'build\electron\win-unpacked\*' -DestinationPath 'build\electron\ChallaChat-Portable.zip' -Force
+        run: Compress-Archive -Path 'build\electron\win-unpacked\*' -DestinationPath 'build\electron\ChallaChat-Windows-Portable.zip' -Force
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: challachat-windows-artifacts
           path: |
-            build/electron/ChallaChat-Setup.exe
-            build/electron/ChallaChat-Portable.zip
+            build/electron/ChallaChat-Windows-Installer.exe
+            build/electron/ChallaChat-Windows-Portable.zip
 
   build-mac:
     runs-on: macos-latest

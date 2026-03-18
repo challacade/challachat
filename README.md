@@ -229,7 +229,7 @@ Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-
 
 ## Releases (GitHub Actions)
 
-The "Build Full Release" workflow (manual dispatch) creates a tag, builds `ChallaChat-Setup.exe` and `ChallaChat-Portable.exe`, and publishes a GitHub Release with auto-generated release notes.
+The "Build Full Release" workflow (manual dispatch) creates a tag, builds `ChallaChat-Windows-Installer.exe` and `ChallaChat-Windows-Portable.zip`, and publishes a GitHub Release with auto-generated release notes.
 
 ## License
 
