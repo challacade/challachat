@@ -74,19 +74,20 @@ jobs:
           git tag "$TAG"
       - name: Install dependencies
         run: npm ci || npm install
-      - name: Build portable
+      - name: Build TypeScript
+        run: npm run build
+      - name: Build signed and notarized ZIP
         env:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: bash ./scripts/build-portable.sh
-      - name: Package portable zip
+        run: npx electron-builder --mac zip --publish never
+      - name: Rename artifact
         run: |
-          MAC_DIR=$(find build/electron -maxdepth 1 -type d -name 'mac*' | head -1)
-          cd "$MAC_DIR"
-          zip -r ../ChallaChat-Mac-Portable.zip ChallaChat.app
+          cd build/electron
+          mv *.zip ChallaChat-Mac-Portable.zip
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
