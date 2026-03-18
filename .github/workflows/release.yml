@@ -90,7 +90,7 @@ jobs:
         run: |
           cd build/electron
           DIR=$(ls -d mac* | head -1)
-          tar -czf ChallaChat-Mac-Portable.tar.gz -C "$DIR" ChallaChat.app
+          tar -czhf ChallaChat-Mac-Portable.tar.gz -C "$DIR" ChallaChat.app
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
