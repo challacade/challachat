@@ -99,7 +99,12 @@
                                              "dir"
                                          ],
                               "category":  "public.app-category.entertainment",
-                              "icon":  "overlay/icon.icns"
+                              "icon":  "overlay/icon.icns",
+                              "hardenedRuntime":  true,
+                              "gatekeeperAssess":  false,
+                              "entitlements":  "build/entitlements.mac.plist",
+                              "entitlementsInherit":  "build/entitlements.mac.plist",
+                              "notarize":  true
                           },
                   "linux":  {
                                 "target":  [
