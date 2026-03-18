@@ -85,17 +85,15 @@ jobs:
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: npx electron-builder --mac zip --publish never
-      - name: Rename artifact
-        run: |
-          cd build/electron
-          mv *.zip ChallaChat-Mac-Portable.zip
+        run: npx electron-builder --mac dir --publish never
+      - name: Package portable tar
+        run: tar -czf build/electron/ChallaChat-Mac-Portable.tar.gz -C build/electron/mac ChallaChat.app
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
         with:
           name: challachat-mac-artifacts
           path: |
-            build/electron/ChallaChat-Mac-Portable.zip
+            build/electron/ChallaChat-Mac-Portable.tar.gz
 
   build-linux:
     runs-on: ubuntu-latest
