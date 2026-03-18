@@ -98,7 +98,7 @@
                                              "zip"
                                          ],
                               "category":  "public.app-category.entertainment",
-                              "icon":  "website/img/challachat.png"
+                              "icon":  "overlay/icon.icns"
                           },
                   "linux":  {
                                 "target":  [
