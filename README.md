@@ -243,7 +243,9 @@ Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-
 
 ## Releases (GitHub Actions)
 
-The "Build Full Release" workflow (manual dispatch) creates a tag, builds all platforms (`ChallaChat-Windows-Installer.exe`, `ChallaChat-Windows-Portable.zip`, `ChallaChat-Mac-Portable.zip`, `ChallaChat-Linux-Portable.tar.gz`), and publishes a GitHub Release with auto-generated release notes.
+The "Build Full Release" workflow (manual dispatch) creates a tag, builds all platforms (`ChallaChat-Windows-Installer.exe`, `ChallaChat-Windows-Portable.zip`, `ChallaChat-Mac-Portable.tar.gz`, `ChallaChat-Linux-Portable.tar.gz`), and publishes a GitHub Release with auto-generated release notes.
+
+> **Why is the Mac build so much larger?** macOS `.framework` bundles use symlinks internally (e.g. `Electron Framework.framework/Electron Framework` -> `Versions/A/Electron Framework`). Steam's depot system doesn't support symlinks, so the Mac archive is built with dereferenced symlinks - every symlink is replaced with a real copy of the file it points to. This roughly triples the on-disk size compared to a native `.app` bundle, but Steam's CDN deduplicates identical content so the actual download size for users is unaffected.
 
 ## License
 
