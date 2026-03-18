@@ -95,7 +95,8 @@
                   "mac":  {
                               "target":  [
                                              "dmg",
-                                             "zip"
+                                             "zip",
+                                             "dir"
                                          ],
                               "category":  "public.app-category.entertainment",
                               "icon":  "overlay/icon.icns"
@@ -103,7 +104,8 @@
                   "linux":  {
                                 "target":  [
                                                "AppImage",
-                                               "deb"
+                                               "deb",
+                                               "dir"
                                            ],
                                 "category":  "Utility",
                                 "icon":  "website/img/challachat.png"
