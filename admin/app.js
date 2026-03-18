@@ -6,7 +6,7 @@
  * Otherwise it falls back to REST API polling so the admin page also works
  * when opened in a regular browser (terminal mode).
  *
- * Main entry point — imports and initializes all modules.
+ * Main entry point - imports and initializes all modules.
  */
 
 import { isElectron } from './js/dom.js';

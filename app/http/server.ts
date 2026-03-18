@@ -159,7 +159,7 @@ class App extends EventEmitter {
     this.app.use('/api', createOverlayRouter(ctx));
     this.app.use('/api', createSettingsRouter(ctx));
 
-    // Socket.IO connection handler (not an HTTP route — stays here)
+    // Socket.IO connection handler (not an HTTP route - stays here)
     this.io.on('connection', (socket: Socket) => {
       const conns = Array.from(this.connections.values());
       socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', connections: conns.map(c => ({ id: c.id, platform: c.platform, videoId: c.videoId, messageCount: c.messageCount })) });
@@ -342,7 +342,7 @@ class App extends EventEmitter {
     return this.startCapture(url, platform);
   }
 
-  // Unified capture start — all platform differences are handled by platformConfig
+  // Unified capture start - all platform differences are handled by platformConfig
   private async startCapture(url: string, platform: Platform): Promise<string> {
     const config = this.platformConfig[platform];
     const connId = this.generateConnId();

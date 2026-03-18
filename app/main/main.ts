@@ -1,5 +1,5 @@
 /**
- * ChallaChat — Electron Main Process
+ * ChallaChat - Electron Main Process
  *
  * Creates a BrowserWindow that shows the control panel and starts the Express
  * backend in the same process.  Communication uses IPC (ipcMain.handle) so

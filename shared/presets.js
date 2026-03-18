@@ -1,5 +1,5 @@
 /**
- * Shared theme presets — single source of truth for overlay + admin.
+ * Shared theme presets - single source of truth for overlay + admin.
  *
  * Uses the flat key format (same as the server appearance API):
  *   scale, messageGap, textColor, bubbleColor, bgColor,

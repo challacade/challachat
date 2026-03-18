@@ -4,7 +4,7 @@
  * and song-display positioning.
  *
  * All interactive settings UI (HUD buttons, panels, controls) has been
- * moved to the admin panel — this module is purely declarative.
+ * moved to the admin panel - this module is purely declarative.
  */
 
 import { state, elements, PRESETS } from './state.js';

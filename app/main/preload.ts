@@ -1,12 +1,12 @@
 /**
- * ChallaChat — Electron Preload Script
+ * ChallaChat - Electron Preload Script
  *
  * Exposes a safe `window.challachat` API via contextBridge.
  *
- * - `invoke(channel, ...args)` — call an ipcMain.handle handler and await the result.
- * - `on(channel, callback)` — listen for events pushed from the main process.
- * - `off(channel, callback)` — remove a previously registered listener.
- * - `isElectron` — simple boolean marker so the renderer can feature-detect.
+ * - `invoke(channel, ...args)` - call an ipcMain.handle handler and await the result.
+ * - `on(channel, callback)` - listen for events pushed from the main process.
+ * - `off(channel, callback)` - remove a previously registered listener.
+ * - `isElectron` - simple boolean marker so the renderer can feature-detect.
  */
 
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';

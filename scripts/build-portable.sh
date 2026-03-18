@@ -109,5 +109,5 @@ if [ -d "$OUTPUT_DIR" ]; then
     echo -e "${GREEN}Run with: $EXE${NC}"
   fi
 else
-  echo -e "${RED}Output directory not found — check electron-builder output above.${NC}"
+  echo -e "${RED}Output directory not found - check electron-builder output above.${NC}"
 fi

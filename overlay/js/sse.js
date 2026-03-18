@@ -30,7 +30,7 @@ const NUMERIC_FIELDS = {
   textureGap:       { get: () => state.textureGap,         set: v => { state.textureGap = v; },         min: 0.5,  max: 5    },
 };
 
-let lerpSpeed = 8;       // multiplier — higher = faster convergence
+let lerpSpeed = 8;       // multiplier - higher = faster convergence
 const EPSILON = 0.0005;  // snap to target when this close
 
 const targets = new Map();   // key → target value
@@ -125,14 +125,14 @@ export function startSSE() {
         lerpSpeed = clamp(data.transitionSpeed, 1, 100);
       }
 
-      // Numeric fields — animate smoothly toward target
+      // Numeric fields - animate smoothly toward target
       for (const key of Object.keys(NUMERIC_FIELDS)) {
         if (typeof data[key] === 'number') {
           setTarget(key, data[key]);
         }
       }
 
-      // Non-numeric fields — apply immediately
+      // Non-numeric fields - apply immediately
       if (typeof data.textColor === 'string') {
         state.theme.text = data.textColor;
         needsImmediateApply = true;

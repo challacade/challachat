@@ -21,7 +21,7 @@ export interface CaptureOpts {
  * Simple hash function for generating stable message IDs.
  * NOTE: This function is injected as a string into the browser context
  * via evaluateOnNewDocument (see BaseChatCapture.start). It is not
- * called at runtime in Node — only inside headless browser pages as
+ * called at runtime in Node - only inside headless browser pages as
  * window.__cyrb53.
  */
 function cyrb53(str: string, seed = 0): string {
@@ -41,7 +41,7 @@ function cyrb53(str: string, seed = 0): string {
  * BaseChatCapture - Abstract base class for platform-specific chat capture.
  *
  * Uses BrowserPool for a shared headless browser instance.  Only pages are
- * created/destroyed per capture session — the browser itself survives across
+ * created/destroyed per capture session - the browser itself survives across
  * connect/disconnect cycles for fast re-connects.
  */
 export abstract class BaseChatCapture {
@@ -209,13 +209,13 @@ export abstract class BaseChatCapture {
   }
 
   /**
-   * Cleanup the page only — the browser is shared via BrowserPool and stays
+   * Cleanup the page only - the browser is shared via BrowserPool and stays
    * alive for subsequent capture sessions.
    */
   protected async cleanup() {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
     if (this.page) { try { await this.page.close(); } catch { /* ignore – page may already be closed */ } this.page = null; }
-    // Do NOT close the browser — it's shared via BrowserPool
+    // Do NOT close the browser - it's shared via BrowserPool
     this.browser = null;
   }
 
@@ -283,7 +283,7 @@ export abstract class BaseChatCapture {
       }
     }
 
-    // Deletion detection — only check IDs assigned by the DOM, not hash-generated ones
+    // Deletion detection - only check IDs assigned by the DOM, not hash-generated ones
     const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith(this.hashPrefix));
     for (const id of knownDomIds) {
       if ((deletedRendererIds && deletedRendererIds.has(id)) || !visibleRendererIds.has(id)) {
