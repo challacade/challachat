@@ -111,4 +111,64 @@ export function startAdminSSE() {
   });
 }
 
+// ─── Tracked test-sound playback ───────────────────────────
+
+let activeTestSource = null;
+
+export function stopTestSound() {
+  if (!activeTestSource) return;
+  try {
+    if (activeTestSource.type === 'webaudio' && activeTestSource.src) {
+      activeTestSource.src.stop();
+    } else if (activeTestSource.type === 'html' && activeTestSource.node) {
+      activeTestSource.node.pause();
+      activeTestSource.node.currentTime = 0;
+    }
+  } catch {}
+  activeTestSource = null;
+}
+
+export function updateTestSoundVolume(vol) {
+  if (!activeTestSource) return;
+  const volume = Math.max(0, Math.min(2, vol));
+  try {
+    if (activeTestSource.type === 'webaudio' && activeTestSource.gain) {
+      activeTestSource.gain.gain.value = volume;
+    } else if (activeTestSource.type === 'html' && activeTestSource.node) {
+      activeTestSource.node.volume = Math.min(1, volume);
+    }
+  } catch {}
+}
+
+export function playTestSoundAdmin(handle, vol = 1) {
+  stopTestSound();
+  if (!handle) return;
+  try { if (adminAudio.ctx?.state === 'suspended') adminAudio.ctx.resume().catch(() => {}); } catch {}
+  const volume = Math.max(0, Math.min(2, vol));
+  if (handle.type === 'webaudio') {
+    try {
+      ensureAudioCtx();
+      const src = adminAudio.ctx.createBufferSource();
+      src.buffer = handle.buffer;
+      const g = adminAudio.ctx.createGain();
+      g.gain.value = volume;
+      src.connect(g).connect(adminAudio.gain);
+      src.start(0);
+      activeTestSource = { type: 'webaudio', src, gain: g };
+      src.onended = () => { if (activeTestSource?.src === src) activeTestSource = null; };
+    } catch {}
+  } else if (handle.type === 'html') {
+    try {
+      const s = handle.node.currentSrc || handle.node.src;
+      if (s) {
+        const dup = new Audio(s);
+        dup.volume = Math.min(1, volume);
+        dup.play().catch(() => {});
+        activeTestSource = { type: 'html', node: dup };
+        dup.onended = () => { if (activeTestSource?.node === dup) activeTestSource = null; };
+      }
+    } catch {}
+  }
+}
+
 export { adminAudio, ensureAudioCtx };

@@ -12,7 +12,8 @@ import {
 } from './dom.js';
 import { api } from './api.js';
 import { debounce } from '/shared/utils.js';
-import { adminAudio, ensureAudioCtx, playSoundAdmin, initAdminAudio, reloadCustomSound } from './audio.js';
+import { adminAudio, ensureAudioCtx, playTestSoundAdmin, stopTestSound, updateTestSoundVolume, initAdminAudio, reloadCustomSound } from './audio.js';
+export { stopTestSound };
 
 // ─── Volume channel descriptors ────────────────────────────────
 
@@ -65,6 +66,7 @@ export function bindSoundListeners() {
       ch.labelEl.textContent = `${Math.round(val * 100)}%`;
       ch.savedVol = val;
       updateMuteIcon(ch);
+      updateTestSoundVolume(val);
       sendSounds({ [ch.key]: val });
     });
     // Mute toggle
@@ -79,18 +81,20 @@ export function bindSoundListeners() {
       const val = Number(ch.slider.value);
       ch.labelEl.textContent = `${Math.round(val * 100)}%`;
       updateMuteIcon(ch);
+      updateTestSoundVolume(val);
       sendSounds({ [ch.key]: val });
     });
     // Test button
     ch.testBtn.addEventListener('click', async () => {
       ensureAudioCtx();
       if (!adminAudio[ch.audioKey]) await initAdminAudio();
-      playSoundAdmin(adminAudio[ch.audioKey], Number(ch.slider.value) || 0);
+      playTestSoundAdmin(adminAudio[ch.audioKey], Number(ch.slider.value) || 0);
     });
     // Browse / Reset button
     ch.browseBtn.addEventListener('click', async () => {
       if (ch.browseBtn.dataset.mode === 'reset') {
         // Reset to default
+        stopTestSound();
         try {
           const resp = await api('POST', '/api/sounds/path', { type: ch.audioKey, filePath: '' });
           if (resp?.ok) {
