@@ -144,6 +144,9 @@ app.whenReady().then(async () => {
 
 app.on('window-all-closed', () => {
   if (appServer) {
+    // Force-exit after 8s if shutdown stalls (covers browser close, server drain, etc.)
+    const forceExit = setTimeout(() => app.exit(1), 8000);
+    forceExit.unref();
     appServer.shutdown().then(() => app.exit(0)).catch(() => app.exit(1));
   } else {
     app.quit();

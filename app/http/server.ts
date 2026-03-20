@@ -650,8 +650,19 @@ class App extends EventEmitter {
     await this.shutdownCapture();
     this.sessionActive = false;
     await closeBrowser();
+    // Close all SSE and Socket.IO connections so server.close() can drain
+    this.sse.close();
+    this.io.close();
     return new Promise<void>((resolve) => {
+      // Force-exit if server.close() doesn't complete within 5 seconds
+      const forceTimer = setTimeout(() => {
+        console.log('Server close timed out, forcing exit.');
+        if (!this.headless) process.exit(0);
+        resolve();
+      }, 5000);
+      forceTimer.unref();
       this.server.close(() => {
+        clearTimeout(forceTimer);
         console.log('Server closed. Goodbye!');
         if (!this.headless) process.exit(0);
         resolve();

@@ -27,4 +27,12 @@ export class SSEHub<T = unknown> {
       try { res.write(data); } catch { /* client disconnected */ }
     }
   }
+
+  /** Close all SSE client connections (e.g. on shutdown). */
+  close() {
+    for (const res of Array.from(this.clients)) {
+      try { res.end(); } catch { /* ignore */ }
+    }
+    this.clients.clear();
+  }
 }
