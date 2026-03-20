@@ -16,8 +16,13 @@ const cache: PlaylistCache = {
   metaByPath: new Map()
 };
 
-function isMp3(filePath: string): boolean {
-  return path.extname(filePath).toLowerCase() === '.mp3';
+const SUPPORTED_AUDIO_EXTS = new Set([
+  '.mp3', '.wav', '.ogg', '.flac',
+  '.aac', '.m4a', '.opus', '.wma', '.webm',
+]);
+
+function isSupportedAudio(filePath: string): boolean {
+  return SUPPORTED_AUDIO_EXTS.has(path.extname(filePath).toLowerCase());
 }
 
 function safeReadDir(dir: string): fs.Dirent[] {
@@ -43,7 +48,7 @@ function buildPlaylist(rootDir: string): string[] {
         stack.push(full);
         continue;
       }
-      if (entry.isFile() && isMp3(full)) {
+      if (entry.isFile() && isSupportedAudio(full)) {
         results.push(full);
       }
     }

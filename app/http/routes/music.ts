@@ -194,7 +194,19 @@ export function createMusicRouter(ctx: RouteContext): Router {
       const total = stat.size;
       const range = req.headers.range;
 
-      res.setHeader('Content-Type', 'audio/mpeg');
+      const MIME_TYPES: Record<string, string> = {
+        '.mp3': 'audio/mpeg',
+        '.wav': 'audio/wav',
+        '.ogg': 'audio/ogg',
+        '.flac': 'audio/flac',
+        '.aac': 'audio/aac',
+        '.m4a': 'audio/mp4',
+        '.opus': 'audio/opus',
+        '.wma': 'audio/x-ms-wma',
+        '.webm': 'audio/webm',
+      };
+      const ext = path.extname(filePath).toLowerCase();
+      res.setHeader('Content-Type', MIME_TYPES[ext] || 'application/octet-stream');
       res.setHeader('Accept-Ranges', 'bytes');
 
       if (range) {
