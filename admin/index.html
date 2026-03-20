@@ -240,10 +240,10 @@
         <!-- ── Music player ─────────────────────────────────── -->
         <section class="card music-card">
           <div class="music-now-playing" id="musicNowPlaying">(no track)</div>
-          <div class="music-volume-row">
-            <span class="music-vol-icon" id="musicVolIcon" title="Mute / Unmute">🔊</span>
-            <input type="range" id="musicVolSlider" class="vol-slider" min="0" max="2" step="0.01" value="1" />
-            <span class="vol-label" id="musicVolLabel">100%</span>
+          <div class="music-progress-row">
+            <span class="music-time" id="musicTimeCurrent">0:00</span>
+            <input type="range" id="musicProgressBar" class="progress-slider" min="0" max="1" step="0.001" value="0" />
+            <span class="music-time" id="musicTimeTotal">0:00</span>
           </div>
           <div class="music-controls">
             <button class="btn small primary" id="musicPrevBtn" title="Previous track">⏮</button>

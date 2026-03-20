@@ -4,7 +4,7 @@
 import {
   isElectron,
   musicNowPlaying, musicPrevBtn, musicPlayBtn, musicNextBtn, musicShuffleBtn,
-  musicVolSlider, musicVolLabel, musicVolIcon,
+  musicProgressBar, musicTimeCurrent, musicTimeTotal,
   musicPathInput, musicBrowseBtn,
   songDisplaySelect, scrollSpeedSlider, scrollSpeedLabel,
   songTextSizeSlider, songTextSizeLabel,
@@ -31,6 +31,7 @@ const music = {
   songScrollSpeed: 0,
   songTextSize: 1,
   volume: 1,
+  seeking: false,
 };
 
 // ─── Helpers ───────────────────────────────────────────────────
@@ -146,17 +147,39 @@ function setMusicIndex(i) {
 }
 
 function syncMusicVolUI() {
-  const v = music.volume;
-  if (musicVolLabel) musicVolLabel.textContent = `${Math.round(v * 100)}%`;
-  if (musicVolIcon) {
-    musicVolIcon.textContent = v === 0 ? '\uD83D\uDD07' : v < 0.5 ? '\uD83D\uDD09' : '\uD83D\uDD0A';
-  }
+  // Volume UI removed — kept as no-op for internal calls
 }
 
 function applyMusicVolume() {
   if (music.gainNode) {
     music.gainNode.gain.value = music.volume;
   }
+}
+
+function formatTime(seconds) {
+  if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  return `${m}:${s.toString().padStart(2, '0')}`;
+}
+
+function syncProgressUI() {
+  if (!music.audio || music.seeking) return;
+  const cur = music.audio.currentTime || 0;
+  const dur = music.audio.duration || 0;
+  if (musicTimeCurrent) musicTimeCurrent.textContent = formatTime(cur);
+  if (musicTimeTotal) musicTimeTotal.textContent = formatTime(dur);
+  if (musicProgressBar && dur > 0) {
+    musicProgressBar.value = cur / dur;
+  } else if (musicProgressBar) {
+    musicProgressBar.value = 0;
+  }
+}
+
+function resetProgressUI() {
+  if (musicTimeCurrent) musicTimeCurrent.textContent = '0:00';
+  if (musicTimeTotal) musicTimeTotal.textContent = '0:00';
+  if (musicProgressBar) musicProgressBar.value = 0;
 }
 
 function syncMusicDisplayUI() {
@@ -222,6 +245,8 @@ async function playMusicAt(pos) {
     music.gainNode.connect(actx.destination);
     music.audio.addEventListener('play', () => syncMusicUI());
     music.audio.addEventListener('pause', () => syncMusicUI());
+    music.audio.addEventListener('timeupdate', () => syncProgressUI());
+    music.audio.addEventListener('loadedmetadata', () => syncProgressUI());
     music.audio.addEventListener('ended', async () => {
       let next = music.index + 1;
       if (next >= music.playlist.length) {
@@ -240,6 +265,7 @@ async function playMusicAt(pos) {
   void ensureMetaLoaded(si).then(() => syncMusicUI());
 
   music.audio.src = `/api/music/track/${si}`;
+  resetProgressUI();
   applyMusicVolume();
   await music.audio.play();
 }
@@ -325,23 +351,21 @@ export function bindMusicListeners() {
   musicShuffleBtn?.addEventListener('click', () => musicShuffle().catch(() => {}));
 
   // Volume slider
-  let musicVolBeforeMute = 1;
-  musicVolSlider?.addEventListener('input', () => {
-    const vol = parseFloat(musicVolSlider.value);
-    music.volume = vol;
-    if (music.audio) applyMusicVolume();
-    syncMusicVolUI();
-  });
-  musicVolIcon?.addEventListener('click', () => {
-    if (music.volume > 0) {
-      musicVolBeforeMute = music.volume;
-      music.volume = 0;
-    } else {
-      music.volume = musicVolBeforeMute || 1;
+  // (Volume UI removed — volume kept at default 100%)
+
+  // Progress bar seek
+  musicProgressBar?.addEventListener('input', () => {
+    music.seeking = true;
+    if (music.audio && Number.isFinite(music.audio.duration)) {
+      const t = parseFloat(musicProgressBar.value) * music.audio.duration;
+      if (musicTimeCurrent) musicTimeCurrent.textContent = formatTime(t);
     }
-    if (music.audio) applyMusicVolume();
-    if (musicVolSlider) musicVolSlider.value = music.volume;
-    syncMusicVolUI();
+  });
+  musicProgressBar?.addEventListener('change', () => {
+    if (music.audio && Number.isFinite(music.audio.duration)) {
+      music.audio.currentTime = parseFloat(musicProgressBar.value) * music.audio.duration;
+    }
+    music.seeking = false;
   });
 
   // Browse folder (Electron IPC)

@@ -679,7 +679,7 @@ footer {
   text-overflow: ellipsis;
   margin-bottom: 10px;
 }
-.music-volume-row {
+.music-progress-row {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -689,13 +689,20 @@ footer {
   margin-left: auto;
   margin-right: auto;
 }
-.music-vol-icon {
-  font-size: 13px;
-  cursor: pointer;
-  user-select: none;
-  flex-shrink: 0;
+.music-time {
+  font-size: 10px;
+  color: var(--text-dim, #b3b5c6);
   min-width: 32px;
-  text-align: right;
+  flex-shrink: 0;
+  user-select: none;
+}
+.music-time:first-child { text-align: right; }
+.music-time:last-child  { text-align: left; }
+.progress-slider {
+  flex: 1;
+  height: 4px;
+  accent-color: var(--accent, #7c6fe0);
+  cursor: pointer;
 }
 .music-controls {
   display: flex;
