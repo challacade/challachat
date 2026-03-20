@@ -18,6 +18,7 @@
   --accent:   #4a5ad0;
   --accent-h: #3b49b5;
   --slider:   #5c6fe0;
+  --progress: #ea2d53;
   --green:    #22c55e;
   --amber:    #bab678;
   --red:      #ef4444;
@@ -35,6 +36,7 @@
   --accent:   #4a5ad0;
   --accent-h: #3b49b5;
   --slider:   #5c6fe0;
+  --progress: #cb3f51;
   --red-bg:   #fde8e8;
   --red-bdr:  #f5c6c6;
 }
@@ -691,7 +693,7 @@ footer {
 }
 .music-time {
   font-size: 10px;
-  color: var(--text-dim, #b3b5c6);
+  color: var(--text-dim);
   min-width: 32px;
   flex-shrink: 0;
   user-select: none;
@@ -701,7 +703,7 @@ footer {
 .progress-slider {
   flex: 1;
   height: 4px;
-  accent-color: var(--accent, #7c6fe0);
+  accent-color: var(--progress);
   cursor: pointer;
 }
 .music-controls {
