@@ -64,6 +64,12 @@ export function createMusicRouter(ctx: RouteContext): Router {
     if (typeof req.body?.playlistLoop === 'boolean') {
       patch.playlistLoop = req.body.playlistLoop;
     }
+    if (typeof req.body?.musicVolume === 'number') {
+      patch.musicVolume = Math.max(0, Math.min(2, req.body.musicVolume));
+    }
+    if (typeof req.body?.musicPan === 'number') {
+      patch.musicPan = Math.max(-1, Math.min(1, req.body.musicPan));
+    }
     const result = updateSettings(patch);
     if (!result.ok) {
       res.status(500).json({ error: 'Failed to write settings' });

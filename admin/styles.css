@@ -705,10 +705,34 @@ footer {
   cursor: pointer;
 }
 .music-controls {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+.music-ctrl-col {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+.music-ctrl-center {
   display: flex;
   justify-content: center;
   gap: 6px;
-  margin-bottom: 18px;
+}
+.music-ctrl-icon {
+  font-size: 13px;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.pan-label {
+  font-size: 10px;
+  color: var(--text-dim, #b3b5c6);
+  flex-shrink: 0;
+  user-select: none;
 }
 .music-controls .btn {
   display: inline-flex;

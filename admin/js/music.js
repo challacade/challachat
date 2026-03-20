@@ -5,6 +5,8 @@ import {
   isElectron,
   musicNowPlaying, musicPrevBtn, musicPlayBtn, musicNextBtn, musicShuffleBtn,
   musicProgressBar, musicTimeCurrent, musicTimeTotal,
+  musicVolSlider, musicVolLabel, musicVolIcon,
+  musicPanSlider,
   musicPathInput, musicBrowseBtn,
   songDisplaySelect, scrollSpeedSlider, scrollSpeedLabel,
   songTextSizeSlider, songTextSizeLabel,
@@ -12,6 +14,7 @@ import {
   autoShuffleToggle, playlistLoopToggle,
 } from './dom.js';
 import { api, postJsonQuiet } from './api.js';
+import { debounce } from '/shared/utils.js';
 
 // ─── Music state ───────────────────────────────────────────────
 
@@ -22,6 +25,7 @@ const music = {
   index: 0,        // position in order[]
   audio: null,     // HTMLAudioElement
   gainNode: null,  // GainNode for volume amplification
+  panNode: null,    // StereoPannerNode for L/R pan
   playlistLoop: true,
   autoShuffle: false,
   isConfigured: false,
@@ -31,6 +35,7 @@ const music = {
   songScrollSpeed: 0,
   songTextSize: 1,
   volume: 1,
+  pan: 0,
   seeking: false,
 };
 
@@ -147,12 +152,22 @@ function setMusicIndex(i) {
 }
 
 function syncMusicVolUI() {
-  // Volume UI removed — kept as no-op for internal calls
+  const v = music.volume;
+  if (musicVolLabel) musicVolLabel.textContent = `${Math.round(v * 100)}%`;
+  if (musicVolIcon) {
+    musicVolIcon.textContent = v === 0 ? '\uD83D\uDD07' : v < 0.5 ? '\uD83D\uDD09' : '\uD83D\uDD0A';
+  }
 }
 
 function applyMusicVolume() {
   if (music.gainNode) {
     music.gainNode.gain.value = music.volume;
+  }
+}
+
+function applyMusicPan() {
+  if (music.panNode) {
+    music.panNode.pan.value = music.pan;
   }
 }
 
@@ -221,6 +236,16 @@ async function fetchMusicConfig() {
     if (typeof data?.songFilePath === 'string') music.songFilePath = data.songFilePath;
     if (typeof data?.songScrollSpeed === 'number') music.songScrollSpeed = data.songScrollSpeed;
     if (typeof data?.songTextSize === 'number') music.songTextSize = data.songTextSize;
+    // Music playback settings
+    if (typeof data?.musicVolume === 'number') {
+      music.volume = data.musicVolume;
+      if (musicVolSlider) musicVolSlider.value = music.volume;
+      syncMusicVolUI();
+    }
+    if (typeof data?.musicPan === 'number') {
+      music.pan = data.musicPan;
+      if (musicPanSlider) musicPanSlider.value = music.pan;
+    }
     syncMusicDisplayUI();
   } catch {}
 }
@@ -241,8 +266,10 @@ async function playMusicAt(pos) {
     const actx = new (window.AudioContext || window.webkitAudioContext)();
     const source = actx.createMediaElementSource(music.audio);
     music.gainNode = actx.createGain();
+    music.panNode = actx.createStereoPanner();
     source.connect(music.gainNode);
-    music.gainNode.connect(actx.destination);
+    music.gainNode.connect(music.panNode);
+    music.panNode.connect(actx.destination);
     music.audio.addEventListener('play', () => syncMusicUI());
     music.audio.addEventListener('pause', () => syncMusicUI());
     music.audio.addEventListener('timeupdate', () => syncProgressUI());
@@ -267,6 +294,7 @@ async function playMusicAt(pos) {
   music.audio.src = `/api/music/track/${si}`;
   resetProgressUI();
   applyMusicVolume();
+  applyMusicPan();
   await music.audio.play();
 }
 
@@ -342,6 +370,12 @@ async function postMusicSettings(patch) {
   } catch {}
 }
 
+// ─── Debounced settings persistence ────────────────────────────
+
+const saveMusicPlaybackSettings = debounce(async (patch) => {
+  try { await api('POST', '/api/music/settings', patch); } catch {}
+}, 300);
+
 // ─── Event listeners ───────────────────────────────────────────
 
 export function bindMusicListeners() {
@@ -351,7 +385,39 @@ export function bindMusicListeners() {
   musicShuffleBtn?.addEventListener('click', () => musicShuffle().catch(() => {}));
 
   // Volume slider
-  // (Volume UI removed — volume kept at default 100%)
+  let musicVolBeforeMute = 1;
+  musicVolSlider?.addEventListener('input', () => {
+    const vol = parseFloat(musicVolSlider.value);
+    music.volume = vol;
+    applyMusicVolume();
+    syncMusicVolUI();
+    saveMusicPlaybackSettings({ musicVolume: vol });
+  });
+  musicVolIcon?.addEventListener('click', () => {
+    if (music.volume > 0) {
+      musicVolBeforeMute = music.volume;
+      music.volume = 0;
+    } else {
+      music.volume = musicVolBeforeMute || 1;
+    }
+    applyMusicVolume();
+    if (musicVolSlider) musicVolSlider.value = music.volume;
+    syncMusicVolUI();
+    saveMusicPlaybackSettings({ musicVolume: music.volume });
+  });
+
+  // Pan slider
+  musicPanSlider?.addEventListener('input', () => {
+    music.pan = parseFloat(musicPanSlider.value);
+    applyMusicPan();
+    saveMusicPlaybackSettings({ musicPan: music.pan });
+  });
+  musicPanSlider?.addEventListener('dblclick', () => {
+    music.pan = 0;
+    if (musicPanSlider) musicPanSlider.value = 0;
+    applyMusicPan();
+    saveMusicPlaybackSettings({ musicPan: 0 });
+  });
 
   // Progress bar seek
   musicProgressBar?.addEventListener('input', () => {

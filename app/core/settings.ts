@@ -50,6 +50,10 @@ export type AppSettings = {
   donationVolume?: number;
   memberVolume?: number;
 
+  // ── Music playback ──
+  musicVolume?: number;
+  musicPan?: number;
+
   // ── Custom sound file paths ──
   messageSoundPath?: string;
   donationSoundPath?: string;
@@ -159,7 +163,7 @@ function parseSongDisplay(settings: AppSettings): string {
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number; musicVolume: number; musicPan: number } {
   const { settings } = readSettings();
   const musicPathVal = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';
   return {
@@ -171,7 +175,9 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     writeSongFile: settings.writeSongFile === true,
     songFilePath: typeof settings.songFilePath === 'string' ? settings.songFilePath : '',
     songScrollSpeed: typeof settings.songScrollSpeed === 'number' ? settings.songScrollSpeed : 0,
-    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1
+    songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1,
+    musicVolume: typeof settings.musicVolume === 'number' ? settings.musicVolume : 1,
+    musicPan: typeof settings.musicPan === 'number' ? settings.musicPan : 0,
   };
 }
 

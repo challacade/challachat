@@ -246,9 +246,21 @@
             <span class="music-time" id="musicTimeTotal">0:00</span>
           </div>
           <div class="music-controls">
-            <button class="btn small primary" id="musicPrevBtn" title="Previous track">⏮</button>
-            <button class="btn small primary" id="musicPlayBtn" title="Play / Pause">▶</button>
-            <button class="btn small primary" id="musicNextBtn" title="Next track">⏭</button>
+            <div class="music-ctrl-col">
+              <span class="music-ctrl-icon" id="musicVolIcon" title="Mute / Unmute">🔊</span>
+              <input type="range" id="musicVolSlider" class="vol-slider" min="0" max="2" step="0.01" value="1" />
+              <span class="vol-label" id="musicVolLabel">100%</span>
+            </div>
+            <div class="music-ctrl-col music-ctrl-center">
+              <button class="btn small primary" id="musicPrevBtn" title="Previous track">⏮</button>
+              <button class="btn small primary" id="musicPlayBtn" title="Play / Pause">▶</button>
+              <button class="btn small primary" id="musicNextBtn" title="Next track">⏭</button>
+            </div>
+            <div class="music-ctrl-col">
+              <span class="pan-label">L</span>
+              <input type="range" id="musicPanSlider" class="vol-slider" min="-1" max="1" step="0.01" value="0" />
+              <span class="pan-label">R</span>
+            </div>
           </div>
           <div class="music-path-row">
             <input type="text" class="path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
