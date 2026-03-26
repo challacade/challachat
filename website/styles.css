@@ -239,7 +239,7 @@ section h2 {
     width: 100%;
     max-width: 420px;
     max-height: 120px;
-    margin: 0 auto -0.25rem;
+    margin: 0 auto 0.2rem;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -699,7 +699,7 @@ section h2 {
 
 /* Feature card specifics (inherits .site-card) */
 .feature-card {
-    padding: 0.7rem 0.9rem;
+    padding: 0.9rem 1.1rem;
 }
 
 .feature-card h3 {
@@ -853,11 +853,8 @@ section h2 {
 .setup-step h3 {
     color: #f7fafc;
     font-size: 1.25rem;
-    margin: 0;
-    flex: 1;
-    line-height: 32px;
-    display: flex;
-    align-items: center;
+    margin: 0 0 0.5rem 0;
+    line-height: 1.4;
 }
 
 .setup-step p {
