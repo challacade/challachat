@@ -1,5 +1,5 @@
 /**
- * Connection lifecycle — connect/disconnect, dynamic cards, status polling.
+ * Connection lifecycle - connect/disconnect, dynamic cards, status polling.
  */
 import {
   isElectron,

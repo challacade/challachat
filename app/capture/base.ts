@@ -216,7 +216,7 @@ export abstract class BaseChatCapture {
    */
   protected async cleanup() {
     if (this.pollTimer) { clearInterval(this.pollTimer); this.pollTimer = null; }
-    if (this.page) { try { await this.page.close(); } catch { /* ignore – page may already be closed */ } this.page = null; }
+    if (this.page) { try { await this.page.close(); } catch { /* ignore - page may already be closed */ } this.page = null; }
     // Do NOT close the browser - it's shared via BrowserPool
     this.browser = null;
     this.authorMessageIds.clear();
@@ -312,7 +312,7 @@ export abstract class BaseChatCapture {
       }
     }
 
-    // Deletion detection — check ALL tracked IDs (both DOM-assigned and hash-generated)
+    // Deletion detection - check ALL tracked IDs (both DOM-assigned and hash-generated)
     for (const id of Array.from(this.seenIds)) {
       if ((deletedRendererIds && deletedRendererIds.has(id)) || !visibleRendererIds.has(id)) {
         this.callbacks.onDelete(id);
@@ -320,7 +320,7 @@ export abstract class BaseChatCapture {
       }
     }
 
-    // Ban-based bulk deletion — remove all messages from banned/timed-out users
+    // Ban-based bulk deletion - remove all messages from banned/timed-out users
     if (result.bannedUsers) {
       for (const user of result.bannedUsers) {
         if (user) this.deleteMessagesByAuthor(user);
@@ -354,7 +354,7 @@ export abstract class BaseChatCapture {
         try {
           await this.page.waitForSelector(sel, { timeout: 2000 });
           return;
-        } catch { /* expected – selector not yet available, keep trying */ }
+        } catch { /* expected - selector not yet available, keep trying */ }
       }
       await new Promise(r => setTimeout(r, 2000));
     }

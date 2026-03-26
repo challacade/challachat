@@ -5,7 +5,7 @@ import { isElectron } from './dom.js';
 
 export async function api(method, path, body) {
   if (isElectron) {
-    // IPC calls — map REST paths to IPC channels
+    // IPC calls - map REST paths to IPC channels
     if (path === '/api/status')          return window.challachat.invoke('get-status');
     if (path === '/api/connect')         return window.challachat.invoke('connect', body?.url);
     if (path === '/api/disconnect')      return window.challachat.invoke('disconnect', body?.connectionId);

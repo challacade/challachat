@@ -184,6 +184,18 @@ footer {
 }
 .panel-card { padding: 12px 16px; }
 
+/* -- Build info card ------------------------------------------ */
+.build-info-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 20px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.build-info-item { display: flex; gap: 5px; }
+.build-info-label { opacity: 0.6; }
+.build-info-value { font-family: monospace; }
+
 /* -- Buttons -------------------------------------------------- */
 .btn {
   padding: 9px 18px;
@@ -318,6 +330,7 @@ footer {
 /* -- Volume slider row (shared by music + SFX) ---------------- */
 .vol-slider {
   flex: 1;
+  min-width: 0;
   height: 4px;
   accent-color: var(--slider);
   cursor: pointer;
@@ -679,7 +692,7 @@ footer {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 10px;
+  margin-top: 18px;
   margin-bottom: 10px;
 }
 .music-progress-row {
@@ -712,7 +725,7 @@ footer {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: 10px;
-  margin-bottom: 18px;
+  margin-bottom: 24px;
 }
 .music-ctrl-col {
   display: flex;
@@ -767,7 +780,7 @@ footer {
   min-width: 0;
 }
 .music-options {
-  margin-top: 21px;
+  margin-top: 10px;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 8px 14px;

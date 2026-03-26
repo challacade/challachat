@@ -2,7 +2,7 @@
 import puppeteer, { Browser } from 'puppeteer-core';
 
 /**
- * BrowserPool — Singleton that manages a shared headless Chromium instance.
+ * BrowserPool - Singleton that manages a shared headless Chromium instance.
  *
  * Instead of launching a fresh browser for every capture session, we detect a
  * system Chrome/Edge once at startup and reuse the same browser process.

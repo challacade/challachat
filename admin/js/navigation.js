@@ -1,5 +1,5 @@
 /**
- * Page navigation — tab switching.
+ * Page navigation - tab switching.
  */
 import { navButtons, pages } from './dom.js';
 import { stopTestSound } from './audio.js';

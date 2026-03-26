@@ -1,4 +1,6 @@
 import { Router, type Request, type Response } from 'express';
+import path from 'path';
+import fs from 'fs';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
 import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
@@ -104,7 +106,7 @@ export function createSettingsRouter(ctx: RouteContext): Router {
       updateSettings({ uiZoom });
       res.json({ ok: true, uiZoom });
     } else {
-      res.status(400).json({ ok: false, error: 'Invalid uiZoom value (0–100).' });
+      res.status(400).json({ ok: false, error: 'Invalid uiZoom value (0-100).' });
     }
   });
 
@@ -118,6 +120,25 @@ export function createSettingsRouter(ctx: RouteContext): Router {
   router.post('/clear-messages', (_req: Request, res: Response) => {
     ctx.sse.send('clear-messages', {});
     res.json({ ok: true });
+  });
+
+  // ── Version / build info ──
+
+  router.get('/version', (_req: Request, res: Response) => {
+    try {
+      const pkgPath = path.resolve(__dirname, '..', '..', '..', 'package.json');
+      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
+      res.json({
+        version: pkg.version || 'unknown',
+        name: pkg.name || 'challachat',
+        platform: process.platform,
+        arch: process.arch,
+        nodeVersion: process.version,
+        electronVersion: process.versions.electron || null,
+      });
+    } catch {
+      res.json({ version: 'unknown' });
+    }
   });
 
   return router;

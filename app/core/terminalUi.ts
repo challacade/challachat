@@ -30,7 +30,7 @@ export class TerminalUI {
   constructor(port: number) {
     this.port = port;
     this.rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    try { console.clear(); } catch { /* ignore – not all terminals support clear */ }
+    try { console.clear(); } catch { /* ignore - not all terminals support clear */ }
     this.defaultPrompt = `${ANSI.bold}${ANSI.yellow}Enter livestream URL:${ANSI.reset} `;
     this.rl.setPrompt(this.defaultPrompt);
   }

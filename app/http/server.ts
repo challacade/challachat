@@ -85,7 +85,7 @@ class App extends EventEmitter {
       showUsername: opts?.showUsername !== false,
       effects: opts?.effects
     };
-    try { this.io.emit('chat-message', msg); } catch { /* ignore – best-effort broadcast */ }
+    try { this.io.emit('chat-message', msg); } catch { /* ignore - best-effort broadcast */ }
     try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch { /* ignore */ }
   }
 
@@ -525,7 +525,7 @@ class App extends EventEmitter {
       if (!conn) return;
       try { await conn.capture?.stop(); } catch (e: any) { console.log(`Error stopping capture ${connectionId}: ${e?.message || e}`); }
       const duration = Math.round((Date.now() - (conn.startTime || Date.now())) / 1000);
-      console.log(`Connection ${connectionId} stopped (${conn.platform} – ${duration}s, ${conn.messageCount} msgs)`);
+      console.log(`Connection ${connectionId} stopped (${conn.platform} - ${duration}s, ${conn.messageCount} msgs)`);
       this.connections.delete(connectionId);
     } else {
       // Stop all

@@ -1,5 +1,5 @@
 /**
- * Appearance controls — presets, sliders/pickers/toggles.
+ * Appearance controls - presets, sliders/pickers/toggles.
  */
 import {
   scaleSlider, scaleLabel, textOpSlider, textOpLabel,
@@ -84,7 +84,7 @@ export async function fetchAppearance() {
 // ─── Event listeners ───────────────────────────────────────────
 
 export function bindAppearanceListeners() {
-  // Data-driven appearance listeners — sliders
+  // Data-driven appearance listeners - sliders
   APPEARANCE_SLIDERS.forEach(({ key, slider, label, format }) => {
     slider.addEventListener('input', () => {
       const val = Number(slider.value);
@@ -94,7 +94,7 @@ export function bindAppearanceListeners() {
     });
   });
 
-  // Data-driven appearance listeners — color pickers
+  // Data-driven appearance listeners - color pickers
   [
     ['textColor',   textColorPicker],
     ['bubbleColor', bubbleColorPicker],
@@ -106,7 +106,7 @@ export function bindAppearanceListeners() {
     });
   });
 
-  // Data-driven appearance listeners — toggles
+  // Data-driven appearance listeners - toggles
   [
     ['showBubbles', showBubblesToggle],
     ['showAvatars', showAvatarsToggle],

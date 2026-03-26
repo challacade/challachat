@@ -17,7 +17,7 @@ export type AppSettings = {
   songFilePath?: string;
   /** Scroll speed for the song display text (0 = off, 1 = 100% = 60px/s). */
   songScrollSpeed?: number;
-  /** Extra scale factor for song display text size (0–2, where 1 = 100%). */
+  /** Extra scale factor for song display text size (0-2, where 1 = 100%). */
   songTextSize?: number;
 
   // ── Filter ──

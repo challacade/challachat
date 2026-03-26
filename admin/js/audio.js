@@ -1,5 +1,5 @@
 /**
- * Admin panel audio system — Web Audio API with HTML Audio fallback.
+ * Admin panel audio system - Web Audio API with HTML Audio fallback.
  */
 import { msgVolSlider, donVolSlider, memVolSlider } from './dom.js';
 

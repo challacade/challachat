@@ -78,7 +78,7 @@
               <button id="connectBtn" class="btn primary">Connect</button>
             </div>
             <div id="connectError" class="error hidden"></div>
-            <a href="#" id="startWithoutConnecting" class="demo-link">Start with Test connection</a>
+            <a href="#" id="startWithoutConnecting" class="demo-link">Start with a Spoof connection</a>
           </section>
         </div>
 
@@ -243,7 +243,7 @@
           <div class="music-mode-row">
             <select id="musicModeSelect" class="dropdown">
               <option value="off">No music</option>
-              <option value="local">Local music files</option>
+              <option value="local">My music files</option>
               <option value="external">External player</option>
             </select>
             <!-- Local: path + browse + shuffle (cols 2-3) -->
@@ -435,6 +435,10 @@
             <button class="btn small danger clear-btn" id="logFolderClearBtn" title="Clear path" style="display:none">✕</button>
             <button class="btn small primary" id="logFolderBrowseBtn">Browse</button>
           </div>
+        </section>
+
+        <section class="card panel-card" id="buildInfoCard">
+          <div class="build-info-grid" id="buildInfoGrid"></div>
         </section>
 
       </div><!-- /pageSettings -->

@@ -1,5 +1,5 @@
 /**
- * Settings panel — filter, logger, jam, UI theme/zoom.
+ * Settings panel - filter, logger, jam, UI theme/zoom.
  */
 import {
   isElectron,
@@ -70,7 +70,32 @@ export async function fetchSettings() {
       document.body.classList.remove('filming-mode');
     }
   } catch {
-    // Server may not be ready yet — ignore
+    // Server may not be ready yet - ignore
+  }
+
+  // Build info (fire-and-forget, non-blocking)
+  fetchBuildInfo();
+}
+
+// ─── Build info ────────────────────────────────────────────────
+
+async function fetchBuildInfo() {
+  const grid = document.getElementById('buildInfoGrid');
+  if (!grid) return;
+  try {
+    const info = await api('GET', '/api/version');
+    if (!info || !info.version) return;
+    const items = [
+      ['Version', `v${info.version}`],
+      ['Platform', `${info.platform}/${info.arch}`],
+      ['Node', info.nodeVersion],
+    ];
+    if (info.electronVersion) items.push(['Electron', `v${info.electronVersion}`]);
+    grid.innerHTML = items
+      .map(([label, value]) => `<span class="build-info-item"><span class="build-info-label">${label}</span><span class="build-info-value">${value}</span></span>`)
+      .join('');
+  } catch {
+    // Non-critical - leave card empty
   }
 }
 
@@ -118,7 +143,7 @@ export function bindSettingsListeners() {
     } catch {}
   });
 
-  // Settings toggles — data-driven
+  // Settings toggles - data-driven
   const SETTINGS_TOGGLES = [
     { toggle: filterToggle,        endpoint: '/api/filter/toggle',  payloadKey: 'active',  updateFn: updateFilterUI },
     { toggle: loggerToggle,        endpoint: '/api/logger/toggle',  payloadKey: 'enabled', updateFn: updateLoggerUI },

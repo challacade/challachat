@@ -1,5 +1,5 @@
 /**
- * Music player — playlist management, playback, display settings.
+ * Music player - playlist management, playback, display settings.
  */
 import {
   isElectron,
@@ -261,7 +261,7 @@ function applyMusicMode() {
   setEl(musicProgressRow, isLocal);
   setEl(musicControlsRow, isLocal);
 
-  // Song display options – shared by local + external
+  // Song display options - shared by local + external
   setEl(musicOptionsRow, hasContent);
 
   // External mode polling
