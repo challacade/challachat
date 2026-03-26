@@ -184,7 +184,7 @@ section h2 {
 }
 
 .product-card {
-    background: linear-gradient(160deg, #271d55 0%, #2e2265 50%, #251b50 100%);
+    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
     border: 1px solid rgba(124, 58, 237, 0.25);
     border-radius: 12px;
     padding: 0.9rem 0.9rem;
@@ -408,7 +408,7 @@ section h2 {
 
 /* Streaming Card */
 .streaming-card {
-    background: linear-gradient(160deg, #271d55 0%, #2e2265 50%, #251b50 100%);
+    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
     border: 1px solid rgba(124, 58, 237, 0.2);
     border-radius: 12px;
     padding: 0.75rem;
