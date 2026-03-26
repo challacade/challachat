@@ -3,8 +3,9 @@ import path from 'path';
 import fs from 'fs';
 import { getMusicDisplaySettings, getMusicSettingsStatus, updateSettings, writeSongTxt } from '../../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../../core/music';
-import { getNowPlaying, setNowPlayingByIndex } from '../../core/nowPlaying';
+import { getNowPlaying, setNowPlayingByIndex, setNowPlayingExternal, clearNowPlaying } from '../../core/nowPlaying';
 import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../../core/jam';
+import { SmtcPoller } from '../../core/smtc';
 import type { RouteContext } from './context';
 
 /** Broadcast a jam-finale system message if a finale was triggered. */
@@ -17,6 +18,36 @@ function announceJamFinale(ctx: RouteContext, finale: ReturnType<typeof onNowPla
 /** Routes: /api/music/*, /api/jam/* */
 export function createMusicRouter(ctx: RouteContext): Router {
   const router = Router();
+
+  // -- SMTC (Windows media session) polling for external mode --
+
+  const smtcPoller = new SmtcPoller();
+
+  function onSmtcSongChange(songId: string) {
+    if (songId) {
+      setNowPlayingExternal(songId);
+      ctx.sse.send('now-playing', { songId, index: -1 });
+      // Write song file if enabled
+      const { writeSongFile } = getMusicSettingsStatus();
+      if (writeSongFile) {
+        writeSongTxt(`\u266b  ${songId}  \u266b`);
+      }
+    } else {
+      clearNowPlaying();
+      ctx.sse.send('now-playing', { songId: '', index: -1 });
+    }
+  }
+
+  function syncSmtcPoller(mode: string) {
+    if (mode === 'external') {
+      if (!smtcPoller.running) smtcPoller.start(onSmtcSongChange);
+    } else {
+      if (smtcPoller.running) smtcPoller.stop();
+    }
+  }
+
+  // Auto-start if mode is already 'external' on launch
+  syncSmtcPoller(getMusicSettingsStatus().musicMode);
 
   // ── Music settings ──
 
@@ -70,12 +101,20 @@ export function createMusicRouter(ctx: RouteContext): Router {
     if (typeof req.body?.musicPan === 'number') {
       patch.musicPan = Math.max(-1, Math.min(1, req.body.musicPan));
     }
+    if (typeof req.body?.musicMode === 'string') {
+      const val = req.body.musicMode;
+      patch.musicMode = ['off', 'local', 'external'].includes(val) ? val : 'off';
+    }
     const result = updateSettings(patch);
     if (!result.ok) {
       res.status(500).json({ error: 'Failed to write settings' });
       return;
     }
-    res.json({ ok: true, autoShuffle: result.settings.autoShuffle === true, playlistLoop: result.settings.playlistLoop !== false });
+    res.json({ ok: true, autoShuffle: result.settings.autoShuffle === true, playlistLoop: result.settings.playlistLoop !== false, musicMode: typeof result.settings.musicMode === 'string' ? result.settings.musicMode : 'off' });
+    // Start or stop SMTC poller when music mode changes
+    if (patch.musicMode !== undefined) {
+      syncSmtcPoller(typeof result.settings.musicMode === 'string' ? result.settings.musicMode : 'off');
+    }
   });
 
   router.post('/music/path', (req: Request, res: Response) => {

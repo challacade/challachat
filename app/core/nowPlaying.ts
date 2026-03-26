@@ -40,3 +40,19 @@ export function setNowPlayingByIndex(index: number, songIdOverride?: string | nu
   current = next;
   return next;
 }
+
+/** Set now-playing from an external source (e.g. OS media session). */
+export function setNowPlayingExternal(songId: string): NowPlaying {
+  const next: NowPlaying = {
+    index: -1,
+    filePath: '',
+    songId: songId || '',
+    updatedAt: Date.now()
+  };
+  current = next;
+  return next;
+}
+
+export function clearNowPlaying(): void {
+  current = null;
+}

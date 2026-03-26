@@ -239,13 +239,37 @@
 
         <!-- ── Music player ─────────────────────────────────── -->
         <section class="card music-card">
-          <div class="music-now-playing" id="musicNowPlaying">(no track)</div>
-          <div class="music-progress-row">
+          <!-- Mode selector row (always visible) -->
+          <div class="music-mode-row">
+            <select id="musicModeSelect" class="dropdown">
+              <option value="off">No music</option>
+              <option value="local">Local music files</option>
+              <option value="external">External player</option>
+            </select>
+            <!-- Local: path + browse + shuffle (cols 2-3) -->
+            <div class="music-mode-right hidden" id="musicModeLocalPath">
+              <input type="text" class="path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
+              <button class="btn small primary" id="musicBrowseBtn">Browse</button>
+              <button class="btn small primary" id="musicShuffleBtn">Shuffle</button>
+            </div>
+            <!-- External: inline song ID (cols 2-3) -->
+            <div class="music-mode-right hidden" id="musicModeExternalInfo">
+              <span class="music-now-playing-inline" id="musicExternalSongId">Now playing: (no track)</span>
+            </div>
+          </div>
+
+          <!-- Song ID (local mode, separate row) -->
+          <div class="music-now-playing hidden" id="musicNowPlaying">(no track)</div>
+
+          <!-- Local-only: progress bar -->
+          <div class="music-progress-row hidden" id="musicProgressRow">
             <span class="music-time" id="musicTimeCurrent">0:00</span>
             <input type="range" id="musicProgressBar" class="progress-slider" min="0" max="1" step="0.001" value="0" />
             <span class="music-time" id="musicTimeTotal">0:00</span>
           </div>
-          <div class="music-controls">
+
+          <!-- Local-only: player controls -->
+          <div class="music-controls hidden" id="musicControlsRow">
             <div class="music-ctrl-col">
               <span class="music-ctrl-icon" id="musicVolIcon" title="Mute / Unmute">🔊</span>
               <input type="range" id="musicVolSlider" class="vol-slider" min="0" max="2" step="0.01" value="1" />
@@ -262,12 +286,9 @@
               <span class="pan-label">R</span>
             </div>
           </div>
-          <div class="music-path-row">
-            <input type="text" class="path-input" id="musicPathInput" placeholder="Music folder path…" readonly />
-            <button class="btn small primary" id="musicBrowseBtn">Browse</button>
-            <button class="btn small primary" id="musicShuffleBtn">Shuffle</button>
-          </div>
-          <div class="music-options">
+
+          <!-- Song display options (shared by local + external) -->
+          <div class="music-options hidden" id="musicOptionsRow">
               <select id="songDisplaySelect" class="dropdown">
                 <option value="none">No song display</option>
                 <option value="top">Top banner</option>

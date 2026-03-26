@@ -53,6 +53,8 @@ export type AppSettings = {
   // ── Music playback ──
   musicVolume?: number;
   musicPan?: number;
+  /** Music mode: 'off', 'local', or 'external'. Defaults to 'off'. */
+  musicMode?: string;
 
   // ── Custom sound file paths ──
   messageSoundPath?: string;
@@ -163,7 +165,7 @@ function parseSongDisplay(settings: AppSettings): string {
   return ['none', 'top', 'bottom'].includes(val) ? val : 'none';
 }
 
-export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number; musicVolume: number; musicPan: number } {
+export function getMusicSettingsStatus(): { musicPath: string | null; settingsPath: string; autoShuffle: boolean; playlistLoop: boolean; songDisplay: string; writeSongFile: boolean; songFilePath: string; songScrollSpeed: number; songTextSize: number; musicVolume: number; musicPan: number; musicMode: string } {
   const { settings } = readSettings();
   const musicPathVal = typeof settings.musicPath === 'string' ? settings.musicPath.trim() : '';
   return {
@@ -178,6 +180,7 @@ export function getMusicSettingsStatus(): { musicPath: string | null; settingsPa
     songTextSize: typeof settings.songTextSize === 'number' ? settings.songTextSize : 1,
     musicVolume: typeof settings.musicVolume === 'number' ? settings.musicVolume : 1,
     musicPan: typeof settings.musicPan === 'number' ? settings.musicPan : 0,
+    musicMode: typeof settings.musicMode === 'string' ? settings.musicMode : 'off',
   };
 }
 

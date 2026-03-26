@@ -679,6 +679,7 @@ footer {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  margin-top: 10px;
   margin-bottom: 10px;
 }
 .music-progress-row {
@@ -745,9 +746,25 @@ footer {
   padding: 0;
   line-height: 1;
 }
-.music-path-row {
+.music-mode-row {
+  display: grid;
+  grid-template-columns: 1fr 2fr;
+  gap: 8px;
+  align-items: center;
+}
+.music-mode-right {
   display: flex;
   gap: 8px;
+  min-width: 0;
+}
+.music-now-playing-inline {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
 }
 .music-options {
   margin-top: 21px;

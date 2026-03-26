@@ -91,7 +91,15 @@ export const msgFilename       = $('msgFilename');
 export const donFilename       = $('donFilename');
 export const memFilename       = $('memFilename');
 // Music
+export const musicModeSelect       = $('musicModeSelect');
+export const musicModeLocalPath    = $('musicModeLocalPath');
+export const musicModeExternalInfo = $('musicModeExternalInfo');
+export const musicExternalSongId   = $('musicExternalSongId');
+
 export const musicNowPlaying   = $('musicNowPlaying');
+export const musicProgressRow  = $('musicProgressRow');
+export const musicControlsRow  = $('musicControlsRow');
+export const musicOptionsRow   = $('musicOptionsRow');
 export const musicPrevBtn      = $('musicPrevBtn');
 export const musicPlayBtn      = $('musicPlayBtn');
 export const musicNextBtn      = $('musicNextBtn');

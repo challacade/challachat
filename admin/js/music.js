@@ -3,7 +3,9 @@
  */
 import {
   isElectron,
-  musicNowPlaying, musicPrevBtn, musicPlayBtn, musicNextBtn, musicShuffleBtn,
+  musicModeSelect, musicModeLocalPath, musicModeExternalInfo, musicExternalSongId,
+  musicNowPlaying, musicProgressRow, musicControlsRow, musicOptionsRow,
+  musicPrevBtn, musicPlayBtn, musicNextBtn, musicShuffleBtn,
   musicProgressBar, musicTimeCurrent, musicTimeTotal,
   musicVolSlider, musicVolLabel, musicVolIcon,
   musicPanSlider,
@@ -19,6 +21,7 @@ import { debounce } from '/shared/utils.js';
 // ─── Music state ───────────────────────────────────────────────
 
 const music = {
+  mode: 'off',   // 'off' | 'local' | 'external'
   playlist: [],    // array of file paths from server
   meta: [],        // array of { title, artist } per server index
   order: [],       // shuffle-aware index mapping
@@ -112,24 +115,59 @@ function triggerSongFileWrite() {
   }
 }
 
+function setSongIdText(text) {
+  if (musicNowPlaying) musicNowPlaying.textContent = text;
+  if (musicExternalSongId) musicExternalSongId.textContent = `Now playing: ${text}`;
+}
+
+// ─── External mode polling ─────────────────────────────────────
+
+let externalPollTimer = null;
+let externalRetryTimer = null;
+
+async function pollExternalNowPlaying() {
+  try {
+    const data = await api('GET', '/api/music/nowplaying');
+    const songId = data?.nowPlaying?.songId || '';
+    setSongIdText(songId || '(no track)');
+  } catch {}
+}
+
+function startExternalPolling() {
+  if (externalPollTimer) return;
+  pollExternalNowPlaying();
+  // Quick retry after 1.5s to catch the first SMTC result after PowerShell starts
+  externalRetryTimer = setTimeout(pollExternalNowPlaying, 1500);
+  externalPollTimer = setInterval(pollExternalNowPlaying, 3000);
+}
+
+function stopExternalPolling() {
+  if (externalRetryTimer) {
+    clearTimeout(externalRetryTimer);
+    externalRetryTimer = null;
+  }
+  if (externalPollTimer) {
+    clearInterval(externalPollTimer);
+    externalPollTimer = null;
+  }
+}
+
 function syncMusicUI() {
   // Title
-  if (musicNowPlaying) {
-    musicNowPlaying.textContent = displayTitle(music.index);
-    // Lazy-load ID3 meta then update
-    if (music.playlist.length) {
-      const snap = serverIndexAtPos(music.index);
-      void ensureMetaLoaded(snap).then(() => {
-        if (serverIndexAtPos(music.index) === snap) {
-          musicNowPlaying.textContent = displayTitle(music.index);
-          // Re-notify server with metadata title (initial post may have used filename fallback)
-          void postJsonQuiet('/api/music/nowplaying', { index: snap, songId: displayTitle(music.index) });
-          if (music.writeSongFile) {
-            void postJsonQuiet('/api/music/songfile', { index: snap, songId: displayTitle(music.index) });
-          }
+  setSongIdText(displayTitle(music.index));
+  // Lazy-load ID3 meta then update
+  if (music.playlist.length) {
+    const snap = serverIndexAtPos(music.index);
+    void ensureMetaLoaded(snap).then(() => {
+      if (serverIndexAtPos(music.index) === snap) {
+        setSongIdText(displayTitle(music.index));
+        // Re-notify server with metadata title (initial post may have used filename fallback)
+        void postJsonQuiet('/api/music/nowplaying', { index: snap, songId: displayTitle(music.index) });
+        if (music.writeSongFile) {
+          void postJsonQuiet('/api/music/songfile', { index: snap, songId: displayTitle(music.index) });
         }
-      });
-    }
+      }
+    });
   }
   // Play/Pause button
   if (musicPlayBtn) {
@@ -197,6 +235,43 @@ function resetProgressUI() {
   if (musicProgressBar) musicProgressBar.value = 0;
 }
 
+// ─── Music mode switching ──────────────────────────────────────
+
+function setEl(el, visible) {
+  if (!el) return;
+  el.classList.toggle('hidden', !visible);
+}
+
+function applyMusicMode() {
+  const mode = music.mode;
+  if (musicModeSelect) musicModeSelect.value = mode;
+
+  const isLocal = mode === 'local';
+  const isExternal = mode === 'external';
+  const hasContent = isLocal || isExternal;
+
+  // Top-row right side
+  setEl(musicModeLocalPath, isLocal);
+  setEl(musicModeExternalInfo, isExternal);
+
+  // Song ID: separate row for local, inline for external
+  setEl(musicNowPlaying, isLocal);
+
+  // Local-only sections
+  setEl(musicProgressRow, isLocal);
+  setEl(musicControlsRow, isLocal);
+
+  // Song display options – shared by local + external
+  setEl(musicOptionsRow, hasContent);
+
+  // External mode polling
+  if (isExternal) {
+    startExternalPolling();
+  } else {
+    stopExternalPolling();
+  }
+}
+
 function syncMusicDisplayUI() {
   if (songDisplaySelect) songDisplaySelect.value = music.songDisplay || 'none';
   if (scrollSpeedSlider) scrollSpeedSlider.value = String(music.songScrollSpeed || 0);
@@ -229,6 +304,7 @@ async function fetchMusicConfig() {
     music.isConfigured = !!mPath;
     music.playlistLoop = data?.playlistLoop !== false;
     music.autoShuffle = data?.autoShuffle === true;
+    if (typeof data?.musicMode === 'string') music.mode = data.musicMode;
     if (musicPathInput) musicPathInput.value = mPath || '';
     // Display settings are included in the main music config response
     if (typeof data?.songDisplay === 'string') music.songDisplay = data.songDisplay;
@@ -246,6 +322,7 @@ async function fetchMusicConfig() {
       music.pan = data.musicPan;
       if (musicPanSlider) musicPanSlider.value = music.pan;
     }
+    applyMusicMode();
     syncMusicDisplayUI();
   } catch {}
 }
@@ -379,6 +456,32 @@ const saveMusicPlaybackSettings = debounce(async (patch) => {
 // ─── Event listeners ───────────────────────────────────────────
 
 export function bindMusicListeners() {
+  // Mode selector
+  musicModeSelect?.addEventListener('change', async () => {
+    const newMode = musicModeSelect.value;
+    music.mode = newMode;
+    // Stop local playback when leaving local mode
+    if (newMode !== 'local' && music.audio && !music.audio.paused) {
+      music.audio.pause();
+    }
+    // Tell server first so SMTC poller starts before client polling begins
+    try { await api('POST', '/api/music/settings', { musicMode: newMode }); } catch {}
+    applyMusicMode();
+    // When entering local mode, reload config + playlist so the UI stays in sync
+    if (newMode === 'local') {
+      await fetchMusicConfig();
+      if (music.isConfigured) {
+        await loadMusicPlaylist();
+        if (music.autoShuffle && music.playlist.length > 1) {
+          shuffleArray(music.order);
+        }
+        setMusicIndex(0);
+      } else {
+        syncMusicUI();
+      }
+    }
+  });
+
   musicPlayBtn?.addEventListener('click', () => musicTogglePlayPause().catch(() => {}));
   musicPrevBtn?.addEventListener('click', () => musicPrev().catch(() => {}));
   musicNextBtn?.addEventListener('click', () => musicNext().catch(() => {}));
@@ -516,6 +619,8 @@ export function bindMusicListeners() {
 
 export async function initMusic() {
   await fetchMusicConfig();
+  applyMusicMode();
+  if (music.mode !== 'local') { syncMusicUI(); return; }
   if (!music.isConfigured) { syncMusicUI(); return; }
   await loadMusicPlaylist();
   if (music.autoShuffle && music.playlist.length > 1) {
