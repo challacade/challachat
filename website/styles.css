@@ -8,18 +8,18 @@
 /* Site-wide variables */
 :root {
     --site-card-max-width: 700px; /* Adjust once to change all card widths */
-    --purple-deep: #271852;
-    --purple-mid: #2d1b69;
-    --purple-accent: #7c3aed;
-    --purple-glow: rgba(124, 58, 237, 0.25);
-    --indigo: #4c51bf;
+    --accent-deep: #211e52;
+    --accent-mid: #262469;
+    --accent: #6653ed;
+    --accent-glow: rgba(102, 83, 237, 0.25);
+    --indigo: #4c58bf;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
     color: #e2e8f0;
-    background: #1a1030;
+    background: #161530;
     display: flex;
     min-height: 100vh;
     flex-direction: column;
@@ -35,7 +35,7 @@ html, body { height: 100%; }
 
 /* Header/Hero Section */
 .hero {
-    background: linear-gradient(135deg, #056077 0%, #2d1b5e 100%);
+    background: linear-gradient(135deg, #056077 0%, #26235e 100%);
     color: white;
     padding: 10px 0 20px 0;
     text-align: center;
@@ -119,23 +119,23 @@ section h2 {
 
 /* Main Section */
 .main-section {
-    background: linear-gradient(135deg, #1d1535 0%, #271858 40%, #2d1d60 70%, #231845 100%);
+    background: linear-gradient(135deg, #191938 0%, #212058 40%, #262560 70%, #1d1c45 100%);
     padding: 16px 0;
 }
 
 /* Unified card style */
 .site-card {
-    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
-    border: 1px solid rgba(124, 58, 237, 0.25);
+    background: linear-gradient(160deg, #2b2a70 0%, #343182 50%, #29265f 100%);
+    border: 1px solid rgba(102, 83, 237, 0.25);
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 30px rgba(124, 58, 237, 0.08);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 30px rgba(102, 83, 237, 0.08);
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .site-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 40px rgba(124, 58, 237, 0.15);
-    border-color: rgba(124, 58, 237, 0.4);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 40px rgba(102, 83, 237, 0.15);
+    border-color: rgba(102, 83, 237, 0.4);
 }
 
 /* ChallaChat card content */
@@ -221,7 +221,7 @@ section h2 {
 }
 
 .overlay-card .product-icon img {
-    filter: drop-shadow(0 0 12px rgba(139, 92, 246, 0.4)) drop-shadow(0 0 24px rgba(139, 92, 246, 0.2));
+    filter: drop-shadow(0 0 12px rgba(92, 130, 246, 0.4)) drop-shadow(0 0 24px rgba(92, 130, 246, 0.2));
 }
 
 .main-product {
@@ -310,7 +310,7 @@ section h2 {
 }
 
 .download-link {
-    background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+    background: linear-gradient(135deg, #3e33b6 0%, #6653ed 100%);
     color: white;
     padding: 12px 22px;
     border-radius: 10px;
@@ -323,7 +323,7 @@ section h2 {
     margin-top: 1rem;
     font-size: 1rem;
     line-height: 1;
-    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
+    box-shadow: 0 4px 15px rgba(102, 83, 237, 0.3);
 }
 
 /* Larger icon inside the download button */
@@ -334,13 +334,13 @@ section h2 {
 }
 
 .download-link:hover {
-    background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #4b3cd9 0%, #746bf6 100%);
     transform: translateY(-2px);
-    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
+    box-shadow: 0 6px 20px rgba(102, 83, 237, 0.45);
 }
 
 .products-arrow {
-    color: #a78bfa;
+    color: #9998fa;
     opacity: 0.8;
     animation: pulse 2s infinite;
     display: flex;
@@ -837,7 +837,7 @@ section h2 {
 }
 
 .step-number {
-    background: #4c51bf;
+    background: #4c58bf;
     color: white;
     width: 32px;
     height: 32px;
@@ -998,8 +998,8 @@ section h2 {
 /* Footer */
 /* Simple Footer */
 .simple-footer {
-    background: linear-gradient(135deg, #171030 0%, #1e1538 100%);
-    border-top: 1px solid rgba(124, 58, 237, 0.12);
+    background: linear-gradient(135deg, #141430 0%, #1a1b38 100%);
+    border-top: 1px solid rgba(102, 83, 237, 0.12);
     color: #a0aec0;
     text-align: center;
     padding: 1rem 0;
