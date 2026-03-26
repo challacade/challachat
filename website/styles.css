@@ -231,6 +231,23 @@ section h2 {
     filter: drop-shadow(0 0 12px rgba(125, 193, 245, 0.5)) drop-shadow(0 0 24px rgba(200, 220, 255, 0.25));
 }
 
+.product-logo {
+    width: 100%;
+    max-width: 550px;
+    max-height: 160px;
+    margin: 0 auto -0.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.product-logo img {
+    width: 100%;
+    height: auto;
+    max-height: 160px;
+    object-fit: contain;
+}
+
 .product-card h3 {
     font-size: 1.35rem;
     margin-bottom: 0rem;

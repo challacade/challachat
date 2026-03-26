@@ -3,7 +3,7 @@
 Capture and display any livestream chat in a custom overlay. Add it to your streaming software (OBS, Streamlabs, etc.) as a Browser source.
 
 - **Multi-platform** - YouTube, Twitch, and Kick support
-- **Multi-connection** - Monitor up to 5 livestreams simultaneously
+- **Multi-connection** - Monitor up to 10 livestreams simultaneously
 - **Ultra-low latency** - Local SSE stream to your overlay
 - **Secure & private** - All processing runs on your machine
 - **Electron admin panel** - Manage connections, appearance, music, and settings from one window
@@ -179,7 +179,7 @@ All settings are persisted to `settings.json` in the app data directory:
 
 ## Multi-connection
 
-ChallaChat supports up to **5 simultaneous** livestream connections. Each connection has its own capture instance, poll interval (100-5000 ms), stats tracking, and independent connect/disconnect. Duplicate URLs are rejected.
+ChallaChat supports up to **10 simultaneous** livestream connections. Each connection has its own capture instance, poll interval (100-5000 ms), stats tracking, and independent connect/disconnect. Duplicate URLs are rejected.
 
 ## Overlay
 
