@@ -309,6 +309,25 @@ section h2 {
     box-shadow: 0 4px 12px rgba(255, 113, 57, 0.4);
 }
 
+.steam-button {
+    display: inline-block;
+    margin-top: 1rem;
+    transition: all 0.3s ease;
+    border-radius: 6px;
+}
+
+.steam-button img {
+    display: block;
+    height: 62px;
+    width: auto;
+    border-radius: 6px;
+}
+
+.steam-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 0 18px rgba(102, 83, 237, 0.5), 0 0 36px rgba(102, 83, 237, 0.25);
+}
+
 .download-link {
     background: linear-gradient(135deg, #3e33b6 0%, #6653ed 100%);
     color: white;
