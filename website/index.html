@@ -10,105 +10,91 @@
  </head>
  <body>
 
-    <section id="products" class="products">
+    <section id="main" class="main-section">
         <div class="container">
-            <div class="product-card main-product">
-                <div class="product-icon">
-                    <img src="img/challachat.png" alt="ChallaChat Application" />
+            <!-- Hero card -->
+            <div class="site-card main-product">
+                <div class="product-logo">
+                    <img src="img/challachat-full.png" alt="ChallaChat" />
                 </div>
                 <div class="cc-card-content">
-                    <h3 class="cc-card-title">ChallaChat</h3>
                     <p class="cc-card-desc">Capture and display any livestream chat in a custom overlay.</p>
                     <p class="cc-card-desc">No cloud, all local. Completely free and <a href="https://github.com/challacade/challachat" target="_blank" rel="noopener noreferrer">open source!</a></p>
                 </div>
                 <div class="cta-buttons">
-                    <a href="https://github.com/challacade/challachat/releases/latest" class="download-link" target="_blank" rel="noopener noreferrer">
-                        <img src="img/github.png" alt="GitHub" width="20" height="20" style="filter: brightness(1.2);" />
-                        Download on GitHub
+                    <a href="https://store.steampowered.com/app/4480260/ChallaChat/" class="steam-button" target="_blank" rel="noopener noreferrer">
+                        <img src="img/steam-download.png" alt="Get it on Steam" />
                     </a>
                     <a href="https://github.com/challacade/challachat/releases/latest" target="_blank" rel="noopener noreferrer" class="tagline-link" style="font-size: 1rem; flex-basis: 100%; text-align: center; margin-top: -0.5rem; margin-bottom: -0.3rem;">
-                        View latest release
+                        View latest release on GitHub
                     </a>
                 </div>
             </div>
 
-            <div class="streaming-card">
+            <!-- Streaming compatibility card -->
+            <div class="site-card streaming-card">
                 <div class="streaming-icon">
                     <img src="img/stream.png" alt="Streaming Software Compatibility" />
                 </div>
                 <div class="streaming-content">
                     <h3>Works with Any Streaming Software</h3>
-                    <p>Compatible with OBS Studio, Streamlabs, and any streaming software that supports Browser sources. <a href="https://demo.challachat.com" target="_blank" rel="noopener noreferrer" class="tagline-link">Try the live demo!</a></p>
+                    <p>Compatible with OBS Studio, Streamlabs, and any streaming software that supports Browser sources.</p>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <section id="features" class="features">
-        <div class="container">
+            <!-- Feature cards -->
             <div class="feature-grid">
-                <div class="feature-card">
+                <div class="site-card feature-card">
                     <h3>🌐 Cross Platform</h3>
-                    <p>Portable Windows app today with no installation required. Works with any streaming software via Browser Source. macOS and Linux support planned.</p>
+                    <p>Works with OBS, Streamlabs, and any streaming software via Browser Source. Official builds available for Windows, macOS, and Linux.</p>
                 </div>
-                <div class="feature-card">
-                    <h3>⚡ Ultra‑Low Latency</h3>
-                    <p>Built‑in chat capture connects directly to YouTube for instant message display and minimal CPU usage - no browser extensions required.</p>
+                <div class="site-card feature-card">
+                    <h3>⚡ Multi-Stream Capture</h3>
+                    <p>Connects to YouTube, Twitch, and Kick with support for multiple connections at once. Messages are streamed instantly to your overlay via local SSE.</p>
                 </div>
-                <div class="feature-card">
+                <div class="site-card feature-card">
                     <h3>🔒 Secure & Private</h3>
-                    <p>Digitally signed releases, no telemetry, and everything runs locally - your chat data never leaves your computer.</p>
+                    <p>No telemetry, no cloud - all processing runs locally on your machine. The chat data never leaves your computer.</p>
                 </div>
-                <div class="feature-card">
+                <div class="site-card feature-card">
                     <h3>🎨 Full Customization</h3>
-                    <p>Dark, Light, and Transparent themes with adjustable colors, fonts, animations, and notification sounds (with volume control).</p>
+                    <p>Appearance controls for colors, bubbles, badges, and avatars. Sound effects, music player, profanity filter, and more - all from one admin panel.</p>
                 </div>
             </div>
-        </div>
-    </section>
 
-    <!--<section id="demo" class="demo">
-        <div class="container">
-            <h2>See It In Action</h2>
+            <!-- Video -->
             <div class="demo-container">
-                <div class="demo-placeholder">
-                    <p>🎬 Demo Video Coming Soon</p>
-                </div>
-            </div>
-        </div>
-    </section>-->
-
-    <section id="setup" class="setup">
-        <div class="container">
-            <div class="demo-container">
-                <div class="video-card">
+                <div class="site-card video-card">
                     <div class="video-embed">
-                        <iframe 
-                            src="https://www.youtube.com/embed/M7lc1UVf-VE" 
-                            title="ChallaChat Setup"
-                            frameborder="0"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-                            referrerpolicy="strict-origin-when-cross-origin"
-                            allowfullscreen>
-                        </iframe>
+                        <video 
+                            controls
+                            preload="metadata"
+                            poster="img/thumbnail.png">
+                            <source src="https://challacade.blob.core.windows.net/gallery/challachat/videos/trailer.mp4" type="video/mp4" />
+                            Your browser does not support the video tag.
+                        </video>
                     </div>
                 </div>
             </div>
+
+            <!-- How it works -->
             <div class="setup-steps">
-                <div class="setup-step animate">
-                    <ol class="setup-list">
-                        <li>Download & install ChallaChat - <a href="https://github.com/challacade/challachat/releases/latest/download/challachat-setup.exe" class="tagline-link" target="_blank" rel="noopener noreferrer">Direct Windows Installer</a> or <a href="https://github.com/challacade/challachat/releases/latest" class="tagline-link" target="_blank" rel="noopener noreferrer">View Latest Release</a></li>
-                        <li>Launch the program, paste-in any livestream URL</li>
-                        <li>Once connected, create a Browser source using the provided localhost.</li>
-                        <li>Use the Interact feature to adjust the overlay settings</li>
-                    </ol>
+                <div class="site-card setup-step animate">
+                    <h3>How it works</h3>
+                    <ul class="setup-list">
+                        <li>Using the livestream's URL, ChallaChat will make a connection and monitor the chat.</li>
+                        <li>Messages are processed locally and appear in the overlay. This is secure and private; the chat data never leaves your computer.</li>
+                        <li>Add the overlay endpoint as a Browser Source to any streaming software.</li>
+                        <li>The overlay's appearance can be customized, and messages are rendered with full styling (emotes, badges, avatars, donations, subs, and more).</li>
+                        <li>Multiple livestream connections (across multiple different streaming platforms) can be added to the same session, keeping all messages visible in one place.</li>
+                    </ul>
                 </div>
             </div>
         </div>
     </section>
 
     <footer class="simple-footer">
-        <p>&copy; 2025 Challacade LLC. This project is licensed under the Apache-2.0 license.</p>
+        <p>&copy; 2026 Challacade LLC. This project is licensed under the Apache-2.0 license.</p>
     </footer>
 
     <script src="script.js"></script>
