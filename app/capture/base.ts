@@ -49,6 +49,8 @@ export abstract class BaseChatCapture {
   protected page: Page | null = null;
   protected isRunning = false;
   protected seenIds = new Set<string>();
+  /** Maps lowercased author name → set of message IDs they sent (for ban-based bulk deletion) */
+  protected authorMessageIds = new Map<string, Set<string>>();
   protected pollTimer: NodeJS.Timeout | null = null;
   protected opts: CaptureOpts;
   protected callbacks: CaptureCallbacks;
@@ -217,6 +219,21 @@ export abstract class BaseChatCapture {
     if (this.page) { try { await this.page.close(); } catch { /* ignore – page may already be closed */ } this.page = null; }
     // Do NOT close the browser - it's shared via BrowserPool
     this.browser = null;
+    this.authorMessageIds.clear();
+  }
+
+  /** Delete all tracked messages for a given author (used when a ban is detected). */
+  protected deleteMessagesByAuthor(authorName: string): void {
+    const key = authorName.toLowerCase();
+    const ids = this.authorMessageIds.get(key);
+    if (!ids || ids.size === 0) return;
+    for (const id of ids) {
+      if (this.seenIds.has(id)) {
+        this.callbacks.onDelete(id);
+        this.seenIds.delete(id);
+      }
+    }
+    this.authorMessageIds.delete(key);
   }
 
   protected startPolling() {
@@ -251,7 +268,7 @@ export abstract class BaseChatCapture {
    * Process raw messages from page.evaluate(), handling dedup, emission, and deletion detection.
    * Called by subclass pollMessages() after scraping.
    */
-  protected processRawMessages(result: { messages: any[]; visibleIds: string[]; deletedIds?: string[] }): void {
+  protected processRawMessages(result: { messages: any[]; visibleIds: string[]; deletedIds?: string[]; bannedUsers?: string[] }): void {
     const messages = result.messages || [];
     const visibleRendererIds = new Set(result.visibleIds || []);
     const deletedRendererIds = result.deletedIds ? new Set(result.deletedIds) : null;
@@ -283,12 +300,30 @@ export abstract class BaseChatCapture {
       }
     }
 
-    // Deletion detection - only check IDs assigned by the DOM, not hash-generated ones
-    const knownDomIds = Array.from(this.seenIds).filter(id => !id.startsWith(this.hashPrefix));
-    for (const id of knownDomIds) {
+    // Track author → message ID mappings for ban-based bulk deletion
+    for (const message of messages) {
+      const authorName = message.author?.name;
+      const id = message.id;
+      if (authorName && id && this.seenIds.has(id)) {
+        const key = authorName.toLowerCase();
+        let ids = this.authorMessageIds.get(key);
+        if (!ids) { ids = new Set(); this.authorMessageIds.set(key, ids); }
+        ids.add(id);
+      }
+    }
+
+    // Deletion detection — check ALL tracked IDs (both DOM-assigned and hash-generated)
+    for (const id of Array.from(this.seenIds)) {
       if ((deletedRendererIds && deletedRendererIds.has(id)) || !visibleRendererIds.has(id)) {
         this.callbacks.onDelete(id);
         this.seenIds.delete(id);
+      }
+    }
+
+    // Ban-based bulk deletion — remove all messages from banned/timed-out users
+    if (result.bannedUsers) {
+      for (const user of result.bannedUsers) {
+        if (user) this.deleteMessagesByAuthor(user);
       }
     }
   }

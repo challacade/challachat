@@ -364,7 +364,24 @@ export class TwitchChatCapture extends BaseChatCapture {
         } catch {}
       });
 
-      return { messages: out, visibleIds, deletedIds };
+      // ─────────────────────────────────────────────────────────────────────
+      // Detect ban / moderation actions ("username banned username.")
+      // ─────────────────────────────────────────────────────────────────────
+      const bannedUsers: string[] = [];
+      const modActions = document.querySelectorAll('.chat-line__status[data-a-target="moderation-action"], .chat-line__status');
+      modActions.forEach(el => {
+        const text = (el.textContent || '').trim();
+        // Match "<mod> banned <user>." or "<mod> timed out <user> for ..."
+        const banMatch = text.match(/\bbanned\s+(\S+)/i);
+        const timeoutMatch = text.match(/\btimed out\s+(\S+)/i);
+        const target = banMatch?.[1] || timeoutMatch?.[1];
+        if (target) {
+          // Strip trailing period if present
+          bannedUsers.push(target.replace(/\.$/, ''));
+        }
+      });
+
+      return { messages: out, visibleIds, deletedIds, bannedUsers };
     });
 
     this.processRawMessages(result as any);
