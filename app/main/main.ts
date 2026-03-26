@@ -9,8 +9,9 @@
  * via webContents.send so the UI updates in real-time.
  */
 
-import { app, BrowserWindow, dialog, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron';
 import path from 'path';
+import { readSettings, updateSettings } from '../core/settings';
 
 // Prevent server.ts from auto-instantiating when we require it
 process.env.CHALLACHAT_ELECTRON = '1';
@@ -26,10 +27,39 @@ function sendToRenderer(channel: string, ...args: any[]) {
 }
 
 /* ── Window creation ───────────────────────────────────────────────── */
+function isPositionVisible(x: number, y: number, w: number, h: number): boolean {
+  const displays = screen.getAllDisplays();
+  // Window is "visible" if at least 100px of its area overlaps any display
+  const overlap = 100;
+  return displays.some(d => {
+    const db = d.bounds;
+    return (
+      x + w > db.x + overlap &&
+      x < db.x + db.width - overlap &&
+      y + h > db.y + overlap &&
+      y < db.y + db.height - overlap
+    );
+  });
+}
+
 async function createWindow(port: number) {
+  const { settings } = readSettings();
+  const saved = {
+    width: settings.windowWidth ?? 528,
+    height: settings.windowHeight ?? 562,
+    x: settings.windowX,
+    y: settings.windowY,
+    maximized: settings.windowMaximized ?? false,
+  };
+
+  // Only restore position if the saved coordinates are still on a connected display
+  const hasPosition = saved.x !== undefined && saved.y !== undefined;
+  const positionValid = hasPosition && isPositionVisible(saved.x!, saved.y!, saved.width, saved.height);
+
   mainWindow = new BrowserWindow({
-    width: 528,
-    height: 562,
+    width: saved.width,
+    height: saved.height,
+    ...(positionValid ? { x: saved.x, y: saved.y } : {}),
     minWidth: 420,
     minHeight: 430,
     title: 'ChallaChat',
@@ -44,9 +74,51 @@ async function createWindow(port: number) {
 
   mainWindow.setMenuBarVisibility(false);
 
+  if (saved.maximized) mainWindow.maximize();
+
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
   await mainWindow.loadURL(`http://localhost:${port}/admin`);
+
+  // Persist window bounds on resize / move (debounced)
+  let saveTimer: ReturnType<typeof setTimeout> | null = null;
+  let lastNormalBounds: Electron.Rectangle | null = null;
+
+  function saveWindowBounds() {
+    if (saveTimer) clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      if (!mainWindow || mainWindow.isDestroyed()) return;
+      const isMaximized = mainWindow.isMaximized();
+      const patch: Record<string, any> = { windowMaximized: isMaximized };
+      if (!isMaximized) {
+        const bounds = mainWindow.getBounds();
+        lastNormalBounds = bounds;
+        patch.windowWidth = bounds.width;
+        patch.windowHeight = bounds.height;
+        patch.windowX = bounds.x;
+        patch.windowY = bounds.y;
+      } else {
+        // Save the display the maximized window is on so it restores on the right monitor
+        const bounds = mainWindow.getBounds();
+        const display = screen.getDisplayMatching(bounds);
+        const db = display.bounds;
+        // Place the saved position at the center of this display (using last known size)
+        const w = lastNormalBounds?.width ?? (settings.windowWidth ?? 528);
+        const h = lastNormalBounds?.height ?? (settings.windowHeight ?? 562);
+        patch.windowX = Math.round(db.x + (db.width - w) / 2);
+        patch.windowY = Math.round(db.y + (db.height - h) / 2);
+        if (lastNormalBounds) {
+          patch.windowWidth = lastNormalBounds.width;
+          patch.windowHeight = lastNormalBounds.height;
+        }
+      }
+      updateSettings(patch);
+    }, 500);
+  }
+  mainWindow.on('resize', saveWindowBounds);
+  mainWindow.on('move', saveWindowBounds);
+  mainWindow.on('maximize', saveWindowBounds);
+  mainWindow.on('unmaximize', saveWindowBounds);
 
   // Open external links in the user's default browser instead of Electron
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {

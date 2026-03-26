@@ -74,6 +74,13 @@ export type AppSettings = {
   uiZoom?: number;
   uiTheme?: string;
   filmingMode?: boolean;
+
+  // ── Window ──
+  windowWidth?: number;
+  windowHeight?: number;
+  windowX?: number;
+  windowY?: number;
+  windowMaximized?: boolean;
 };
 
 function getSettingsDir(): string {
