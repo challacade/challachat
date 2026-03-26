@@ -8,13 +8,18 @@
 /* Site-wide variables */
 :root {
     --site-card-max-width: 700px; /* Adjust once to change all card widths */
+    --purple-deep: #271852;
+    --purple-mid: #2d1b69;
+    --purple-accent: #7c3aed;
+    --purple-glow: rgba(124, 58, 237, 0.25);
+    --indigo: #4c51bf;
 }
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
     line-height: 1.6;
     color: #e2e8f0;
-    background: #1a202c;
+    background: #1a1030;
     display: flex;
     min-height: 100vh;
     flex-direction: column;
@@ -114,7 +119,7 @@ section h2 {
 
 /* Products Section */
 .products {
-    background: linear-gradient(135deg, #1f2940 0%, #374659 100%);
+    background: linear-gradient(135deg, #1d1535 0%, #271858 40%, #2d1d60 70%, #231845 100%);
     padding: 32px 0;
 }
 
@@ -179,14 +184,14 @@ section h2 {
 }
 
 .product-card {
-    background: #314056;
-    border: 1px solid #4b5c79;
+    background: linear-gradient(160deg, #271d55 0%, #2e2265 50%, #251b50 100%);
+    border: 1px solid rgba(124, 58, 237, 0.25);
     border-radius: 12px;
     padding: 0.9rem 0.9rem;
     text-align: center;
     position: relative;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 30px rgba(124, 58, 237, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
@@ -194,7 +199,8 @@ section h2 {
 
 .product-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 40px rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
 }
 
 .product-icon {
@@ -306,7 +312,7 @@ section h2 {
 }
 
 .download-link {
-    background: #4c51bf;
+    background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
     color: white;
     padding: 12px 22px;
     border-radius: 10px;
@@ -317,8 +323,9 @@ section h2 {
     gap: 10px;
     transition: all 0.3s ease;
     margin-top: 1rem;
-    font-size: 1rem; /* larger text */
+    font-size: 1rem;
     line-height: 1;
+    box-shadow: 0 4px 15px rgba(124, 58, 237, 0.3);
 }
 
 /* Larger icon inside the download button */
@@ -329,8 +336,9 @@ section h2 {
 }
 
 .download-link:hover {
-    background: #4338ca;
+    background: linear-gradient(135deg, #6d28d9 0%, #8b5cf6 100%);
     transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(124, 58, 237, 0.45);
 }
 
 .products-arrow {
@@ -400,22 +408,23 @@ section h2 {
 
 /* Streaming Card */
 .streaming-card {
-    background: #314056;
-    border: 1px solid #4b5c79;
+    background: linear-gradient(160deg, #271d55 0%, #2e2265 50%, #251b50 100%);
+    border: 1px solid rgba(124, 58, 237, 0.2);
     border-radius: 12px;
     padding: 0.75rem;
     margin: 1.5rem auto 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 20px rgba(124, 58, 237, 0.06);
     max-width: var(--site-card-max-width);
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .streaming-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 30px rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.35);
 }
 
 .streaming-icon {
@@ -692,7 +701,7 @@ section h2 {
 
 /* Features Section */
 .features {
-    background: #1a202c;
+    background: linear-gradient(180deg, #1a1030 0%, #1e1538 50%, #1a1030 100%);
 }
 
 .feature-grid {
@@ -708,15 +717,17 @@ section h2 {
 .feature-card {
     padding: 1.2rem;
     border-radius: 8px;
-    background: #2d3748;
-    border: 1px solid #4a5568;
+    background: linear-gradient(160deg, #231845 0%, #271d50 100%);
+    border: 1px solid rgba(124, 58, 237, 0.15);
+    border-top: 2px solid rgba(124, 58, 237, 0.4);
     transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .feature-card:hover {
     transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(74, 144, 226, 0.2);
-    border-color: rgba(74, 144, 226, 0.3);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.35);
+    border-top-color: rgba(124, 58, 237, 0.6);
 }
 
 .feature-card h3 {
@@ -800,17 +811,18 @@ section h2 {
 
 /* Setup video card */
 .video-card {
-    background: #314056;
-    border: 1px solid #4b5c79;
+    background: #271d55;
+    border: 1px solid rgba(124, 58, 237, 0.25);
     border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 25px rgba(124, 58, 237, 0.08);
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
 }
 
 .video-card:hover {
     transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.4);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 35px rgba(124, 58, 237, 0.12);
+    border-color: rgba(124, 58, 237, 0.4);
 }
 
 .video-embed {
@@ -832,7 +844,7 @@ section h2 {
 
 /* Setup Section */
 .setup {
-    background: linear-gradient(135deg, #1f2940 0%, #374659 100%);
+    background: linear-gradient(135deg, #1d1535 0%, #271858 50%, #231845 100%);
 }
 
 .setup h2 {
@@ -848,10 +860,10 @@ section h2 {
 }
 
 .setup-step {
-    background: #1a202c;
+    background: linear-gradient(160deg, #1d1538 0%, #231848 100%);
     border-radius: 12px;
     padding: 1.2rem;
-    border: 1px solid #4a5568;
+    border: 1px solid rgba(124, 58, 237, 0.15);
     transition: all 0.3s ease;
     opacity: 0;
     transform: translateY(30px);
@@ -1031,7 +1043,8 @@ section h2 {
 /* Footer */
 /* Simple Footer */
 .simple-footer {
-    background: linear-gradient(135deg, #1f2937 0%, #374151 100%);
+    background: linear-gradient(135deg, #171030 0%, #1e1538 100%);
+    border-top: 1px solid rgba(124, 58, 237, 0.12);
     color: #a0aec0;
     text-align: center;
     padding: 1rem 0;
