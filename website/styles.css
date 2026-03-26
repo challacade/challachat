@@ -117,17 +117,25 @@ section h2 {
     color: #f7fafc;
 }
 
-/* Products Section */
-.products {
+/* Main Section */
+.main-section {
     background: linear-gradient(135deg, #1d1535 0%, #271858 40%, #2d1d60 70%, #231845 100%);
     padding: 32px 0;
 }
 
-.products h2 {
-    text-align: center;
-    font-size: 1.8rem;
-    margin-bottom: 0.75rem;
-    color: #f7fafc;
+/* Unified card style */
+.site-card {
+    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
+    border: 1px solid rgba(124, 58, 237, 0.25);
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 30px rgba(124, 58, 237, 0.08);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.site-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 40px rgba(124, 58, 237, 0.15);
+    border-color: rgba(124, 58, 237, 0.4);
 }
 
 /* ChallaChat card content */
@@ -156,8 +164,8 @@ section h2 {
     margin-bottom: 0.5rem;
 }
 
-/* Ensure larger download button text inside product card */
-.product-card .download-link {
+/* Ensure larger download button text inside main product card */
+.main-product .download-link {
     font-size: 1.05rem;
 }
 
@@ -183,24 +191,14 @@ section h2 {
     margin: 0 auto;
 }
 
-.product-card {
-    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
-    border: 1px solid rgba(124, 58, 237, 0.25);
-    border-radius: 12px;
+/* Product card specifics (inherits .site-card) */
+.main-product {
     padding: 0.9rem 0.9rem;
     text-align: center;
     position: relative;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 30px rgba(124, 58, 237, 0.08);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-}
-
-.product-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 40px rgba(124, 58, 237, 0.15);
-    border-color: rgba(124, 58, 237, 0.4);
 }
 
 .product-icon {
@@ -254,14 +252,14 @@ section h2 {
     object-fit: contain;
 }
 
-.product-card h3 {
+.site-card h3 {
     font-size: 1.35rem;
     margin-bottom: 0rem;
     color: #f7fafc;
     font-weight: 600;
 }
 
-.product-card p {
+.site-card p {
     color: #cbd5e0;
     margin-bottom: 0rem;
     font-size: 1rem;
@@ -407,24 +405,14 @@ section h2 {
 }
 
 /* Streaming Card */
+/* Streaming card specifics (inherits .site-card) */
 .streaming-card {
-    background: linear-gradient(160deg, #382470 0%, #422a82 50%, #35225f 100%);
-    border: 1px solid rgba(124, 58, 237, 0.2);
-    border-radius: 12px;
     padding: 0.75rem;
     margin: 1.5rem auto 0;
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 20px rgba(124, 58, 237, 0.06);
     max-width: var(--site-card-max-width);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.streaming-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 30px rgba(124, 58, 237, 0.12);
-    border-color: rgba(124, 58, 237, 0.35);
 }
 
 .streaming-icon {
@@ -699,35 +687,19 @@ section h2 {
     }
 }
 
-/* Features Section */
-.features {
-    background: linear-gradient(180deg, #1a1030 0%, #1e1538 50%, #1a1030 100%);
-}
-
 .feature-grid {
     display: grid;
     grid-template-columns: 1fr 1fr; /* two columns */
     gap: 20px;
     max-width: var(--site-card-max-width);
-    margin: 0 auto;
+    margin: 1.5rem auto 0;
 }
 
 /* Feature grid itself is constrained; container uses default padding and width */
 
+/* Feature card specifics (inherits .site-card) */
 .feature-card {
     padding: 1.2rem;
-    border-radius: 8px;
-    background: linear-gradient(160deg, #231845 0%, #271d50 100%);
-    border: 1px solid rgba(124, 58, 237, 0.15);
-    border-top: 2px solid rgba(124, 58, 237, 0.4);
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.feature-card:hover {
-    transform: translateY(-8px);
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3), 0 0 30px rgba(124, 58, 237, 0.15);
-    border-color: rgba(124, 58, 237, 0.35);
-    border-top-color: rgba(124, 58, 237, 0.6);
 }
 
 .feature-card h3 {
@@ -784,10 +756,10 @@ section h2 {
     margin: 0 auto;
 }
 
-/* In setup section, keep the video width aligned with card space */
-.setup .demo-container {
+/* Keep the video width aligned with card space */
+.main-section .demo-container {
     max-width: var(--site-card-max-width);
-    margin: 0 auto 1rem;
+    margin: 1.5rem auto 0;
 }
 
 .demo-placeholder {
@@ -810,19 +782,10 @@ section h2 {
 }
 
 /* Setup video card */
+/* Video card specifics (inherits .site-card) */
 .video-card {
-    background: #271d55;
-    border: 1px solid rgba(124, 58, 237, 0.25);
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.4), 0 0 25px rgba(124, 58, 237, 0.08);
     overflow: hidden;
-    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
-}
-
-.video-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 15px 35px rgba(0,0,0,0.5), 0 0 35px rgba(124, 58, 237, 0.12);
-    border-color: rgba(124, 58, 237, 0.4);
+    padding: 0;
 }
 
 .video-embed {
@@ -842,11 +805,6 @@ section h2 {
     border: 0;
 }
 
-/* Setup Section */
-.setup {
-    background: linear-gradient(135deg, #1d1535 0%, #271858 50%, #231845 100%);
-}
-
 .setup h2 {
     text-align: center;
     font-size: 1.6rem;
@@ -856,15 +814,12 @@ section h2 {
 
 .setup-steps {
     max-width: var(--site-card-max-width);
-    margin: 0.5rem auto 0;
+    margin: 1.5rem auto 0;
 }
 
+/* Setup step specifics (inherits .site-card) */
 .setup-step {
-    background: linear-gradient(160deg, #1d1538 0%, #231848 100%);
-    border-radius: 12px;
     padding: 1.2rem;
-    border: 1px solid rgba(124, 58, 237, 0.15);
-    transition: all 0.3s ease;
     opacity: 0;
     transform: translateY(30px);
 }
@@ -1094,16 +1049,16 @@ html {
 }
 
 /* App card typography overrides (ensure larger sizes apply) */
-.products .product-card .cc-card-title {
+.main-section .main-product .cc-card-title {
     font-size: 1.6rem;
     line-height: 1.15;
     margin-bottom: 0.3rem;
 }
 
-.products .product-card .cc-card-desc {
+.main-section .main-product .cc-card-desc {
     font-size: 1.1rem; /* larger paragraph */
 }
 
-.products .product-card .cc-card-subdesc {
+.main-section .main-product .cc-card-subdesc {
     font-size: 1.05rem; /* larger supporting text */
 }
