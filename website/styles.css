@@ -17,7 +17,7 @@
 
 body {
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    line-height: 1.6;
+    line-height: 1.4;
     color: #e2e8f0;
     background: #161530;
     display: flex;
@@ -153,14 +153,14 @@ section h2 {
 .cc-card-desc {
     font-size: 1.1rem; /* larger paragraph */
     color: #cbd5e0;
-    line-height: 1.6;
+    line-height: 1.4;
     margin-bottom: 0.35rem;
 }
 
 .cc-card-subdesc {
     font-size: 1rem;
     color: #cbd5e0;
-    line-height: 1.6;
+    line-height: 1.4;
     margin-bottom: 0.5rem;
 }
 
@@ -253,17 +253,17 @@ section h2 {
 }
 
 .site-card h3 {
-    font-size: 1.35rem;
+    font-size: 1.15rem;
     margin-bottom: 0rem;
     color: #f7fafc;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .site-card p {
     color: #cbd5e0;
     margin-bottom: 0rem;
     font-size: 1rem;
-    line-height: 1.6;
+    line-height: 1.4;
 }
 
 .product-links {
@@ -442,13 +442,13 @@ section h2 {
     font-size: 1.15rem;
     margin-bottom: 0.25rem;
     color: #f7fafc;
-    font-weight: 600;
+    font-weight: 700;
 }
 
 .streaming-content p {
     color: #cbd5e0;
-    font-size: 0.95rem;
-    line-height: 1.5;
+    font-size: 1rem;
+    line-height: 1.4;
 }
 
 /* GitHub Card */
@@ -862,7 +862,7 @@ section h2 {
 
 .setup-step p {
     color: #cbd5e0;
-    line-height: 1.6;
+    line-height: 1.4;
     margin-bottom: 1rem;
 }
 
@@ -895,7 +895,7 @@ section h2 {
 
 .setup-list {
     color: #cbd5e0;
-    line-height: 1.6;
+    line-height: 1.4;
     padding-left: 1.5rem;
     font-size: 1rem;
 }
