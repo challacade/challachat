@@ -342,7 +342,7 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
 
 @keyframes song-marquee {
   0%   { transform: translateX(0); }
-  100% { transform: translateX(calc(-1 * var(--marquee-shift, 500px))); }
+  100% { transform: translateX(var(--marquee-shift, -500px)); }
 }
 
 .song-display-overlay.hidden {

@@ -142,34 +142,58 @@ export function updateSongDisplayText() {
     return;
   }
 
-  // Scrolling mode: two inner spans for seamless loop
-  let primary = textSpan.querySelector('.song-primary');
-  let secondary = textSpan.querySelector('.song-secondary');
-  if (!primary || !secondary) {
+  // Scrolling mode: tile enough copies to always fill the viewport
+  // Use a hidden probe span to measure the true text width
+  let probe = textSpan.querySelector('.song-probe');
+  if (!probe) {
     textSpan.textContent = '';
-    primary = document.createElement('span');
-    primary.className = 'song-primary';
-    secondary = document.createElement('span');
-    secondary.className = 'song-secondary';
-    textSpan.appendChild(primary);
-    textSpan.appendChild(secondary);
+    probe = document.createElement('span');
+    probe.className = 'song-probe';
+    probe.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap';
+    textSpan.appendChild(probe);
   }
-  primary.textContent = display;
-  secondary.textContent = display;
+  probe.textContent = display;
 
-  // Measure after paint so offsetWidth is accurate
+  // Measure after paint so getBoundingClientRect is accurate
   requestAnimationFrame(() => {
-    const textWidth = primary.offsetWidth;
-    const containerPad = parseFloat(getComputedStyle(songEl).paddingLeft) || 0;
-    const buffer = containerPad + 10;
-    const gap = Math.max(80, window.innerWidth * 0.25) + buffer;
-    const shift = textWidth + gap;
-    secondary.style.marginLeft = `${gap}px`;
-    songEl.style.setProperty('--marquee-shift', `${shift}px`);
+    const textWidth = probe.getBoundingClientRect().width;
+    const gap = Math.max(60, window.innerWidth * 0.12);
+    const unit = textWidth + gap;
+    const containerWidth = songEl.offsetWidth;
+
+    // Need enough copies so that after shifting one unit left, text still fills the screen
+    const copies = Math.ceil(containerWidth / unit) + 1;
+
+    // Rebuild tile spans (skip the probe)
+    const existing = textSpan.querySelectorAll('.song-tile');
+    const diff = copies - existing.length;
+    if (diff > 0) {
+      for (let i = 0; i < diff; i++) {
+        const tile = document.createElement('span');
+        tile.className = 'song-tile';
+        tile.style.cssText = `display:inline-block;width:${unit}px`;
+        tile.textContent = display;
+        textSpan.appendChild(tile);
+      }
+    } else if (diff < 0) {
+      for (let i = 0; i < -diff; i++) {
+        const last = textSpan.querySelector('.song-tile:last-of-type');
+        if (last) last.remove();
+      }
+    }
+    // Update all tiles with current text and width
+    textSpan.querySelectorAll('.song-tile').forEach(tile => {
+      tile.textContent = display;
+      tile.style.width = `${unit}px`;
+    });
+
+    // Shift by exactly one unit — the next tile slides into place seamlessly
+    songEl.style.setProperty('--marquee-shift', `${-unit}px`);
+
     const baseSpeed = 60;
     const speedMult = state.songDisplay?.scrollSpeed || 1;
     const speed = baseSpeed * speedMult;
-    const duration = Math.max(5, shift / speed);
+    const duration = Math.max(5, unit / speed);
     songEl.style.setProperty('--marquee-duration', `${duration}s`);
     textSpan.style.animation = 'none';
     void textSpan.offsetHeight;
