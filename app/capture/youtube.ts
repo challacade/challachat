@@ -222,6 +222,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = hasCardWithin(element);
           const stableKey = `text|${authorName}|${messageText}|${(segments||[]).filter((s: any)=>s.t==='emote').map((s: any)=>s.url).join(',')}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'text', hasCard };
           out.push(payload); emitted.add(messageId);
         } catch {}
@@ -251,6 +252,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = hasCardWithin(element);
           const stableKey = `donation|${authorName}|${amountDisplay}|${messageText}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'donation', amountDisplay, color, hasCard };
           out.push(payload); emitted.add(messageId);
         } catch {}
@@ -284,6 +286,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = hasCardWithin(element);
           const stableKey = `sticker|${authorName}|${amountDisplay}|${stickerUrl}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           if (emitted.has(messageId)) return;
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: '', segments, timestamp: Date.now(), kind: 'donation', amountDisplay, hasCard };
           out.push(payload); emitted.add(messageId);
@@ -324,6 +327,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = hasCardWithin(element);
           const stableKey = `${kind}|${authorName}|${messageText}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind, hasCard });
         } catch {}
       });
@@ -348,6 +352,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = hasCardWithin(element);
           const stableKey = `member-milestone|${authorName}|${messageText}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'member-milestone', hasCard });
         } catch {}
       });
@@ -369,6 +374,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const hasCard = true;
           const stableKey = `member-gift|${authorName}|${text}`;
           const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          if (!rendererId) visibleIds.push(messageId);
           if ((emitted as Set<string>).has(messageId)) return;
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text, segments: [], timestamp: Date.now(), kind: 'member-gift', hasCard });
           (emitted as Set<string>).add(messageId);

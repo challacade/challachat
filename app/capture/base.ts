@@ -51,6 +51,14 @@ export abstract class BaseChatCapture {
   protected seenIds = new Set<string>();
   /** Maps lowercased author name → set of message IDs they sent (for ban-based bulk deletion) */
   protected authorMessageIds = new Map<string, Set<string>>();
+  /** Content fingerprint → first emission timestamp. Prevents high-priority events re-firing when DOM element IDs change (e.g. countdown progress bar re-renders). */
+  private recentHighPriorityFingerprints = new Map<string, number>();
+  /** How long (ms) to suppress a high-priority event with the same content fingerprint. Covers DOM re-render / element ID churn scenarios (typically a few seconds) with margin. */
+  private readonly FINGERPRINT_TTL_MS = 60 * 1000;
+  /** Tracks how many times each message ID has been emitted this session. */
+  private messageEmitCounts = new Map<string, number>();
+  /** Maximum number of times a single message ID may fire before being permanently suppressed. */
+  private readonly MAX_EMIT_COUNT = 3;
   protected pollTimer: NodeJS.Timeout | null = null;
   protected opts: CaptureOpts;
   protected callbacks: CaptureCallbacks;
@@ -220,6 +228,8 @@ export abstract class BaseChatCapture {
     // Do NOT close the browser - it's shared via BrowserPool
     this.browser = null;
     this.authorMessageIds.clear();
+    this.recentHighPriorityFingerprints.clear();
+    this.messageEmitCounts.clear();
   }
 
   /** Delete all tracked messages for a given author (used when a ban is detected). */
@@ -279,6 +289,31 @@ export abstract class BaseChatCapture {
       const isHighPriority = !!message.hasCard || this.highPriorityKinds.includes(message.kind);
       if (!this.seenIds.has(message.id) && (hasText || hasSegments || isHighPriority)) {
         this.seenIds.add(message.id);
+
+        // ── High-priority content dedup ────────────────────────────────────
+        // Prevents the same donation/gift/sub event from re-firing if its DOM
+        // element's id attribute changes (e.g. countdown progress bar re-render)
+        // or if the element briefly leaves and re-enters the DOM.
+        if (this.highPriorityKinds.includes(message.kind)) {
+          const fp = `${message.kind}|${(message.author?.name || '').toLowerCase()}|${(message.text || '').trim()}|${message.amountDisplay || ''}|${message.giftCount || ''}`;
+          const lastEmit = this.recentHighPriorityFingerprints.get(fp);
+          if (lastEmit !== undefined && (Date.now() - lastEmit) < this.FINGERPRINT_TTL_MS) {
+            // Same content was emitted recently — skip the callback but keep in seenIds
+            continue;
+          }
+          this.recentHighPriorityFingerprints.set(fp, Date.now());
+        }
+
+        // ── Rate-limit failsafe ────────────────────────────────────────────
+        // Catches any remaining edge case where the same message ID somehow
+        // escapes seenIds and fires repeatedly (e.g. unforeseen platform changes).
+        const emitCount = (this.messageEmitCounts.get(message.id) ?? 0) + 1;
+        this.messageEmitCounts.set(message.id, emitCount);
+        if (emitCount > this.MAX_EMIT_COUNT) {
+          this.logError(`[ALERT LOOP PROTECTION] "${message.id}" (${message.kind} by ${message.author?.name || 'unknown'}) has been emitted ${emitCount} times — suppressing further emissions.`);
+          continue;
+        }
+
         const evt: ChatEvent = {
           id: message.id,
           author: message.author,
