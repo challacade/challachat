@@ -69,7 +69,8 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     if (typeof enabled === 'boolean') {
       setLogSpoofEnabled(enabled);
       updateSettings({ logSpoofEnabled: enabled });
-      if (enabled) startSpoofLogging();
+      const spoofActive = [...ctx.connections.values()].some(c => c.platform === 'spoof');
+      if (enabled && spoofActive) startSpoofLogging();
     }
     res.json({ ok: true, ...getLoggerStatus() });
   });

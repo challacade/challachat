@@ -675,6 +675,7 @@ footer {
 .panel-card .control-grid + .control-grid { margin-top: 20px; }
 .panel-card .preset-row + .control-grid { margin-top: 14px; }
 .panel-card .control-grid + .filter-row { margin-top: 14px; }
+.panel-card .filter-row + .control-grid { margin-top: 14px; }
 .font-row { margin-top: 16px; }
 
 /* =============================================================
@@ -863,11 +864,6 @@ footer {
   display: flex;
   align-items: center;
   gap: 5px;
-}
-.filter-row.sub-row {
-  padding-left: 28px;
-  margin-top: 4px;
-  opacity: 0.85;
 }
 .filter-row .path-input {
   flex: 1;
