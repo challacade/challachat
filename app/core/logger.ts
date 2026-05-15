@@ -6,148 +6,137 @@ import type { ChatEvent } from '../capture/types';
 // Uses a daily log file named: chat-{date}-{platform}.jsonl
 // Appends to existing file if it exists for the same day.
 
-let logEnabled = false;
-let logStream: fs.WriteStream | null = null;
-let currentLogPath: string | null = null;
-let messageCount = 0;
 let customLogsDir: string | null = null;
 
-// Get the logs directory path (returns null if no folder is set)
-function getLogsDir(): string | null {
-  return customLogsDir;
-}
-
-// Set a custom logs directory (empty string clears it)
 export function setLogsDir(dir: string): void {
   customLogsDir = dir || null;
 }
 
-// Ensure the logs directory exists
 function ensureLogsDir(): string | null {
-  const logsDir = getLogsDir();
-  if (!logsDir) return null;
+  if (!customLogsDir) return null;
   try {
-    if (!fs.existsSync(logsDir)) {
-      fs.mkdirSync(logsDir, { recursive: true });
+    if (!fs.existsSync(customLogsDir)) {
+      fs.mkdirSync(customLogsDir, { recursive: true });
     }
   } catch (err) {
     console.error(`[Logger] Failed to create logs directory: ${err}`);
   }
-  return logsDir;
+  return customLogsDir;
 }
 
-// Generate a log filename for today (platform-based, daily file)
 function generateLogFilename(platform: string = 'yt'): string {
-  const date = new Date();
-  const dateStr = date.toISOString().split('T')[0]; // YYYY-MM-DD
+  const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
   return `chat-${dateStr}-${platform}.jsonl`;
 }
 
-// Start logging for a new capture session
-export function startLogging(platform: string = 'yt'): boolean {
-  if (!logEnabled || !customLogsDir) return false;
-  
-  try {
-    const logsDir = ensureLogsDir();
-    if (!logsDir) return false;
-    const filename = generateLogFilename(platform);
-    const newLogPath = path.join(logsDir, filename);
-    
-    // If already logging to the same file, just continue
-    if (logStream && currentLogPath === newLogPath) {
-      return true;
-    }
-    
-    // Close any existing stream to a different file
-    stopLogging();
-    
-    currentLogPath = newLogPath;
-    
-    // Check if file already exists (we'll append to it)
-    const fileExists = fs.existsSync(currentLogPath);
-    
-    // Open write stream in append mode
-    logStream = fs.createWriteStream(currentLogPath, { flags: 'a', encoding: 'utf-8' });
-    
-    logStream.on('error', (err) => {
-      console.error(`[Logger] Write error: ${err.message}`);
-    });
-    
-    if (fileExists) {
-      console.log(`[Logger] Appending to: ${currentLogPath}`);
-    } else {
-      console.log(`[Logger] Writing to: ${currentLogPath}`);
-    }
-    return true;
-  } catch (err) {
-    console.error(`[Logger] Failed to start logging: ${err}`);
-    return false;
-  }
-}
+// ── Shared channel implementation ─────────────────────────────
 
-// Stop logging and close the file stream
-export function stopLogging(): void {
-  if (logStream) {
+class LogChannel {
+  private enabled = false;
+  private stream: fs.WriteStream | null = null;
+  private logPath: string | null = null;
+  private count = 0;
+  private readonly tag: string;
+
+  constructor(tag: string) {
+    this.tag = tag;
+  }
+
+  setEnabled(enabled: boolean): void {
+    this.enabled = enabled;
+    if (!enabled) this.stop();
+  }
+
+  start(platform: string = 'yt'): boolean {
+    if (!this.enabled || !customLogsDir) return false;
     try {
-      logStream.end();
-    } catch { /* ignore - best-effort stream close */ }
-    logStream = null;
-  }
-  if (currentLogPath && messageCount > 0) {
-    console.log(`[Logger] Stopped logging. ${messageCount} messages written to ${path.basename(currentLogPath)}`);
-  }
-  currentLogPath = null;
-  messageCount = 0;
-}
+      const logsDir = ensureLogsDir();
+      if (!logsDir) return false;
+      const newPath = path.join(logsDir, generateLogFilename(platform));
 
-// Log a single chat message
-export function logMessage(message: ChatEvent): void {
-  if (!logEnabled || !logStream) return;
-  
-  try {
-    // Create a minimal log entry with essential fields
-    const entry: Record<string, any> = {
-      ts: message.ts,
-      author: message.author?.name || 'Unknown',
-      text: message.text || '',
-      kind: message.kind
-    };
-    
-    // Include donation amount if present
-    if (message.amountDisplay) {
-      entry.amount = message.amountDisplay;
+      if (this.stream && this.logPath === newPath) return true;
+      this.stop();
+
+      this.logPath = newPath;
+      const fileExists = fs.existsSync(newPath);
+      this.stream = fs.createWriteStream(newPath, { flags: 'a', encoding: 'utf-8' });
+      this.stream.on('error', (err) => console.error(`[${this.tag}] Write error: ${err.message}`));
+      console.log(`[${this.tag}] ${fileExists ? 'Appending to' : 'Writing to'}: ${newPath}`);
+      return true;
+    } catch (err) {
+      console.error(`[${this.tag}] Failed to start logging: ${err}`);
+      return false;
     }
-    
-    // Write as a single JSON line
-    logStream.write(JSON.stringify(entry) + '\n');
-    messageCount++;
-  } catch (err) {
-    // Silently ignore write errors to not disrupt the main flow
   }
+
+  stop(): void {
+    if (this.stream) {
+      try { this.stream.end(); } catch { /* ignore */ }
+      this.stream = null;
+    }
+    if (this.logPath && this.count > 0) {
+      console.log(`[${this.tag}] Stopped. ${this.count} messages written to ${path.basename(this.logPath)}`);
+    }
+    this.logPath = null;
+    this.count = 0;
+  }
+
+  write(message: ChatEvent): void {
+    if (!this.enabled || !this.stream) return;
+    try {
+      const entry: Record<string, any> = {
+        ts: message.ts,
+        author: message.author?.name || 'Unknown',
+        text: message.text || '',
+        kind: message.kind,
+      };
+      if (message.amountDisplay) entry.amount = message.amountDisplay;
+      this.stream.write(JSON.stringify(entry) + '\n');
+      this.count++;
+    } catch {
+      // Silently ignore write errors to not disrupt the main flow
+    }
+  }
+
+  get isEnabled(): boolean { return this.enabled; }
+  get isLogging(): boolean { return this.stream !== null; }
+  get currentPath(): string | null { return this.logPath; }
+  get messageCount(): number { return this.count; }
 }
 
-// Enable or disable logging
-export function setLogEnabled(enabled: boolean): void {
-  logEnabled = enabled;
-  
-  if (!enabled) {
-    stopLogging();
-  }
-}
+const main = new LogChannel('Logger');
+const spoof = new LogChannel('Logger/Spoof');
 
-// Get logger status for API
+// ── Real capture logging ──────────────────────────────────────
+
+export function setLogEnabled(enabled: boolean): void { main.setEnabled(enabled); }
+export function startLogging(platform: string = 'yt'): boolean { return main.start(platform); }
+export function stopLogging(): void { main.stop(); }
+export function logMessage(message: ChatEvent): void { main.write(message); }
+
+// ── Spoof logging ─────────────────────────────────────────────
+
+export function setLogSpoofEnabled(enabled: boolean): void { spoof.setEnabled(enabled); }
+export function startSpoofLogging(): boolean { return spoof.start('spoof'); }
+export function stopSpoofLogging(): void { spoof.stop(); }
+export function logSpoofMessage(message: ChatEvent): void { spoof.write(message); }
+
+// ── Status ────────────────────────────────────────────────────
+
 export function getLoggerStatus(): {
   enabled: boolean;
   logging: boolean;
   path: string | null;
   messageCount: number;
   logFolderPath: string;
+  spoofEnabled: boolean;
 } {
   return {
-    enabled: logEnabled,
-    logging: logStream !== null,
-    path: currentLogPath,
-    messageCount,
-    logFolderPath: customLogsDir || ''
+    enabled: main.isEnabled,
+    logging: main.isLogging,
+    path: main.currentPath,
+    messageCount: main.messageCount,
+    logFolderPath: customLogsDir || '',
+    spoofEnabled: spoof.isEnabled,
   };
 }

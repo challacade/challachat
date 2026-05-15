@@ -33,6 +33,7 @@ export const filterClearBtn  = $('filterClearBtn');
 export const filterToggle    = $('filterToggle');
 export const filterMeta      = $('filterMeta');
 export const loggerToggle       = $('loggerToggle');
+export const logSpoofToggle     = $('logSpoofToggle');
 export const logFolderPathInput = $('logFolderPathInput');
 export const logFolderBrowseBtn = $('logFolderBrowseBtn');
 export const logFolderClearBtn  = $('logFolderClearBtn');

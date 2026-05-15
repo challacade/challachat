@@ -8,7 +8,7 @@ import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
-import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir } from '../core/logger';
+import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
 import { readSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getNowPlaying } from '../core/nowPlaying';
 import { setJamEnabled } from '../core/jam';
@@ -122,6 +122,7 @@ class App extends EventEmitter {
       setFilterActive(false);
     }
     if (toggles.loggerEnabled) setLogEnabled(true);
+    if (toggles.logSpoofEnabled) setLogSpoofEnabled(true);
     if (settings.logFolderPath) setLogsDir(settings.logFolderPath);
     if (toggles.jamEnabled) setJamEnabled(true);
     
@@ -408,7 +409,7 @@ class App extends EventEmitter {
         // Process message normally but skip sound
         try { runChatCommands(message, { nowPlaying: getNowPlaying() }); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
         const filtered = censorMessage(message);
-        logMessage(filtered);
+        if (conn.platform === 'spoof') { logSpoofMessage(filtered); } else { logMessage(filtered); }
         this.io.emit('chat-message', filtered);
         this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
         // Schedule first-poll completion after current tick (all messages from the same poll arrive synchronously)
@@ -431,7 +432,8 @@ class App extends EventEmitter {
     // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
     // Log message to file (if logging is enabled)
-    logMessage(filtered);
+    const isSpoof = this.connections.get(connId)?.platform === 'spoof';
+    if (isSpoof) { logSpoofMessage(filtered); } else { logMessage(filtered); }
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
@@ -563,11 +565,13 @@ class App extends EventEmitter {
       videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: 0, firstPollDone: true,
     });
+    startSpoofLogging();
     void spoof.start();
   }
 
   /** Stop and remove the spoof connection. */
   private async stopSpoof() {
+    stopSpoofLogging();
     for (const [id, conn] of this.connections) {
       if (conn.platform === 'spoof') {
         try { await conn.capture.stop(); } catch { /* ignore */ }

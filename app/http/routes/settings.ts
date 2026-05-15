@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
-import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging } from '../../core/logger';
+import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging, setLogSpoofEnabled, startSpoofLogging } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
 import type { RouteContext } from './context';
 
@@ -60,6 +60,16 @@ export function createSettingsRouter(ctx: RouteContext): Router {
         const platformPrefix = firstConn?.platform === 'kick' ? 'kk' : firstConn?.platform === 'twitch' ? 'tw' : 'yt';
         startLogging(platformPrefix);
       }
+    }
+    res.json({ ok: true, ...getLoggerStatus() });
+  });
+
+  router.post('/logger/spoof-toggle', (req: Request, res: Response) => {
+    const enabled = req.body?.enabled;
+    if (typeof enabled === 'boolean') {
+      setLogSpoofEnabled(enabled);
+      updateSettings({ logSpoofEnabled: enabled });
+      if (enabled) startSpoofLogging();
     }
     res.json({ ok: true, ...getLoggerStatus() });
   });

@@ -63,6 +63,7 @@ export type AppSettings = {
 
   // ── Toggles ──
   loggerEnabled?: boolean;
+  logSpoofEnabled?: boolean;
   jamEnabled?: boolean;
 
   // ── Logger ──
@@ -258,11 +259,12 @@ export function getSavedSounds(): Record<string, number | string> {
 }
 
 /** Load saved toggle states (filter active, logger, jam, demo). All default to false. */
-export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; jamEnabled: boolean } {
+export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; logSpoofEnabled: boolean; jamEnabled: boolean } {
   const { settings } = readSettings();
   return {
     filterActive: settings.filterActive === true,
     loggerEnabled: settings.loggerEnabled === true,
+    logSpoofEnabled: settings.logSpoofEnabled === true,
     jamEnabled: settings.jamEnabled === true,
   };
 }

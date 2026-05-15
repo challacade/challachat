@@ -4,7 +4,7 @@
 import {
   isElectron,
   filterPathInput, filterBrowseBtn, filterClearBtn, filterToggle, filterMeta,
-  loggerToggle, logFolderPathInput, logFolderBrowseBtn, logFolderClearBtn,
+  loggerToggle, logSpoofToggle, logFolderPathInput, logFolderBrowseBtn, logFolderClearBtn,
   jamToggle, clearMessagesBtn,
   uiThemeSelect, uiZoomSelect,
 } from './dom.js';
@@ -23,6 +23,7 @@ function updateFilterUI(f) {
 function updateLoggerUI(l) {
   if (!l) return;
   loggerToggle.checked = l.enabled;
+  logSpoofToggle.checked = l.spoofEnabled || false;
   logFolderPathInput.value = l.logFolderPath || '';
   if (logFolderClearBtn) logFolderClearBtn.style.display = l.logFolderPath ? '' : 'none';
 }
@@ -145,9 +146,10 @@ export function bindSettingsListeners() {
 
   // Settings toggles - data-driven
   const SETTINGS_TOGGLES = [
-    { toggle: filterToggle,        endpoint: '/api/filter/toggle',  payloadKey: 'active',  updateFn: updateFilterUI },
-    { toggle: loggerToggle,        endpoint: '/api/logger/toggle',  payloadKey: 'enabled', updateFn: updateLoggerUI },
-    { toggle: jamToggle,           endpoint: '/api/jam/toggle',     payloadKey: 'enabled', updateFn: updateJamUI },
+    { toggle: filterToggle,        endpoint: '/api/filter/toggle',        payloadKey: 'active',   updateFn: updateFilterUI },
+    { toggle: loggerToggle,        endpoint: '/api/logger/toggle',        payloadKey: 'enabled',  updateFn: updateLoggerUI },
+    { toggle: logSpoofToggle,      endpoint: '/api/logger/spoof-toggle',  payloadKey: 'enabled',  updateFn: updateLoggerUI },
+    { toggle: jamToggle,           endpoint: '/api/jam/toggle',           payloadKey: 'enabled',  updateFn: updateJamUI },
   ];
 
   for (const { toggle, endpoint, payloadKey, updateFn } of SETTINGS_TOGGLES) {

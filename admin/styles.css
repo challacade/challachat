@@ -864,6 +864,11 @@ footer {
   align-items: center;
   gap: 5px;
 }
+.filter-row.sub-row {
+  padding-left: 28px;
+  margin-top: 4px;
+  opacity: 0.85;
+}
 .filter-row .path-input {
   flex: 1;
   min-width: 0;
