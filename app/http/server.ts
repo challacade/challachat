@@ -347,7 +347,7 @@ class App extends EventEmitter {
   private async startCapture(url: string, platform: Platform): Promise<string> {
     const config = this.platformConfig[platform];
     const connId = this.generateConnId();
-    const identifier = config.extractId(url);
+    const identifier = platform === 'youtube' ? await this.extractYouTubeVideoId(url) : config.extractId(url);
     if (!identifier) throw new Error(config.errorMessage);
 
     const capture = new config.CaptureClass(identifier, {
@@ -514,6 +514,55 @@ class App extends EventEmitter {
       return match ? match[1] : null;
     }
     return null;
+  }
+
+  private async extractYouTubeVideoId(url: string): Promise<string | null> {
+    const directVideoId = this.extractVideoId(url);
+    if (directVideoId) return directVideoId;
+    if (!this.isYouTubeHandleLiveUrl(url)) return null;
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        redirect: 'follow',
+        headers: {
+          // YouTube can return non-redirect responses for non-browser user agents.
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+          'accept-language': 'en-US,en;q=0.9',
+        },
+      });
+      if (!response.ok) return null;
+
+      const resolvedVideoId = this.extractVideoId(response.url || '');
+      if (resolvedVideoId) return resolvedVideoId;
+
+      return this.extractVideoIdFromYouTubeHtml(await response.text());
+    } catch {
+      return null;
+    }
+  }
+
+  private extractVideoIdFromYouTubeHtml(html: string): string | null {
+    if (!html) return null;
+
+    const canonicalWatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})/i);
+    if (canonicalWatch?.[1]) return canonicalWatch[1];
+
+    const shortLink = html.match(/<link[^>]+rel=["']shortlinkUrl["'][^>]+href=["']https?:\/\/youtu\.be\/([A-Za-z0-9_-]{11})/i);
+    if (shortLink?.[1]) return shortLink[1];
+
+    const embedded = html.match(/"videoId":"([A-Za-z0-9_-]{11})"/);
+    return embedded?.[1] ?? null;
+  }
+
+  private isYouTubeHandleLiveUrl(url: string): boolean {
+    try {
+      const u = new URL(url);
+      if (u.hostname !== 'youtube.com' && !u.hostname.endsWith('.youtube.com')) return false;
+      return /^\/@[^/]+\/live\/?$/i.test(u.pathname);
+    } catch {
+      return /(?:^|\.)youtube\.com\/@[^/?#]+\/live\/?(?:[?#].*)?$/i.test(url);
+    }
   }
 
   private toPublicLiveUrl(videoId: string): string {

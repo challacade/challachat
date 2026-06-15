@@ -38,7 +38,7 @@ website/        # Marketing / landing page (static)
 
 | Platform | Accepted URL formats |
 |----------|---------------------|
-| **YouTube** | `/watch?v=`, `/live/`, `youtu.be/` short links, YouTube Studio live URLs |
+| **YouTube** | `/watch?v=`, `/live/`, `/@channel/live` handle URLs, `youtu.be/` short links, YouTube Studio live URLs |
 | **Twitch** | `twitch.tv/channel`, `/chat`, `/popout/.../chat` |
 | **Kick** | `kick.com/channel`, `/popout/.../chat` |
 
