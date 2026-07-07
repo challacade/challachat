@@ -372,18 +372,7 @@
         </section>
 
         <section class="card panel-card">
-          <div class="control-grid two-col">
-            <div class="control-item">
-              <div class="control-label" id="globalPollIntervalLabel">Poll interval: 1 s</div>
-              <input type="range" id="globalPollIntervalSlider" min="100" max="5000" step="100" value="1000" />
-            </div>
-            <div class="control-item horizontal">
-              <div class="control-label">UI Theme</div>
-              <select id="uiThemeSelect" class="dropdown">
-                <option value="dark">Dark</option>
-                <option value="light">Light</option>
-              </select>
-            </div>
+          <div class="control-grid two-col settings-layout-grid">
             <div class="control-item horizontal">
               <div class="control-label">UI Zoom</div>
               <select id="uiZoomSelect" class="dropdown">
@@ -395,6 +384,13 @@
               </select>
             </div>
             <div class="control-item horizontal">
+              <div class="control-label">UI Theme</div>
+              <select id="uiThemeSelect" class="dropdown">
+                <option value="dark">Dark</option>
+                <option value="light">Light</option>
+              </select>
+            </div>
+            <div class="control-item horizontal">
               <div class="control-label">Message flow</div>
               <select id="messageFlowSelect" class="dropdown">
                 <option value="bottom-up">Bottom up</option>
@@ -403,7 +399,12 @@
                 <option value="stack-down">Stack down</option>
               </select>
             </div>
-            <div class="control-item horizontal">
+            <div aria-hidden="true"></div>
+            <div class="control-item">
+              <div class="control-label" id="globalPollIntervalLabel">Poll interval: 500 ms</div>
+              <input type="range" id="globalPollIntervalSlider" min="100" max="5000" step="100" value="500" />
+            </div>
+            <div class="control-item horizontal settings-clear-control">
               <button class="btn small danger" id="clearMessagesBtn">Clear all messages</button>
             </div>
           </div>

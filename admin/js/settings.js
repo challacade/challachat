@@ -50,8 +50,8 @@ function formatPoll(ms) {
 
 function updatePollIntervalUI(ms) {
   if (!globalPollIntervalSlider || !globalPollIntervalLabel) return;
-  globalPollIntervalSlider.value = String(ms || 1000);
-  globalPollIntervalLabel.textContent = `Poll interval: ${formatPoll(ms || 1000)}`;
+  globalPollIntervalSlider.value = String(ms || 500);
+  globalPollIntervalLabel.textContent = `Poll interval: ${formatPoll(ms || 500)}`;
 }
 
 // ─── Fetch ─────────────────────────────────────────────────────

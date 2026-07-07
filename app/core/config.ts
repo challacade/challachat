@@ -1,5 +1,5 @@
 export const DEFAULT_PORT = Number(process.env.PORT) || 5050;
-export const DEFAULT_POLL_INTERVAL = 1000;
+export const DEFAULT_POLL_INTERVAL = 500;
 const MIN_POLL_INTERVAL = 100;
 
 export function clampPollInterval(ms: number): number {

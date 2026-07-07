@@ -274,6 +274,12 @@ footer {
 .control-grid.two-col {
   grid-template-columns: repeat(2, 1fr);
 }
+.settings-clear-control {
+  justify-content: flex-end;
+}
+.settings-clear-control .btn {
+  flex: 0 0 auto;
+}
 
 /* -- Control item (label + slider/picker pair) ---------------- */
 .control-item {

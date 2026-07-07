@@ -178,7 +178,7 @@ All settings are persisted to `settings.json` in the app data directory:
   "uiZoom": 1,
   "uiTheme": "",
   "filmingMode": false,
-  "pollIntervalMs": 1000
+  "pollIntervalMs": 500
 }
 ```
 

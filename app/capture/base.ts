@@ -2,6 +2,7 @@
 import { Browser, Page, HTTPRequest } from 'puppeteer-core';
 import { ChatEvent, CaptureOptions } from './types';
 import { acquireBrowser } from './browserPool';
+import { DEFAULT_POLL_INTERVAL } from '../core/config';
 
 export interface CaptureCallbacks {
   onMessage: (m: ChatEvent) => void;
@@ -88,7 +89,7 @@ export abstract class BaseChatCapture {
 
   constructor(options: CaptureOptions = {}) {
     this.opts = {
-      pollInterval: options.pollInterval ?? 1000,
+      pollInterval: options.pollInterval ?? DEFAULT_POLL_INTERVAL,
       quiet: !!options.quiet,
       maxRetries: options.maxRetries ?? 3,
       retryDelay: options.retryDelay ?? 5000
