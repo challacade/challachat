@@ -508,7 +508,8 @@ footer {
   flex-shrink: 0;
 }
 .capture-url {
-  font-size: 12px;
+  font-size: 14px;
+  font-weight: 600;
   color: var(--text-dim);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -544,36 +545,6 @@ footer {
   background: var(--red);
   box-shadow: 0 0 0 3px rgba(239,68,68,0.18), 0 0 10px rgba(239,68,68,0.45);
 }
-.connection-status-popover {
-  position: absolute;
-  z-index: 20;
-  left: -2px;
-  top: calc(100% + 8px);
-  display: grid;
-  grid-template-columns: repeat(3, max-content);
-  gap: 12px;
-  padding: 9px 11px;
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 10px 28px rgba(0,0,0,0.28);
-  opacity: 0;
-  transform: translateY(-3px);
-  pointer-events: none;
-  transition: opacity 0.12s, transform 0.12s;
-}
-.connection-status-popover::before {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: -5px;
-  width: 8px;
-  height: 8px;
-  background: var(--bg);
-  border-left: 1px solid var(--border);
-  border-top: 1px solid var(--border);
-  transform: rotate(45deg);
-}
 .conn-refresh-btn {
   display: inline-flex;
   align-items: center;
@@ -581,24 +552,26 @@ footer {
   height: 28px;
   flex-shrink: 0;
 }
-.connection-status:hover .connection-status-popover,
-.connection-status:focus .connection-status-popover,
-.connection-status:focus-within .connection-status-popover {
-  opacity: 1;
-  transform: translateY(0);
+.capture-inline-stats {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  flex: 0 1 clamp(130px, 22%, 180px);
+  min-width: 120px;
 }
-.connection-status-popover div {
+.capture-inline-stat {
   display: flex;
   flex-direction: column;
+  align-items: center;
   gap: 1px;
-  min-width: 54px;
 }
-.connection-status-popover strong {
+.capture-inline-stat strong {
   font-size: 13px;
   line-height: 1.1;
   color: var(--text);
 }
-.connection-status-popover span {
+.capture-inline-stat span {
   font-size: 9px;
   font-weight: 600;
   color: var(--text-dim);

@@ -31,6 +31,17 @@ function formatPoll(ms) {
   return ms + ' ms';
 }
 
+function formatDisplayUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const host = parsed.hostname.replace(/^www\./i, '');
+    const path = `${parsed.pathname}${parsed.search}`.replace(/\/$/, '');
+    return `${host}${path}`;
+  } catch {
+    return String(url || '').replace(/^https?:\/\/(?:www\.)?/i, '');
+  }
+}
+
 function getConnectionStatus(conn) {
   const raw = String(conn.status || conn.captureStatus || (conn.active === false ? 'inactive' : 'active')).toLowerCase();
   if (['problem', 'warning', 'degraded', 'reconnecting'].includes(raw)) return 'problem';
@@ -107,14 +118,13 @@ function createConnectionCard(conn) {
     <div class="capture-header">
       <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${status}">
         <span class="connection-status-dot"></span>
-        <div class="connection-status-popover" role="tooltip">
-          <div><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
-          <div><strong class="conn-chatters">${(conn.chatters || 0).toLocaleString()}</strong><span>Chatters</span></div>
-          <div><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>
-        </div>
       </div>
       <img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />
-      <span class="capture-url">${conn.url || ''}</span>
+      <span class="capture-url" title="${conn.url || ''}">${formatDisplayUrl(conn.url)}</span>
+      <div class="capture-inline-stats" aria-label="Connection stats">
+        <div class="capture-inline-stat"><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
+        <div class="capture-inline-stat"><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>
+      </div>
       <button class="btn small primary conn-refresh-btn">Refresh</button>
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
@@ -130,8 +140,12 @@ function createConnectionCard(conn) {
 function updateConnectionCard(card, conn) {
   const status = getConnectionStatus(conn);
   card.querySelector('.conn-msg-count').textContent = (conn.messageCount || 0).toLocaleString();
-  card.querySelector('.conn-chatters').textContent = (conn.chatters || 0).toLocaleString();
   card.querySelector('.conn-uptime').textContent = formatUptime(conn.uptime || 0);
+  const urlEl = card.querySelector('.capture-url');
+  if (urlEl) {
+    urlEl.textContent = formatDisplayUrl(conn.url);
+    urlEl.setAttribute('title', conn.url || '');
+  }
   const indicator = card.querySelector('.connection-status');
   if (indicator) {
     indicator.className = `connection-status status-${status}`;

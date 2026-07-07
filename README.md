@@ -86,7 +86,7 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 
 ### Home
 - **Welcome view** - Platform logos, livestream URL input, and a "Start without connecting" link.
-- **Active view** - Overlay URL card (with copy button), compact connection cards with status indicators, hover stats, refresh/disconnect controls, and an add-connection card.
+- **Active view** - Overlay URL card (with copy button), compact connection cards with status indicators, inline stats, refresh/disconnect controls, and an add-connection card.
 - The ChallaChat logo swaps between a muted and vibrant variant to indicate session state.
 
 ### Appearance
