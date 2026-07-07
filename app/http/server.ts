@@ -4,12 +4,12 @@ import http from 'http';
 import path from 'path';
 import { EventEmitter } from 'events';
 import { Server as SocketIOServer, type Socket } from 'socket.io';
-import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL } from '../core/config';
+import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
-import { readSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
+import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
 import { getNowPlaying } from '../core/nowPlaying';
 import { setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
@@ -58,6 +58,7 @@ class App extends EventEmitter {
   private tui: TerminalUI | null = null;
   private sessionActive = false;
   private nextConnId = 1;
+  private pollIntervalMs = clampPollInterval(readSettings().settings.pollIntervalMs ?? DEFAULT_POLL_INTERVAL);
   /** Sound types already played in the current synchronous poll batch. */
   private soundBatchPlayed = new Set<string>();
 
@@ -145,6 +146,8 @@ class App extends EventEmitter {
       setSpoofActive: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
       setSpoofInterval: (ms, id) => this.setSpoofInterval(ms, id),
       setSpoofPreset: (p, id) => this.setSpoofPreset(p, id),
+      getPollInterval: () => this.pollIntervalMs,
+      setPollInterval: (ms, id) => this.setPollInterval(ms, id),
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -351,7 +354,7 @@ class App extends EventEmitter {
     if (!identifier) throw new Error(config.errorMessage);
 
     const capture = new config.CaptureClass(identifier, {
-      pollInterval: DEFAULT_POLL_INTERVAL,
+      pollInterval: this.pollIntervalMs,
       quiet: true,
       onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
@@ -364,7 +367,7 @@ class App extends EventEmitter {
     this.connections.set(connId, {
       id: connId, capture, platform, url: displayUrl,
       videoId: identifier, messageCount: 0, chatters: new Set(), startTime: Date.now(),
-      pollIntervalMs: DEFAULT_POLL_INTERVAL,
+      pollIntervalMs: this.pollIntervalMs,
       firstPollDone: false,
     });
     this.tui?.setUrl(displayUrl);
@@ -636,6 +639,21 @@ class App extends EventEmitter {
         (conn.capture as SpoofCapture).setIntervalMs(ms);
       }
     }
+  }
+
+  /** Update the capture polling interval globally, or for one connection if requested. */
+  private setPollInterval(ms: number, connectionId?: string): number {
+    if (!connectionId) {
+      this.pollIntervalMs = ms;
+      updateSettings({ pollIntervalMs: ms });
+    }
+    for (const conn of this.connections.values()) {
+      if (!connectionId || conn.id === connectionId) {
+        conn.capture.setPollInterval(ms);
+        conn.pollIntervalMs = ms;
+      }
+    }
+    return connectionId ? ms : this.pollIntervalMs;
   }
 
   /** Update the preset on a specific (or all) spoof connection(s). */

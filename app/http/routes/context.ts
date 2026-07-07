@@ -39,6 +39,8 @@ export interface RouteContext {
   setSpoofActive(enabled: boolean): void;
   setSpoofInterval(ms: number, connectionId?: string): void;
   setSpoofPreset(preset: string, connectionId?: string): void;
+  getPollInterval(): number;
+  setPollInterval(ms: number, connectionId?: string): number;
   isSessionActive(): boolean;
   setSessionActive(active: boolean): void;
 

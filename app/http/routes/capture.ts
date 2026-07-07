@@ -13,18 +13,13 @@ export function createCaptureRouter(ctx: RouteContext): Router {
   router.get('/poll-interval', (req: Request, res: Response) => {
     const connId = String(req.query.connectionId || '');
     const conn = connId ? ctx.connections.get(connId) : ctx.connections.values().next().value;
-    res.json({ pollIntervalMs: conn?.capture?.pollInterval || DEFAULT_POLL_INTERVAL });
+    res.json({ pollIntervalMs: conn?.capture?.pollInterval || ctx.getPollInterval() || DEFAULT_POLL_INTERVAL });
   });
 
   router.post('/poll-interval', (req: Request, res: Response) => {
     const connId = String(req.body?.connectionId || '');
-    const conn = connId ? ctx.connections.get(connId) : ctx.connections.values().next().value;
     const next = clampPollInterval(Number(req.body?.pollIntervalMs));
-    if (conn) {
-      conn.capture.setPollInterval(next);
-      conn.pollIntervalMs = next;
-    }
-    res.json({ ok: true, pollIntervalMs: conn?.capture?.pollInterval || next });
+    res.json({ ok: true, pollIntervalMs: ctx.setPollInterval(next, connId || undefined) });
   });
 
   router.post('/spoof', (req: Request, res: Response) => {

@@ -6,9 +6,10 @@ import {
   filterPathInput, filterBrowseBtn, filterClearBtn, filterToggle, filterMeta,
   loggerToggle, logSpoofToggle, logFolderPathInput, logFolderBrowseBtn, logFolderClearBtn,
   jamToggle, clearMessagesBtn,
-  uiThemeSelect, uiZoomSelect,
+  uiThemeSelect, uiZoomSelect, globalPollIntervalSlider, globalPollIntervalLabel,
 } from './dom.js';
 import { api } from './api.js';
+import { debounce } from '/shared/utils.js';
 
 // ─── UI helpers ────────────────────────────────────────────────
 
@@ -42,17 +43,29 @@ function applyUiZoom(pct) {
   document.documentElement.style.setProperty('--ui-zoom', zoom);
 }
 
+function formatPoll(ms) {
+  if (ms >= 1000) return (ms / 1000).toFixed(1).replace(/\.0$/, '') + ' s';
+  return ms + ' ms';
+}
+
+function updatePollIntervalUI(ms) {
+  if (!globalPollIntervalSlider || !globalPollIntervalLabel) return;
+  globalPollIntervalSlider.value = String(ms || 1000);
+  globalPollIntervalLabel.textContent = `Poll interval: ${formatPoll(ms || 1000)}`;
+}
+
 // ─── Fetch ─────────────────────────────────────────────────────
 
 export async function fetchSettings() {
   try {
-    const [filter, logger, jam, theme, zoom, filming] = await Promise.all([
+    const [filter, logger, jam, theme, zoom, filming, poll] = await Promise.all([
       api('GET', '/api/filter'),
       api('GET', '/api/logger'),
       api('GET', '/api/jam'),
       api('GET', '/api/ui-theme'),
       api('GET', '/api/ui-zoom'),
       api('GET', '/api/filming-mode'),
+      api('GET', '/api/poll-interval'),
     ]);
     updateFilterUI(filter);
     updateLoggerUI(logger);
@@ -70,6 +83,7 @@ export async function fetchSettings() {
     } else {
       document.body.classList.remove('filming-mode');
     }
+    if (poll && typeof poll.pollIntervalMs === 'number') updatePollIntervalUI(poll.pollIntervalMs);
   } catch {
     // Server may not be ready yet - ignore
   }
@@ -103,6 +117,16 @@ async function fetchBuildInfo() {
 // ─── Event listeners ───────────────────────────────────────────
 
 export function bindSettingsListeners() {
+  const saveGlobalPollInterval = debounce(async (ms) => {
+    try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms }); } catch {}
+  }, 300);
+
+  globalPollIntervalSlider?.addEventListener('input', () => {
+    const ms = Number(globalPollIntervalSlider.value);
+    updatePollIntervalUI(ms);
+    saveGlobalPollInterval(ms);
+  });
+
   // Filter browse (Electron IPC)
   filterBrowseBtn.addEventListener('click', async () => {
     const filePath = isElectron

@@ -86,7 +86,7 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 
 ### Home
 - **Welcome view** - Platform logos, livestream URL input, and a "Start without connecting" link.
-- **Active view** - Overlay URL card (with copy button), connection cards with per-stream stats (messages, unique chatters, uptime), poll frequency sliders, and an add-connection card.
+- **Active view** - Overlay URL card (with copy button), compact connection cards with status indicators, hover stats, refresh/disconnect controls, and an add-connection card.
 - The ChallaChat logo swaps between a muted and vibrant variant to indicate session state.
 
 ### Appearance
@@ -109,6 +109,7 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 - **Message logger** - Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
 - **Jam mode** - Toggle the `!jam` command. Viewers jam once per track; songs with 3+ jams get a finale message on track change.
 - **Dummy chatters** - Display sample messages at random intervals for testing the overlay without a live stream.
+- **Poll interval** - Set the global capture polling interval used by all livestream connections.
 - **Write song to file** - Writes current track to `song.txt` for OBS text sources.
 
 ### settings.json
@@ -173,13 +174,14 @@ All settings are persisted to `settings.json` in the app data directory:
   // UI
   "uiZoom": 1,
   "uiTheme": "",
-  "filmingMode": false
+  "filmingMode": false,
+  "pollIntervalMs": 1000
 }
 ```
 
 ## Multi-connection
 
-ChallaChat supports up to **10 simultaneous** livestream connections. Each connection has its own capture instance, poll interval (100-5000 ms), stats tracking, and independent connect/disconnect. Duplicate URLs are rejected.
+ChallaChat supports up to **10 simultaneous** livestream connections. Each connection has its own capture instance, stats tracking, and independent connect/disconnect. A global poll interval setting applies to all livestream connections. Duplicate URLs are rejected.
 
 ## Overlay
 

@@ -75,6 +75,7 @@ export type AppSettings = {
   uiZoom?: number;
   uiTheme?: string;
   filmingMode?: boolean;
+  pollIntervalMs?: number;
 
   // ── Window ──
   windowWidth?: number;

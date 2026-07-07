@@ -31,6 +31,13 @@ function formatPoll(ms) {
   return ms + ' ms';
 }
 
+function getConnectionStatus(conn) {
+  const raw = String(conn.status || conn.captureStatus || (conn.active === false ? 'inactive' : 'active')).toLowerCase();
+  if (['problem', 'warning', 'degraded', 'reconnecting'].includes(raw)) return 'problem';
+  if (['inactive', 'stopped', 'error', 'failed', 'disconnected'].includes(raw)) return 'inactive';
+  return 'active';
+}
+
 function showError(msg) {
   connectError.textContent = msg;
   connectError.classList.remove('hidden');
@@ -93,46 +100,27 @@ function createConnectionCard(conn) {
   const card = document.createElement('section');
   card.className = 'card capture-card';
   card.dataset.connId = conn.id;
+  const status = getConnectionStatus(conn);
 
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
   card.innerHTML = `
     <div class="capture-header">
+      <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${status}">
+        <span class="connection-status-dot"></span>
+        <div class="connection-status-popover" role="tooltip">
+          <div><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
+          <div><strong class="conn-chatters">${(conn.chatters || 0).toLocaleString()}</strong><span>Chatters</span></div>
+          <div><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>
+        </div>
+      </div>
       <img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />
       <span class="capture-url">${conn.url || ''}</span>
+      <button class="btn small primary conn-refresh-btn">Refresh</button>
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
-    </div>
-    <div class="capture-detail-row">
-      <div class="capture-stat">
-        <span class="capture-stat-value conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</span>
-        <span class="capture-stat-label">Messages</span>
-      </div>
-      <div class="capture-stat">
-        <span class="capture-stat-value conn-chatters">${(conn.chatters || 0).toLocaleString()}</span>
-        <span class="capture-stat-label">Chatters</span>
-      </div>
-      <div class="capture-stat">
-        <span class="capture-stat-value conn-uptime">${formatUptime(conn.uptime || 0)}</span>
-        <span class="capture-stat-label">Uptime</span>
-      </div>
-      <div class="capture-poll-row">
-        <label>Interval</label>
-        <input type="range" class="conn-poll-slider" min="100" max="5000" step="100" value="${conn.pollIntervalMs || 1000}" />
-        <span class="capture-poll-value conn-poll-value">${formatPoll(conn.pollIntervalMs || 1000)}</span>
-      </div>
     </div>`;
 
+  card.querySelector('.conn-refresh-btn').addEventListener('click', () => handleConnectionRefresh(conn.id, conn.url || ''));
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
-
-  const slider = card.querySelector('.conn-poll-slider');
-  const pollVal = card.querySelector('.conn-poll-value');
-  const sendPoll = debounce(async (ms) => {
-    try { await api('POST', '/api/poll-interval', { pollIntervalMs: ms, connectionId: conn.id }); } catch {}
-  }, 300);
-  slider.addEventListener('input', () => {
-    const ms = Number(slider.value);
-    pollVal.textContent = formatPoll(ms);
-    sendPoll(ms);
-  });
 
   connectionCards.set(conn.id, card);
   connectionsContainer.appendChild(card);
@@ -140,13 +128,14 @@ function createConnectionCard(conn) {
 }
 
 function updateConnectionCard(card, conn) {
+  const status = getConnectionStatus(conn);
   card.querySelector('.conn-msg-count').textContent = (conn.messageCount || 0).toLocaleString();
   card.querySelector('.conn-chatters').textContent = (conn.chatters || 0).toLocaleString();
   card.querySelector('.conn-uptime').textContent = formatUptime(conn.uptime || 0);
-  const slider = card.querySelector('.conn-poll-slider');
-  if (document.activeElement !== slider && conn.pollIntervalMs) {
-    slider.value = conn.pollIntervalMs;
-    card.querySelector('.conn-poll-value').textContent = formatPoll(conn.pollIntervalMs);
+  const indicator = card.querySelector('.connection-status');
+  if (indicator) {
+    indicator.className = `connection-status status-${status}`;
+    indicator.setAttribute('aria-label', `Connection ${status}`);
   }
 }
 
@@ -258,6 +247,24 @@ async function handleConnectionDisconnect(connectionId) {
     await api('POST', '/api/disconnect', { connectionId });
     await fetchStatus();
   } catch { /* ignore */ }
+}
+
+async function handleConnectionRefresh(connectionId, url) {
+  if (!url) return;
+  const card = connectionCards.get(connectionId);
+  const refreshBtn = card?.querySelector('.conn-refresh-btn');
+  if (refreshBtn) refreshBtn.disabled = true;
+  try {
+    await api('POST', '/api/disconnect', { connectionId });
+    const data = await api('POST', '/api/connect', { url });
+    if (!data.ok) alert(data.error || 'Connection refresh failed.');
+    await fetchStatus();
+  } catch {
+    alert('Connection refresh failed.');
+    await fetchStatus();
+  } finally {
+    if (refreshBtn) refreshBtn.disabled = false;
+  }
 }
 
 async function handleStartWithoutConnecting(e) {

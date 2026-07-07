@@ -39,6 +39,8 @@ export const logFolderBrowseBtn = $('logFolderBrowseBtn');
 export const logFolderClearBtn  = $('logFolderClearBtn');
 export const jamToggle       = $('jamToggle');
 export const clearMessagesBtn = $('clearMessagesBtn');
+export const globalPollIntervalSlider = $('globalPollIntervalSlider');
+export const globalPollIntervalLabel  = $('globalPollIntervalLabel');
 // Appearance
 export const scaleSlider     = $('scaleSlider');
 export const scaleLabel      = $('scaleLabel');
