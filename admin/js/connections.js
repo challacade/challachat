@@ -7,7 +7,7 @@ import {
   connectionsContainer, overlayUrl, copyBtn,
   startWithoutConnecting,
   welcomeView, activeView,
-  addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink,
+  addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink, connectionHistoryLink,
 } from './dom.js';
 import { api } from './api.js';
 
@@ -72,6 +72,17 @@ const SPOOF_OPTIONS = [
   { value: 'custom', label: 'Custom' },
 ];
 
+function formatHistoryLabel(item) {
+  if (item.type === 'spoof') return item.label || 'Spoof Chat';
+  return formatDisplayUrl(item.url || item.label || '');
+}
+
+function getHistoryIcon(item) {
+  if (item.type === 'spoof') return { emoji: '🤖' };
+  const icon = PLATFORM_ICONS[item.platform];
+  return icon ? { src: icon, alt: item.platform || '' } : null;
+}
+
 function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onSelect }) {
   let page = 0;
   const selected = new Set();
@@ -113,6 +124,7 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
     list.innerHTML = visible.map((item, index) => `
       <label class="selector-option ${selected.has(item.value) ? 'selected' : ''}">
         <input type="checkbox" class="selector-checkbox" data-index="${start + index}" ${selected.has(item.value) ? 'checked' : ''} />
+        ${item.icon ? `<span class="selector-option-icon">${item.icon.src ? `<img src="${item.icon.src}" alt="${item.icon.alt || ''}" />` : item.icon.emoji || ''}</span>` : ''}
         <span class="selector-option-text">${item.label}</span>
       </label>`).join('');
     pagination.classList.toggle('hidden', pageCount <= 1);
@@ -351,6 +363,35 @@ function openSpoofSelector() {
   });
 }
 
+async function openConnectionHistorySelector() {
+  try {
+    const data = await api('GET', '/api/connection-history');
+    const history = Array.isArray(data?.history) ? data.history : [];
+    if (history.length === 0) {
+      alert('No connection history yet.');
+      return;
+    }
+    openSelector({
+      title: 'Connection history:',
+      items: history.map(item => ({ ...item, value: item.key, label: formatHistoryLabel(item), icon: getHistoryIcon(item) })),
+      pageSize: 8,
+      onSelect: async (items) => {
+        await api('POST', '/api/start-session');
+        for (const item of items) {
+          if (item.type === 'spoof') {
+            await api('POST', '/api/spoof', { enabled: true, preset: item.preset || 'welcome' });
+          } else if (item.url) {
+            await api('POST', '/api/connect', { url: item.url });
+          }
+        }
+        await fetchStatus();
+      },
+    });
+  } catch {
+    alert('Failed to load connection history.');
+  }
+}
+
 // ─── Event listeners ───────────────────────────────────────────
 
 export function bindConnectionListeners() {
@@ -370,6 +411,10 @@ export function bindConnectionListeners() {
   startSpoofLink.addEventListener('click', async (e) => {
     e.preventDefault();
     openSpoofSelector();
+  });
+  connectionHistoryLink.addEventListener('click', async (e) => {
+    e.preventDefault();
+    await openConnectionHistorySelector();
   });
 
   // Copy overlay URL

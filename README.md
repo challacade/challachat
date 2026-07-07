@@ -88,6 +88,7 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 - **Welcome view** - Platform logos, livestream URL input, and a "Start without connecting" link.
 - **Active view** - Overlay URL card (with copy button), compact connection cards with status indicators, inline stats, refresh/disconnect controls, and an add-connection card.
 - **Spoof selector** - Start one or more spoof chats from a centered multi-select window.
+- **Connection history** - Reconnect one or more previously used livestream or spoof connections from the same multi-select window.
 - The ChallaChat logo swaps between a muted and vibrant variant to indicate session state.
 
 ### Appearance
@@ -177,6 +178,19 @@ All settings are persisted to `settings.json` in the app data directory:
   "uiTheme": "",
   "filmingMode": false,
   "pollIntervalMs": 1000
+}
+```
+
+### history.json
+
+Connection history is persisted separately from settings:
+
+- **Windows:** `%LOCALAPPDATA%\ChallaChat\history.json`
+- **macOS / Linux:** `~/.challachat/history.json`
+
+```jsonc
+{
+  "connections": []
 }
 ```
 

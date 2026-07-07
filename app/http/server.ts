@@ -9,7 +9,7 @@ import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
-import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles } from '../core/settings';
+import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles, getConnectionHistory, addConnectionHistory } from '../core/settings';
 import { getNowPlaying } from '../core/nowPlaying';
 import { setJamEnabled } from '../core/jam';
 import { runChatCommands } from '../core/commands';
@@ -148,6 +148,7 @@ class App extends EventEmitter {
       setSpoofPreset: (p, id) => this.setSpoofPreset(p, id),
       getPollInterval: () => this.pollIntervalMs,
       setPollInterval: (ms, id) => this.setPollInterval(ms, id),
+      getConnectionHistory: () => getConnectionHistory(),
       isSessionActive: () => this.sessionActive,
       setSessionActive: (v) => { this.sessionActive = v; },
       ensureServer: () => this.ensureServer(),
@@ -369,6 +370,13 @@ class App extends EventEmitter {
       videoId: identifier, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: this.pollIntervalMs,
       firstPollDone: false,
+    });
+    addConnectionHistory({
+      key: `stream:${displayUrl}`,
+      type: 'stream',
+      label: displayUrl,
+      url: displayUrl,
+      platform,
     });
     this.tui?.setUrl(displayUrl);
     startLogging(config.logPrefix);
@@ -618,6 +626,12 @@ class App extends EventEmitter {
       id: connId, capture: spoof, platform: 'spoof', url: `Spoof Chat - ${presetLabel}`,
       videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: 0, firstPollDone: true, displayName: `Spoof Chat - ${presetLabel}`, spoofPreset: preset || 'welcome',
+    });
+    addConnectionHistory({
+      key: `spoof:${preset || 'welcome'}`,
+      type: 'spoof',
+      label: `Spoof Chat - ${presetLabel}`,
+      preset: preset || 'welcome',
     });
     startSpoofLogging();
     void spoof.start();

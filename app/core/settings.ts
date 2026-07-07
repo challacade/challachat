@@ -2,6 +2,20 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 
+export type ConnectionHistoryItem = {
+  key: string;
+  type: 'stream' | 'spoof';
+  label: string;
+  url?: string;
+  platform?: string;
+  preset?: string;
+  lastConnectedAt: number;
+};
+
+type HistoryFile = {
+  connections?: ConnectionHistoryItem[];
+};
+
 export type AppSettings = {
   // ── Music & song display ──
   musicPath?: string;
@@ -108,6 +122,10 @@ function getSettingsPath(): string {
   return path.join(getSettingsDir(), 'settings.json');
 }
 
+function getHistoryPath(): string {
+  return path.join(getSettingsDir(), 'history.json');
+}
+
 export function writeSongTxt(line: string): { ok: boolean; path: string } {
   const { settings } = readSettings();
   const songPath = (typeof settings.songFilePath === 'string' && settings.songFilePath.trim())
@@ -161,6 +179,38 @@ export function updateSettings(patch: Partial<AppSettings>): { ok: boolean; sett
   } catch {
     return { ok: false, settings };
   }
+}
+
+export function getConnectionHistory(): ConnectionHistoryItem[] {
+  const historyPath = getHistoryPath();
+  ensureSettingsDirExists();
+
+  try {
+    if (fs.existsSync(historyPath)) {
+      const raw = fs.readFileSync(historyPath, 'utf-8');
+      const parsed = JSON.parse(raw || '{}') as HistoryFile | ConnectionHistoryItem[];
+      if (Array.isArray(parsed)) return parsed;
+      return Array.isArray(parsed?.connections) ? parsed.connections : [];
+    }
+  } catch {
+    return [];
+  }
+
+  const legacy = (readSettings().settings as Record<string, unknown>).connectionHistory;
+  return Array.isArray(legacy) ? legacy as ConnectionHistoryItem[] : [];
+}
+
+export function addConnectionHistory(item: Omit<ConnectionHistoryItem, 'lastConnectedAt'>): ConnectionHistoryItem[] {
+  const nextItem: ConnectionHistoryItem = { ...item, lastConnectedAt: Date.now() };
+  const existing = getConnectionHistory().filter(entry => entry.key !== nextItem.key);
+  const next = [nextItem, ...existing].slice(0, 50);
+  ensureSettingsDirExists();
+  try {
+    fs.writeFileSync(getHistoryPath(), JSON.stringify({ connections: next }, null, 2), { encoding: 'utf-8' });
+  } catch {
+    // ignore - history is non-critical
+  }
+  return next;
 }
 
 export function getMusicPath(): string | null {

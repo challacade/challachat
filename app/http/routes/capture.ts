@@ -10,6 +10,10 @@ export function createCaptureRouter(ctx: RouteContext): Router {
     res.json(ctx.getStatus());
   });
 
+  router.get('/connection-history', (_req: Request, res: Response) => {
+    res.json({ history: ctx.getConnectionHistory() });
+  });
+
   router.get('/poll-interval', (req: Request, res: Response) => {
     const connId = String(req.query.connectionId || '');
     const conn = connId ? ctx.connections.get(connId) : ctx.connections.values().next().value;

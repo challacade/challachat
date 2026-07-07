@@ -678,6 +678,14 @@ footer {
   align-items: center;
   padding: 12px 14px;
 }
+.connection-tools-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.connection-tools-row .demo-link { margin-top: 10px; }
 
 /* -- Selector modal ------------------------------------------- */
 .selector-overlay {
@@ -744,6 +752,21 @@ footer {
   accent-color: var(--slider);
   cursor: pointer;
   flex-shrink: 0;
+}
+.selector-option-icon {
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  line-height: 1;
+}
+.selector-option-icon img {
+  max-width: 20px;
+  max-height: 20px;
+  object-fit: contain;
 }
 .selector-option-text {
   flex: 1;
