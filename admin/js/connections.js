@@ -10,7 +10,6 @@ import {
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink,
 } from './dom.js';
 import { api } from './api.js';
-import { debounce } from '/shared/utils.js';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -153,46 +152,6 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
   dialog.focus?.();
 }
 
-function createSpoofCard(conn) {
-  const card = document.createElement('section');
-  card.className = 'card spoof-card';
-  card.dataset.connId = conn.id;
-  const intervalMs = conn.spoofIntervalMs || 3000;
-  card.innerHTML = `
-    <div class="spoof-row">
-      <div class="spoof-control">
-        <div class="control-label">Spoof Chat</div>
-        <select class="dropdown spoof-preset-select">
-          <option value="welcome">Welcome</option>
-          <option value="trailer">Trailer</option>
-          <option value="audience">Audience</option>
-          <option value="custom">Custom</option>
-        </select>
-      </div>
-      <div class="spoof-control">
-        <div class="control-label">Interval (ms)</div>
-        <input type="text" class="spoof-interval-input" inputmode="numeric" value="${intervalMs}" />
-      </div>
-      <button class="btn small danger conn-disconnect-btn">Disconnect</button>
-    </div>`;
-  card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
-  const presetSelect = card.querySelector('.spoof-preset-select');
-  presetSelect.addEventListener('change', async () => {
-    try { await api('POST', '/api/spoof-preset', { preset: presetSelect.value, connectionId: conn.id }); } catch {}
-  });
-  const intervalInput = card.querySelector('.spoof-interval-input');
-  const sendInterval = debounce(async (ms) => {
-    try { await api('POST', '/api/spoof-interval', { intervalMs: ms, connectionId: conn.id }); } catch {}
-  }, 300);
-  intervalInput.addEventListener('input', () => {
-    const ms = parseInt(intervalInput.value, 10);
-    if (ms >= 500) sendInterval(ms);
-  });
-  connectionCards.set(conn.id, card);
-  connectionsContainer.appendChild(card);
-  return card;
-}
-
 function createConnectionCard(conn) {
   const card = document.createElement('section');
   card.className = 'card capture-card';
@@ -200,13 +159,17 @@ function createConnectionCard(conn) {
   const status = getConnectionStatus(conn);
 
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
+  const isSpoof = conn.platform === 'spoof';
+  const displayName = isSpoof ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
   card.innerHTML = `
     <div class="capture-header">
       <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${status}">
         <span class="connection-status-dot"></span>
       </div>
-      <img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />
-      <span class="capture-url" title="${conn.url || ''}">${formatDisplayUrl(conn.url)}</span>
+      ${isSpoof
+        ? '<span class="capture-platform-emoji" aria-label="Spoof chat">🤖</span>'
+        : `<img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />`}
+      <span class="capture-url" title="${conn.url || ''}">${displayName}</span>
       <div class="capture-inline-stats" aria-label="Connection stats">
         <div class="capture-inline-stat"><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
         <div class="capture-inline-stat"><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>
@@ -215,7 +178,7 @@ function createConnectionCard(conn) {
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
 
-  card.querySelector('.conn-refresh-btn').addEventListener('click', () => handleConnectionRefresh(conn.id, conn.url || ''));
+  card.querySelector('.conn-refresh-btn').addEventListener('click', () => handleConnectionRefresh(conn));
   card.querySelector('.conn-disconnect-btn').addEventListener('click', () => handleConnectionDisconnect(conn.id));
 
   connectionCards.set(conn.id, card);
@@ -229,7 +192,7 @@ function updateConnectionCard(card, conn) {
   card.querySelector('.conn-uptime').textContent = formatUptime(conn.uptime || 0);
   const urlEl = card.querySelector('.capture-url');
   if (urlEl) {
-    urlEl.textContent = formatDisplayUrl(conn.url);
+    urlEl.textContent = conn.platform === 'spoof' ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
     urlEl.setAttribute('title', conn.url || '');
   }
   const indicator = card.querySelector('.connection-status');
@@ -262,10 +225,9 @@ function updateUI(status) {
   for (const conn of connections) {
     const existing = connectionCards.get(conn.id);
     if (existing) {
-      if (conn.platform !== 'spoof') updateConnectionCard(existing, conn);
+      updateConnectionCard(existing, conn);
     } else {
-      if (conn.platform === 'spoof') createSpoofCard(conn);
-      else createConnectionCard(conn);
+      createConnectionCard(conn);
     }
   }
 
@@ -349,14 +311,16 @@ async function handleConnectionDisconnect(connectionId) {
   } catch { /* ignore */ }
 }
 
-async function handleConnectionRefresh(connectionId, url) {
-  if (!url) return;
-  const card = connectionCards.get(connectionId);
+async function handleConnectionRefresh(conn) {
+  if (!conn) return;
+  const card = connectionCards.get(conn.id);
   const refreshBtn = card?.querySelector('.conn-refresh-btn');
   if (refreshBtn) refreshBtn.disabled = true;
   try {
-    await api('POST', '/api/disconnect', { connectionId });
-    const data = await api('POST', '/api/connect', { url });
+    await api('POST', '/api/disconnect', { connectionId: conn.id });
+    const data = conn.platform === 'spoof'
+      ? await api('POST', '/api/spoof', { enabled: true, preset: conn.spoofPreset })
+      : await api('POST', '/api/connect', { url: conn.url });
     if (!data.ok) alert(data.error || 'Connection refresh failed.');
     await fetchStatus();
   } catch {

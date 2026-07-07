@@ -608,15 +608,16 @@ class App extends EventEmitter {
 
   /** Start a spoof connection (dummy chatters). */
   private startSpoof(preset?: string) {
+    const presetLabel = preset ? preset.charAt(0).toUpperCase() + preset.slice(1) : 'Welcome';
     const connId = this.generateConnId();
     const spoof = new SpoofCapture({
       onMessage: (msg: ChatEvent) => this.onCaptureMessage(connId, msg),
     });
     if (preset) spoof.setPreset(preset);
     this.connections.set(connId, {
-      id: connId, capture: spoof, platform: 'spoof', url: `Spoof Chat${preset ? ` - ${preset}` : ''}`,
+      id: connId, capture: spoof, platform: 'spoof', url: `Spoof Chat - ${presetLabel}`,
       videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
-      pollIntervalMs: 0, firstPollDone: true,
+      pollIntervalMs: 0, firstPollDone: true, displayName: `Spoof Chat - ${presetLabel}`, spoofPreset: preset || 'welcome',
     });
     startSpoofLogging();
     void spoof.start();
@@ -683,13 +684,14 @@ class App extends EventEmitter {
         id: c.id,
         platform: c.platform,
         url: c.url,
+        displayName: c.displayName,
         videoId: c.videoId,
         messageCount: c.messageCount,
         chatters: c.chatters.size,
         uptime: c.startTime ? Date.now() - c.startTime : 0,
         pollIntervalMs: c.pollIntervalMs,
         ...(c.platform === 'spoof' && 'getIntervalMs' in c.capture
-          ? { spoofIntervalMs: (c.capture as SpoofCapture).getIntervalMs() }
+          ? { spoofIntervalMs: (c.capture as SpoofCapture).getIntervalMs(), spoofPreset: c.spoofPreset }
           : {}),
       }));
     return {

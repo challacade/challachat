@@ -17,6 +17,8 @@ export interface Connection {
   pollIntervalMs: number;
   /** Set to true after the first poll completes (suppresses sounds for initial backlog). */
   firstPollDone: boolean;
+  displayName?: string;
+  spoofPreset?: string;
 }
 
 /**
