@@ -143,7 +143,7 @@ class App extends EventEmitter {
       sounds: this.sounds,
       getStatus: () => this.getStatus(),
       isRunning: () => this.isRunning,
-      setSpoofActive: (v) => { if (v) this.startSpoof(); else this.stopSpoof(); },
+      setSpoofActive: (v, preset) => { if (v) this.startSpoof(preset); else this.stopSpoof(); },
       setSpoofInterval: (ms, id) => this.setSpoofInterval(ms, id),
       setSpoofPreset: (p, id) => this.setSpoofPreset(p, id),
       getPollInterval: () => this.pollIntervalMs,
@@ -606,14 +606,15 @@ class App extends EventEmitter {
     return false;
   }
 
-  /** Start the spoof connection (dummy chatters). No-op if already active. */
-  private startSpoof() {
+  /** Start a spoof connection (dummy chatters). */
+  private startSpoof(preset?: string) {
     const connId = this.generateConnId();
     const spoof = new SpoofCapture({
       onMessage: (msg: ChatEvent) => this.onCaptureMessage(connId, msg),
     });
+    if (preset) spoof.setPreset(preset);
     this.connections.set(connId, {
-      id: connId, capture: spoof, platform: 'spoof', url: 'Spoof Chat',
+      id: connId, capture: spoof, platform: 'spoof', url: `Spoof Chat${preset ? ` - ${preset}` : ''}`,
       videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: 0, firstPollDone: true,
     });

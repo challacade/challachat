@@ -672,6 +672,114 @@ footer {
   padding: 12px 14px;
 }
 
+/* -- Selector modal ------------------------------------------- */
+.selector-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: rgba(0,0,0,0.54);
+  -webkit-app-region: no-drag;
+}
+.selector-dialog {
+  width: min(320px, 100%);
+  max-height: min(460px, calc(100vh - 48px));
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 22px 70px rgba(0,0,0,0.42);
+}
+.selector-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.selector-header h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dim);
+  letter-spacing: 0.01em;
+}
+.selector-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+}
+.selector-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.selector-option:hover,
+.selector-option.selected {
+  border-color: var(--accent);
+  background: rgba(74,90,208,0.12);
+}
+.selector-checkbox {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--slider);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.selector-option-text {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.selector-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding-top: 2px;
+}
+.selector-page-label {
+  min-width: 78px;
+  text-align: center;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.selector-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 2px;
+}
+.selector-selected-count {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-dim);
+}
+.selector-submit:disabled {
+  background: #3a4168;
+  color: var(--text-dim);
+  opacity: 0.65;
+}
+
 /* =============================================================
    5. Page: Appearance
    ============================================================= */

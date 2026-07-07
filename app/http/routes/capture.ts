@@ -28,8 +28,9 @@ export function createCaptureRouter(ctx: RouteContext): Router {
       res.status(400).json({ ok: false, error: 'Missing enabled boolean.' });
       return;
     }
-    ctx.setSpoofActive(enabled);
-    res.json({ ok: true, enabled });
+    const preset = typeof req.body?.preset === 'string' ? req.body.preset : undefined;
+    ctx.setSpoofActive(enabled, preset);
+    res.json({ ok: true, enabled, preset });
   });
 
   router.post('/spoof-interval', (req: Request, res: Response) => {

@@ -36,7 +36,7 @@ export interface RouteContext {
   // ── State accessors ──
   getStatus(): Record<string, unknown>;
   isRunning(): boolean;
-  setSpoofActive(enabled: boolean): void;
+  setSpoofActive(enabled: boolean, preset?: string): void;
   setSpoofInterval(ms: number, connectionId?: string): void;
   setSpoofPreset(preset: string, connectionId?: string): void;
   getPollInterval(): number;

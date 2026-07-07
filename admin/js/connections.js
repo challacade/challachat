@@ -66,6 +66,92 @@ function setServerActive(active) {
 const MAX_CONNECTIONS = 10;
 const connectionCards = new Map();
 const PLATFORM_ICONS = { youtube: 'img/youtube.png', twitch: 'img/twitch.png', kick: 'img/kick.png' };
+const SPOOF_OPTIONS = [
+  { value: 'welcome', label: 'Welcome' },
+  { value: 'trailer', label: 'Trailer' },
+  { value: 'audience', label: 'Audience' },
+  { value: 'custom', label: 'Custom' },
+];
+
+function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onSelect }) {
+  let page = 0;
+  const selected = new Set();
+  const pageCount = Math.max(1, Math.ceil(items.length / pageSize));
+  const overlay = document.createElement('div');
+  overlay.className = 'selector-overlay';
+  overlay.innerHTML = `
+    <section class="selector-dialog" role="dialog" aria-modal="true" aria-label="${title}">
+      <div class="selector-header">
+        <h3>${title}</h3>
+      </div>
+      <div class="selector-list"></div>
+      <div class="selector-pagination hidden">
+        <button class="btn compact primary selector-prev" type="button">Previous</button>
+        <span class="selector-page-label"></span>
+        <button class="btn compact primary selector-next" type="button">Next</button>
+      </div>
+      <div class="selector-footer">
+        <span class="selector-selected-count">0 selected</span>
+        <button class="btn small primary selector-submit" type="button" disabled>${actionLabel}</button>
+      </div>
+    </section>`;
+  const dialog = overlay.querySelector('.selector-dialog');
+  const list = overlay.querySelector('.selector-list');
+  const pagination = overlay.querySelector('.selector-pagination');
+  const pageLabel = overlay.querySelector('.selector-page-label');
+  const prevBtn = overlay.querySelector('.selector-prev');
+  const nextBtn = overlay.querySelector('.selector-next');
+  const submitBtn = overlay.querySelector('.selector-submit');
+  const selectedCount = overlay.querySelector('.selector-selected-count');
+  const close = () => overlay.remove();
+  const updateSelectedState = () => {
+    selectedCount.textContent = `${selected.size} selected`;
+    submitBtn.disabled = selected.size === 0;
+  };
+  const render = () => {
+    const start = page * pageSize;
+    const visible = items.slice(start, start + pageSize);
+    list.innerHTML = visible.map((item, index) => `
+      <label class="selector-option ${selected.has(item.value) ? 'selected' : ''}">
+        <input type="checkbox" class="selector-checkbox" data-index="${start + index}" ${selected.has(item.value) ? 'checked' : ''} />
+        <span class="selector-option-text">${item.label}</span>
+      </label>`).join('');
+    pagination.classList.toggle('hidden', pageCount <= 1);
+    pageLabel.textContent = `Page ${page + 1} of ${pageCount}`;
+    prevBtn.disabled = page === 0;
+    nextBtn.disabled = page >= pageCount - 1;
+    updateSelectedState();
+  };
+  overlay.addEventListener('click', (e) => { if (e.target === overlay) close(); });
+  prevBtn.addEventListener('click', () => { if (page > 0) { page--; render(); } });
+  nextBtn.addEventListener('click', () => { if (page < pageCount - 1) { page++; render(); } });
+  list.addEventListener('change', (e) => {
+    const checkbox = e.target.closest('.selector-checkbox');
+    if (!checkbox) return;
+    const item = items[Number(checkbox.dataset.index)];
+    if (!item) return;
+    if (checkbox.checked) selected.add(item.value);
+    else selected.delete(item.value);
+    render();
+  });
+  submitBtn.addEventListener('click', async () => {
+    const selectedItems = items.filter(item => selected.has(item.value));
+    if (selectedItems.length === 0) return;
+    submitBtn.disabled = true;
+    try { await onSelect(selectedItems); close(); }
+    catch { submitBtn.disabled = false; updateSelectedState(); }
+  });
+  document.addEventListener('keydown', function onKeyDown(e) {
+    if (!overlay.isConnected) {
+      document.removeEventListener('keydown', onKeyDown);
+      return;
+    }
+    if (e.key === 'Escape') close();
+  });
+  document.body.appendChild(overlay);
+  render();
+  dialog.focus?.();
+}
 
 function createSpoofCard(conn) {
   const card = document.createElement('section');
@@ -283,11 +369,22 @@ async function handleConnectionRefresh(connectionId, url) {
 
 async function handleStartWithoutConnecting(e) {
   e.preventDefault();
-  try {
-    await api('POST', '/api/start-session');
-    await api('POST', '/api/spoof', { enabled: true });
-    await fetchStatus();
-  } catch {}
+  openSpoofSelector();
+}
+
+function openSpoofSelector() {
+  openSelector({
+    title: 'Spoof Chat connections:',
+    items: SPOOF_OPTIONS,
+    pageSize: 6,
+    onSelect: async (items) => {
+      await api('POST', '/api/start-session');
+      for (const item of items) {
+        await api('POST', '/api/spoof', { enabled: true, preset: item.value });
+      }
+      await fetchStatus();
+    },
+  });
 }
 
 // ─── Event listeners ───────────────────────────────────────────
@@ -308,10 +405,7 @@ export function bindConnectionListeners() {
   });
   startSpoofLink.addEventListener('click', async (e) => {
     e.preventDefault();
-    try {
-      await api('POST', '/api/spoof', { enabled: true });
-      await fetchStatus();
-    } catch {}
+    openSpoofSelector();
   });
 
   // Copy overlay URL
