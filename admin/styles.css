@@ -127,11 +127,6 @@ header {
 }
 .page.active { display: flex; }
 
-.active-view {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
 #connectionsContainer {
   display: flex;
   flex-direction: column;
@@ -437,7 +432,7 @@ footer {
   color: var(--text-dim);
   margin-bottom: 20px;
 }
-.welcome-tagline.welcome-sub { margin-top: -12px; }
+.welcome-tagline.welcome-sub { margin: -12px 0 0; }
 
 .demo-link {
   display: inline-block;
@@ -641,11 +636,12 @@ footer {
   color: var(--text-dim);
 }
 
-/* -- Add connection card -------------------------------------- */
-#connectSection {
+/* -- Home cards ----------------------------------------------- */
+.welcome-card {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding-bottom: 12px;
 }
 
 /* Button spinner (filming mode) */
@@ -658,19 +654,18 @@ footer {
   animation: spin .8s linear infinite;
   margin: 0 auto;
 }
-#connectBtn {
+#addConnectBtn {
   min-width: 90px;
 }
-#connectBtn.connecting {
+#addConnectBtn.connecting {
   background: #3a4168;
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
 /* ── Filming mode overrides ── */
-.filming-mode #connectSection { padding: 48px; }
+.filming-mode .welcome-card { padding: 48px; }
 .filming-mode .welcome-tagline { color: #ffffff; }
 .filming-mode .input-row input::placeholder { color: #9ca3af; }
-.filming-mode #startWithoutConnecting { display: none !important; }
 
 .add-connection-card {
   display: flex;
@@ -682,7 +677,7 @@ footer {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 16px;
+  gap: 32px;
   flex-wrap: wrap;
 }
 .connection-tools-row .demo-link { margin-top: 10px; }

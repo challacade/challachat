@@ -9,18 +9,13 @@ export const isElectron = !!(window.challachat && window.challachat.isElectron);
 const $ = (id) => document.getElementById(id);
 
 export const logoImg       = $('logoImg');
-export const urlInput      = $('urlInput');
-export const connectBtn    = $('connectBtn');
 export const connectError  = $('connectError');
-export const connectSection  = $('connectSection');
 export const connectionsContainer = $('connectionsContainer');
 export const overlayUrl      = $('overlayUrl');
 export const copyBtn         = $('copyBtn');
 export const overlayCard     = $('overlayCard');
 
-export const startWithoutConnecting = $('startWithoutConnecting');
 export const welcomeView     = $('welcomeView');
-export const activeView      = $('activeView');
 export const addConnectionCard = $('addConnectionCard');
 export const addUrlInput     = $('addUrlInput');
 export const addConnectBtn   = $('addConnectBtn');

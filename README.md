@@ -85,8 +85,9 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 ## Admin panel
 
 ### Home
-- **Welcome view** - Platform logos, livestream URL input, and a "Start without connecting" link.
-- **Active view** - Overlay URL card (with copy button), compact connection cards with status indicators, inline stats, refresh/disconnect controls, and an add-connection card.
+- **Welcome card** - Platform logos and the local-capture tagline while no session is active.
+- **Add connection card** - The shared livestream URL input plus spoof and connection-history actions, available before and after a session starts.
+- **Session cards** - Overlay URL card, compact connection cards with status indicators, inline stats, and refresh/disconnect controls while a session is active.
 - **Spoof selector** - Start one or more spoof chats from a centered multi-select window.
 - **Connection history** - Reconnect one or more previously used livestream or spoof connections from the same multi-select window.
 - The ChallaChat logo swaps between a muted and vibrant variant to indicate session state.

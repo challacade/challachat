@@ -3,10 +3,9 @@
  */
 import {
   isElectron,
-  logoImg, urlInput, connectBtn, connectError,
-  connectionsContainer, overlayUrl, copyBtn,
-  startWithoutConnecting,
-  welcomeView, activeView,
+  logoImg, connectError,
+  connectionsContainer, overlayCard, overlayUrl, copyBtn,
+  welcomeView,
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink, connectionHistoryLink,
 } from './dom.js';
 import { api } from './api.js';
@@ -225,7 +224,7 @@ function updateUI(status) {
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;
 
   welcomeView.classList.toggle('hidden', isActive);
-  activeView.classList.toggle('hidden', !isActive);
+  overlayCard.classList.toggle('hidden', !isActive);
 
   const connections = status.connections || [];
   const activeIds = new Set(connections.map(c => c.id));
@@ -244,11 +243,13 @@ function updateUI(status) {
   }
 
   const realConnections = connections.filter(c => c.platform !== 'spoof');
-  const showAddCard = isActive && realConnections.length < MAX_CONNECTIONS;
-  addConnectionCard.classList.toggle('hidden', !showAddCard);
+  const connectionLimitReached = realConnections.length >= MAX_CONNECTIONS;
+  addConnectionCard.classList.remove('hidden');
+  addUrlInput.closest('.input-row')?.classList.toggle('hidden', connectionLimitReached);
+  connectionsContainer.classList.toggle('hidden', connections.length === 0);
 
   if (realConnections.length === 0) {
-    addUrlInput.placeholder = 'Enter a livestream URL…';
+    addUrlInput.placeholder = 'Paste a YouTube, Twitch, or Kick URL';
   } else {
     addUrlInput.placeholder = 'Add another livestream URL…';
   }
@@ -267,51 +268,29 @@ export async function fetchStatus() {
 
 // ─── Connect / Disconnect ──────────────────────────────────────
 
-async function handleConnect() {
-  const url = urlInput.value.trim();
+async function handleAddConnect() {
+  const url = addUrlInput.value.trim();
   if (!url) { showError('Please enter a livestream URL.'); return; }
 
   hideError();
-  urlInput.blur();
-  connectBtn.disabled = true;
-  connectBtn.classList.add('connecting');
-  connectBtn.innerHTML = '<div class="btn-spinner"></div>';
-
+  addUrlInput.blur();
+  addConnectBtn.disabled = true;
+  addConnectBtn.classList.add('connecting');
+  addConnectBtn.innerHTML = '<div class="btn-spinner"></div>';
   try {
     const data = await api('POST', '/api/connect', { url });
-    if (!data.ok) {
-      showError(data.error || 'Connection failed.');
-    } else {
+    if (data.ok) {
       hideError();
-      urlInput.value = '';
+      addUrlInput.value = '';
+    } else {
+      showError(data.error || 'Connection failed.');
     }
     await fetchStatus();
   } catch {
     showError('Failed to connect. Is the server running?');
   } finally {
-    connectBtn.disabled = false;
-    connectBtn.classList.remove('connecting');
-    connectBtn.textContent = 'Connect';
-  }
-}
-
-async function handleAddConnect() {
-  const url = addUrlInput.value.trim();
-  if (!url) return;
-  addConnectBtn.disabled = true;
-  addConnectBtn.textContent = 'Connecting\u2026';
-  try {
-    const data = await api('POST', '/api/connect', { url });
-    if (data.ok) {
-      addUrlInput.value = '';
-    } else {
-      alert(data.error || 'Connection failed.');
-    }
-    await fetchStatus();
-  } catch {
-    alert('Failed to connect.');
-  } finally {
     addConnectBtn.disabled = false;
+    addConnectBtn.classList.remove('connecting');
     addConnectBtn.textContent = 'Connect';
   }
 }
@@ -341,11 +320,6 @@ async function handleConnectionRefresh(conn) {
   } finally {
     if (refreshBtn) refreshBtn.disabled = false;
   }
-}
-
-async function handleStartWithoutConnecting(e) {
-  e.preventDefault();
-  openSpoofSelector();
 }
 
 function openSpoofSelector() {
@@ -396,9 +370,6 @@ async function openConnectionHistorySelector() {
 
 export function bindConnectionListeners() {
   // Connect / disconnect
-  connectBtn.addEventListener('click', handleConnect);
-  startWithoutConnecting.addEventListener('click', handleStartWithoutConnecting);
-  urlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') handleConnect(); });
   addConnectBtn.addEventListener('click', handleAddConnect);
   addUrlInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addConnectBtn.click(); });
   closeServerLink.addEventListener('click', async (e) => {

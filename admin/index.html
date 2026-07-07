@@ -57,66 +57,54 @@
       <!-- ═══ HOME PAGE ═══════════════════════════════════════ -->
       <div class="page active" id="pageHome">
 
-        <!-- Welcome view (idle / no connections) ----------------- -->
-        <div id="welcomeView">
-          <section class="card" id="connectSection">
-            <div class="welcome-platforms">
-              <img src="img/twitch.png"  alt="Twitch"  class="platform-logo twitch" />
-              <img src="img/youtube.png" alt="YouTube" class="platform-logo" />
-              <img src="img/kick.png"    alt="Kick"    class="platform-logo kick" />
-            </div>
-            <p class="welcome-tagline">Capture any livestream chat in a custom overlay.</p>
-            <p class="welcome-tagline welcome-sub">No cloud, all local.</p>
-            <div class="input-row">
-              <input
-                type="text"
-                id="urlInput"
-                placeholder="Paste a YouTube, Twitch, or Kick URL"
-                autocomplete="off"
-                spellcheck="false"
-              />
-              <button id="connectBtn" class="btn primary">Connect</button>
-            </div>
-            <div id="connectError" class="error hidden"></div>
-            <a href="#" id="startWithoutConnecting" class="demo-link">Start with a Spoof connection</a>
-          </section>
-        </div>
+        <!-- Welcome card (idle / no connections) ----------------- -->
+        <section class="card welcome-card" id="welcomeView">
+          <div class="welcome-platforms">
+            <img src="img/twitch.png"  alt="Twitch"  class="platform-logo twitch" />
+            <img src="img/youtube.png" alt="YouTube" class="platform-logo" />
+            <img src="img/kick.png"    alt="Kick"    class="platform-logo kick" />
+          </div>
+          <p class="welcome-tagline">Capture any livestream chat in a custom overlay.</p>
+          <p class="welcome-tagline welcome-sub">Connect to a channel to get started.</p>
+        </section>
 
-        <!-- Active view (connected / demo) ----------------------- -->
-        <div id="activeView" class="active-view hidden">
-
-          <!-- OBS Overlay URL -------------------------------------- -->
-          <section class="card overlay-card" id="overlayCard">
-            <div class="overlay-row">
-              <img src="img/stream.png" class="overlay-clipart" alt="" />
-              <div class="overlay-copy-group">
-                <label class="overlay-label">Overlay Browser Source</label>
-                <div class="copy-row">
-                  <code id="overlayUrl">http://localhost:5050</code>
-                  <button id="copyBtn" class="btn small primary" title="Copy URL"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
-                </div>
-                <p class="hint">Add this URL as a 'Browser' source in your streaming software to add the overlay to your scene.</p>
-                <p class="hint"><a href="#" id="closeServerLink" class="hint-action">Click here</a> to close all connections.</p>
+        <!-- OBS Overlay URL -------------------------------------- -->
+        <section class="card overlay-card hidden" id="overlayCard">
+          <div class="overlay-row">
+            <img src="img/stream.png" class="overlay-clipart" alt="" />
+            <div class="overlay-copy-group">
+              <label class="overlay-label">Overlay Browser Source</label>
+              <div class="copy-row">
+                <code id="overlayUrl">http://localhost:5050</code>
+                <button id="copyBtn" class="btn small primary" title="Copy URL"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
               </div>
+              <p class="hint">Add this URL as a 'Browser' source in your streaming software to add the overlay to your scene.</p>
+              <p class="hint"><a href="#" id="closeServerLink" class="hint-action">Click here</a> to close all connections.</p>
             </div>
-          </section>
+          </div>
+        </section>
 
-          <!-- Active capture connections (dynamic) ---------------- -->
-          <div id="connectionsContainer"></div>
+        <!-- Active capture connections (dynamic) ---------------- -->
+        <div id="connectionsContainer" class="hidden"></div>
 
-          <!-- Add another connection -------------------------------- -->
-          <section class="card add-connection-card" id="addConnectionCard">
-            <div class="input-row">
-              <input type="text" id="addUrlInput" placeholder="Enter a livestream URL…" />
-              <button id="addConnectBtn" class="btn small primary">Connect</button>
-            </div>
-            <div class="connection-tools-row">
-              <a href="#" id="startSpoofLink" class="demo-link">Start a spoof connection</a>
-              <a href="#" id="connectionHistoryLink" class="demo-link">View connection history</a>
-            </div>
-          </section>
-
-        </div>
+        <!-- Add another connection -------------------------------- -->
+        <section class="card add-connection-card" id="addConnectionCard">
+          <div class="input-row">
+            <input
+              type="text"
+              id="addUrlInput"
+              placeholder="Paste a YouTube, Twitch, or Kick URL"
+              autocomplete="off"
+              spellcheck="false"
+            />
+            <button id="addConnectBtn" class="btn small primary">Connect</button>
+          </div>
+          <div id="connectError" class="error hidden"></div>
+          <div class="connection-tools-row">
+            <a href="#" id="startSpoofLink" class="demo-link">Start a spoof connection</a>
+            <a href="#" id="connectionHistoryLink" class="demo-link">View connection history</a>
+          </div>
+        </section>
 
       </div><!-- /pageHome -->
 
