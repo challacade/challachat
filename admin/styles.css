@@ -504,6 +504,13 @@ footer {
   gap: 8px;
   min-width: 0;
 }
+.capture-identity {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
 .capture-platform-icon {
   height: 22px;
   width: auto;

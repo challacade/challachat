@@ -67,6 +67,10 @@ function getConnectionDisplayName(conn) {
   return formatDisplayUrl(conn.resolvedUrl || conn.url);
 }
 
+function getConnectionDetailsTooltip(conn) {
+  return String(conn.streamTitle || '').trim();
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;',
@@ -238,6 +242,9 @@ function createConnectionCard(conn) {
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
   const isSpoof = conn.platform === 'spoof';
   const displayName = getConnectionDisplayName(conn);
+  const detailsTooltip = getConnectionDetailsTooltip(conn);
+  const identityTooltipClass = detailsTooltip ? ' has-tooltip' : '';
+  const identityTooltipAttr = detailsTooltip ? ` data-tooltip="${escapeHtml(detailsTooltip)}"` : '';
   const statusLabel = getConnectionStatusLabel(status);
   const refreshLabel = status === 'failed' ? 'Retry' : 'Refresh';
   card.innerHTML = `
@@ -245,10 +252,12 @@ function createConnectionCard(conn) {
       <div class="connection-status status-${status} has-tooltip" aria-label="Connection ${escapeHtml(statusLabel)}" data-tooltip="${escapeHtml(statusLabel)}">
         <span class="connection-status-dot"></span>
       </div>
-      ${isSpoof
-        ? '<span class="capture-platform-emoji" aria-label="Spoof chat">🤖</span>'
-        : `<img class="capture-platform-icon" src="${iconSrc}" alt="${escapeHtml(conn.platform || '')}" style="${iconSrc ? '' : 'display:none'}" />`}
-      <span class="capture-url">${escapeHtml(displayName)}</span>
+      <span class="capture-identity${identityTooltipClass}"${identityTooltipAttr}>
+        ${isSpoof
+          ? '<span class="capture-platform-emoji" aria-label="Spoof chat">🤖</span>'
+          : `<img class="capture-platform-icon" src="${iconSrc}" alt="${escapeHtml(conn.platform || '')}" style="${iconSrc ? '' : 'display:none'}" />`}
+        <span class="capture-url">${escapeHtml(displayName)}</span>
+      </span>
       <div class="capture-inline-stats" aria-label="Connection stats">
         ${renderConnectionStats(conn, status)}
       </div>
@@ -283,6 +292,15 @@ function updateConnectionCard(card, conn) {
   if (urlEl) {
     urlEl.textContent = getConnectionDisplayName(conn);
     urlEl.removeAttribute('title');
+  }
+  const identity = card.querySelector('.capture-identity');
+  if (identity) {
+    const detailsTooltip = getConnectionDetailsTooltip(conn);
+    identity.classList.toggle('has-tooltip', !!detailsTooltip);
+    if (detailsTooltip) identity.setAttribute('data-tooltip', detailsTooltip);
+    else identity.removeAttribute('data-tooltip');
+    identity.removeAttribute('title');
+    identity.removeAttribute('tabindex');
   }
   const indicator = card.querySelector('.connection-status');
   if (indicator) {
