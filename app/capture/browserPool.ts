@@ -1,7 +1,10 @@
 /* eslint-disable no-console */
+import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import puppeteer, { Browser } from 'puppeteer-core';
+
+export type BrowserPoolProfile = 'default' | 'compatible';
 
 /**
  * BrowserPool - Singleton that manages a shared headless Chromium instance.
@@ -15,8 +18,7 @@ import puppeteer, { Browser } from 'puppeteer-core';
  *   - Lower memory usage (one Chromium process vs. one per platform)
  */
 
-const LAUNCH_ARGS: string[] = [
-  '--headless=new',
+const DEFAULT_LAUNCH_ARGS: string[] = [
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
@@ -39,8 +41,22 @@ const LAUNCH_ARGS: string[] = [
   '--window-position=-32000,-32000',
 ];
 
+const COMPATIBLE_LAUNCH_ARGS: string[] = [
+  '--no-first-run',
+  '--mute-audio',
+  // Kick rejects the usual headless/automation-looking capture profile. Keep
+  // this browser real but out of the user's way.
+  '--start-minimized',
+  '--window-position=-32000,-32000',
+];
+
 // Keep capture browser state separate from the user's normal Chrome/Edge profile.
-const USER_DATA_DIR = path.join(os.tmpdir(), 'challachat-capture-browser');
+const USER_DATA_DIRS: Record<BrowserPoolProfile, string> = {
+  default: path.join(os.tmpdir(), 'challachat-capture-browser'),
+  // Fresh per app process: reusing a compatible profile after a Kick 403 can
+  // keep the capture browser blocked on later attempts.
+  compatible: fs.mkdtempSync(path.join(os.tmpdir(), 'challachat-capture-browser-compatible-')),
+};
 
 // ── Executable detection ──────────────────────────────────────────
 
@@ -86,11 +102,15 @@ function findLinuxBrowserPaths(): string[] {
  *
  * Returns the Browser or throws if nothing works.
  */
-async function launchBrowser(): Promise<Browser> {
+async function launchBrowser(profile: BrowserPoolProfile): Promise<Browser> {
+  const isCompatible = profile === 'compatible';
   const base: any = {
-    headless: 'new',
-    userDataDir: USER_DATA_DIR,
-    args: LAUNCH_ARGS,
+    headless: isCompatible ? false : 'new',
+    userDataDir: USER_DATA_DIRS[profile],
+    args: isCompatible ? COMPATIBLE_LAUNCH_ARGS : DEFAULT_LAUNCH_ARGS,
+    // The compatible profile is for sites that block Puppeteer's automation
+    // flag even when a visible browser is used.
+    ignoreDefaultArgs: isCompatible ? ['--enable-automation'] : undefined,
     timeout: 60_000,
     protocolTimeout: 60_000,
   };
@@ -121,55 +141,58 @@ async function launchBrowser(): Promise<Browser> {
 
 // ── Singleton pool ────────────────────────────────────────────────
 
-let sharedBrowser: Browser | null = null;
-let launchPromise: Promise<Browser> | null = null;
+const sharedBrowsers = new Map<BrowserPoolProfile, Browser>();
+const launchPromises = new Map<BrowserPoolProfile, Promise<Browser>>();
 
 /**
  * Acquire the shared headless browser.  The first call launches it; subsequent
  * calls return the same instance.  If the browser crashes or is explicitly
  * closed, the next call will re-launch it.
  */
-export async function acquireBrowser(): Promise<Browser> {
+export async function acquireBrowser(profile: BrowserPoolProfile = 'default'): Promise<Browser> {
   // If we already have a live browser, return it
+  const sharedBrowser = sharedBrowsers.get(profile) || null;
   if (sharedBrowser && sharedBrowser.connected) {
     return sharedBrowser;
   }
 
   // If a launch is in progress, wait for it
+  const launchPromise = launchPromises.get(profile) || null;
   if (launchPromise) {
     return launchPromise;
   }
 
-  launchPromise = (async () => {
+  const nextLaunchPromise = (async () => {
     try {
-      console.log('[BrowserPool] Launching shared headless browser…');
-      const browser = await launchBrowser();
-      sharedBrowser = browser;
+      console.log(`[BrowserPool] Launching shared ${profile} browser…`);
+      const browser = await launchBrowser(profile);
+      sharedBrowsers.set(profile, browser);
 
       // If the browser exits unexpectedly, clear the reference so the next
       // acquireBrowser() call will re-launch.
       browser.on('disconnected', () => {
-        console.log('[BrowserPool] Browser disconnected');
-        if (sharedBrowser === browser) sharedBrowser = null;
+        console.log(`[BrowserPool] ${profile} browser disconnected`);
+        if (sharedBrowsers.get(profile) === browser) sharedBrowsers.delete(profile);
       });
 
-      console.log('[BrowserPool] Browser ready');
+      console.log(`[BrowserPool] ${profile} browser ready`);
       return browser;
     } finally {
-      launchPromise = null;
+      launchPromises.delete(profile);
     }
   })();
 
-  return launchPromise;
+  launchPromises.set(profile, nextLaunchPromise);
+  return nextLaunchPromise;
 }
 
 /**
  * Gracefully close the shared browser (e.g. on app shutdown).
  */
 export async function closeBrowser(): Promise<void> {
-  if (sharedBrowser) {
-    const b = sharedBrowser;
-    sharedBrowser = null;
-    try { await b.close(); } catch { /* ignore */ }
+  const browsers = Array.from(sharedBrowsers.values());
+  sharedBrowsers.clear();
+  for (const browser of browsers) {
+    try { await browser.close(); } catch { /* ignore */ }
   }
 }

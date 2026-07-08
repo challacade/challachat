@@ -45,6 +45,7 @@ const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
 const MAX_CONNECTIONS = 5;
 const CONNECT_TIMEOUT_MS = 10_000;
+const KICK_CONNECT_TIMEOUT_MS = 100_000;
 const YOUTUBE_METADATA_TIMEOUT_MS = 2_500;
 
 interface YouTubeOEmbedResponse {
@@ -399,11 +400,12 @@ class App extends EventEmitter {
 
   private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, logPrefix: string, displayUrl: string, platform: Platform, identifier: string): Promise<void> {
     let timeout: ReturnType<typeof setTimeout> | null = null;
+    const connectTimeoutMs = platform === 'kick' ? KICK_CONNECT_TIMEOUT_MS : CONNECT_TIMEOUT_MS;
     try {
       await Promise.race([
         capture.start(),
         new Promise<never>((_resolve, reject) => {
-          timeout = setTimeout(() => reject(new Error(`Connection timed out after ${Math.round(CONNECT_TIMEOUT_MS / 1000)} seconds.`)), CONNECT_TIMEOUT_MS);
+          timeout = setTimeout(() => reject(new Error(`Connection to ${displayUrl} timed out after ${Math.round(connectTimeoutMs / 1000)} seconds while starting ${platform} capture.`)), connectTimeoutMs);
         }),
       ]);
 

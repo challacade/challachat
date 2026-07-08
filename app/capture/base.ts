@@ -1,7 +1,7 @@
 /* eslint-disable no-console */
 import { Browser, Page, HTTPRequest } from 'puppeteer-core';
 import { ChatEvent, CaptureOptions } from './types';
-import { acquireBrowser } from './browserPool';
+import { acquireBrowser, type BrowserPoolProfile } from './browserPool';
 import { DEFAULT_POLL_INTERVAL } from '../core/config';
 
 export interface CaptureCallbacks {
@@ -87,6 +87,14 @@ export abstract class BaseChatCapture {
     return { width: 1280, height: 720 };
   }
 
+  protected get browserPoolProfile(): BrowserPoolProfile {
+    return 'default';
+  }
+
+  protected get shouldInterceptRequests(): boolean {
+    return true;
+  }
+
   constructor(options: CaptureOptions = {}) {
     this.opts = {
       pollInterval: options.pollInterval ?? DEFAULT_POLL_INTERVAL,
@@ -126,6 +134,51 @@ export abstract class BaseChatCapture {
     if (!this.opts.quiet) console.error(`[${this.logPrefix}] ${message}`);
   }
 
+  private async applyBrowserIdentity() {
+    if (!this.page || !this.browser) return;
+
+    await this.page.setExtraHTTPHeaders({
+      'Accept-Language': 'en-US,en;q=0.9'
+    });
+
+    let browserVersion = '';
+    try { browserVersion = await this.browser.version(); } catch { /* ignore */ }
+    if (this.browserPoolProfile === 'compatible') {
+      // Compatible captures, currently Kick, rely on the real browser defaults.
+      // Overriding UA/client hints was enough to trigger Kick 403s.
+      return;
+    }
+
+    const versionMatch = browserVersion.match(/(?:Chrome|HeadlessChrome|Edg)\/([\d.]+)/i);
+    const fullVersion = versionMatch?.[1] || '140.0.0.0';
+    const majorVersion = fullVersion.split('.')[0] || '140';
+    const userAgent = `Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/${fullVersion} Safari/537.36`;
+    const userAgentMetadata = {
+      brands: [
+        { brand: 'Chromium', version: majorVersion },
+        { brand: 'Google Chrome', version: majorVersion },
+        { brand: 'Not=A?Brand', version: '24' }
+      ],
+      fullVersionList: [
+        { brand: 'Chromium', version: fullVersion },
+        { brand: 'Google Chrome', version: fullVersion },
+        { brand: 'Not=A?Brand', version: '24.0.0.0' }
+      ],
+      platform: 'Windows',
+      platformVersion: '10.0.0',
+      architecture: 'x86',
+      bitness: '64',
+      model: '',
+      mobile: false
+    };
+
+    try {
+      await (this.page as any).setUserAgent({ userAgent, userAgentMetadata, platform: 'Windows' });
+    } catch {
+      await this.page.setUserAgent(userAgent);
+    }
+  }
+
   /** Get starting status payload - override to add platform-specific fields */
   protected abstract getStartingStatus(): any;
 
@@ -154,11 +207,11 @@ export abstract class BaseChatCapture {
     for (let attempt = 1; attempt <= this.opts.maxRetries; attempt++) {
       try {
         this.log(`Attempt ${attempt}/${this.opts.maxRetries}`);
-        this.browser = await acquireBrowser();
+        this.browser = await acquireBrowser(this.browserPoolProfile);
         this.page = await this.browser.newPage();
         this.page.setDefaultTimeout(90000);
         this.page.setDefaultNavigationTimeout(90000);
-        await this.page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36');
+        await this.applyBrowserIdentity();
         // Inject cyrb53 hash into browser context (used by all platform scrapers)
         await this.page.evaluateOnNewDocument(`
           window.__cyrb53 = function(str, seed) {
@@ -176,13 +229,15 @@ export abstract class BaseChatCapture {
           };
         `);
         await this.page.setViewport({ ...this.viewport, deviceScaleFactor: 1 });
-        await this.page.setRequestInterception(true);
-        this.page.on('request', (req: HTTPRequest) => {
-          const rt = req.resourceType();
-          const url = req.url();
-          if (this.shouldAbortRequest(rt, url)) return req.abort();
-          return req.continue();
-        });
+        if (this.shouldInterceptRequests) {
+          await this.page.setRequestInterception(true);
+          this.page.on('request', (req: HTTPRequest) => {
+            const rt = req.resourceType();
+            const url = req.url();
+            if (this.shouldAbortRequest(rt, url)) return req.abort();
+            return req.continue();
+          });
+        }
 
         await this.navigate(attempt);
         await this.waitForChat();
@@ -372,8 +427,14 @@ export abstract class BaseChatCapture {
       ? ({ waitUntil: 'load', timeout: 60000 } as const)
       : ({ waitUntil: 'networkidle2', timeout: 90000 } as const);
     try {
-      await this.page.goto(this.chatUrl, opts);
+      const response = await this.page.goto(this.chatUrl, opts);
+      const status = response?.status();
+      if (status && status >= 400) {
+        throw new Error(`Navigation to ${this.chatUrl} returned HTTP ${status}`);
+      }
     } catch (e) {
+      const message = e instanceof Error ? e.message : String(e);
+      if (message.includes('returned HTTP')) throw e;
       // Check if we at least got to a valid page
       if (await this.isValidPage()) return;
       throw e;
@@ -395,7 +456,10 @@ export abstract class BaseChatCapture {
       await new Promise(r => setTimeout(r, 2000));
     }
     // Final check - maybe page is valid even without matching selectors
-    if (await this.isValidPage()) return;
-    throw new Error('Chat elements not found after waiting 60 seconds');
+    if (await this.isValidPage()) {
+      this.log(`Chat selectors not found after waiting 60 seconds, but ${this.platformName} page appears valid.`);
+      return;
+    }
+    throw new Error(`Chat elements not found after waiting 60 seconds. Selectors: ${selectors.join(', ')}`);
   }
 }

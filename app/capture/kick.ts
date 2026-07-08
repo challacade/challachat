@@ -1,6 +1,7 @@
 /* eslint-disable no-console */
 import { CaptureOptions } from './types';
 import { BaseChatCapture } from './base';
+import type { BrowserPoolProfile } from './browserPool';
 
 /**
  * KickChatCapture - Captures chat messages from a Kick channel.
@@ -23,6 +24,18 @@ export class KickChatCapture extends BaseChatCapture {
 
   protected get viewport() {
     return { width: 400, height: 600 };
+  }
+
+  protected get browserPoolProfile(): BrowserPoolProfile {
+    // Kick blocks the normal headless capture profile. The compatible profile
+    // uses a real minimized/offscreen browser with a fresh temp profile.
+    return 'compatible';
+  }
+
+  protected get shouldInterceptRequests(): boolean {
+    // Avoid touching Kick's document request. Request interception caused edge
+    // failures while the same endpoint worked in a regular browser.
+    return false;
   }
 
   protected getStartingStatus() {
@@ -115,6 +128,31 @@ export class KickChatCapture extends BaseChatCapture {
         
         container.childNodes.forEach(child => processNode(child));
         return segments;
+      }
+
+      function parseTextRowFallback(element: Element) {
+        // Current Kick rows may be plain text, e.g. "11:17 PMusername: message",
+        // with no button[title] username element. Keep this fallback before
+        // treating rows without the old username selector as non-messages.
+        const rawText = (element.textContent || '').replace(/\u00a0/g, ' ').trim();
+        if (!rawText || /^new messages$/i.test(rawText) || /deleted by a moderator/i.test(rawText)) return null;
+
+        const match = rawText.match(/^(?:\d{1,2}:\d{2}\s*(?:AM|PM)?)\s*([^:]{1,80}):\s*(.*)$/i);
+        if (!match) return null;
+
+        const authorName = match[1].trim();
+        const messageText = match[2].trim();
+        if (!authorName || !messageText) return null;
+
+        const segments: any[] = [{ t: 'text', text: messageText }];
+        element.querySelectorAll('img[src], img[srcset]').forEach((img) => {
+          const image = img as HTMLImageElement;
+          const src = image.getAttribute('src') || image.src || '';
+          const alt = image.getAttribute('alt') || '';
+          if (src) segments.push({ t: 'emote', url: src, alt });
+        });
+
+        return { authorName, messageText, segments };
       }
 
       const out: any[] = [];
@@ -269,7 +307,24 @@ export class KickChatCapture extends BaseChatCapture {
           
           // Find the username button with title attribute
           const usernameEl = element.querySelector('button.inline.font-bold[title]') as HTMLElement | null;
-          if (!usernameEl) return;
+          if (!usernameEl) {
+            const fallback = parseTextRowFallback(element);
+            if (!fallback) return;
+
+            const stableKey = `kick|${fallback.authorName}|${fallback.messageText}|${fallback.segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
+            const messageId = `kick_${cyrb53(stableKey)}`;
+            visibleIds.push(messageId);
+
+            out.push({
+              id: messageId,
+              author: { name: fallback.authorName, avatar: '', flags: {}, badges: [], badgePosition: 'left' },
+              text: fallback.messageText,
+              segments: fallback.segments,
+              timestamp: Date.now(),
+              kind: 'text'
+            });
+            return;
+          }
           
           const authorName = usernameEl.getAttribute('title') || usernameEl.textContent?.trim() || 'Unknown';
           

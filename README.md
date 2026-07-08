@@ -199,6 +199,12 @@ Connection history is persisted separately from settings:
 
 ChallaChat supports up to **10 simultaneous** livestream connections. Each connection has its own capture instance, stats tracking, and independent connect/disconnect. A global poll interval setting applies to all livestream connections. Duplicate URLs are rejected.
 
+### Kick troubleshooting notes
+
+Kick uses `https://kick.com/popout/<channel>/chat`. If that endpoint works in a normal browser but ChallaChat gets HTTP `403`, avoid making the capture look more automated: Kick relies on the `compatible` browser profile, a fresh temp profile, the browser's default user agent, and no Puppeteer request interception. Do not add CDP `Network` observation or `window.WebSocket` monkeypatching for Kick.
+
+If Kick connects but message count stays at `0`, inspect the DOM parser first. Kick may render rows as plain text like `11:17 PMusername: message` instead of the older `button[title]` username structure.
+
 ## Overlay
 
 The overlay renders chat messages with full platform fidelity:
