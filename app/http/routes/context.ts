@@ -5,15 +5,21 @@ import type { BaseChatCapture } from '../../capture/base';
 import type { SpoofCapture } from '../../capture/spoof';
 
 /** Per-connection state tracked by the server. */
+export type ConnectionStatus = 'connecting' | 'active' | 'warning' | 'failed' | 'stopped';
+
 export interface Connection {
   id: string;
   capture: BaseChatCapture | SpoofCapture;
   platform: 'youtube' | 'twitch' | 'kick' | 'spoof';
   url: string;
   videoId: string | null;
+  status: ConnectionStatus;
+  statusText?: string;
+  error?: string;
   messageCount: number;
   chatters: Set<string>;
   startTime: number;
+  connectedAt?: number;
   pollIntervalMs: number;
   /** Set to true after the first poll completes (suppresses sounds for initial backlog). */
   firstPollDone: boolean;

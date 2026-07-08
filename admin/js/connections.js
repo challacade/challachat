@@ -9,6 +9,7 @@ import {
   addConnectionCard, addUrlInput, addConnectBtn, closeServerLink, startSpoofLink, connectionHistoryLink,
 } from './dom.js';
 import { api } from './api.js';
+import { switchPage } from './navigation.js';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -42,9 +43,32 @@ function formatDisplayUrl(url) {
 
 function getConnectionStatus(conn) {
   const raw = String(conn.status || conn.captureStatus || (conn.active === false ? 'inactive' : 'active')).toLowerCase();
-  if (['problem', 'warning', 'degraded', 'reconnecting'].includes(raw)) return 'problem';
-  if (['inactive', 'stopped', 'error', 'failed', 'disconnected'].includes(raw)) return 'inactive';
+  if (['connecting', 'starting', 'pending'].includes(raw)) return 'connecting';
+  if (['problem', 'warning', 'degraded', 'reconnecting'].includes(raw)) return 'warning';
+  if (['error', 'failed'].includes(raw)) return 'failed';
+  if (['inactive', 'stopped', 'disconnected'].includes(raw)) return 'inactive';
   return 'active';
+}
+
+function getConnectionStatusLabel(status) {
+  if (status === 'connecting') return 'Connecting';
+  if (status === 'failed') return 'Failed';
+  if (status === 'warning') return 'Warning';
+  if (status === 'inactive') return 'Inactive';
+  return 'Active';
+}
+
+function renderConnectionStats(conn, status) {
+  if (status === 'connecting') {
+    return '<div class="capture-inline-status"><span class="capture-inline-spinner" aria-hidden="true"></span><strong>Connecting</strong></div>';
+  }
+  if (status === 'failed') {
+    const error = String(conn.error || 'Connection failed.');
+    return `<div class="capture-inline-status capture-inline-status-failed" title="${error}"><strong>Failed</strong></div>`;
+  }
+  return `
+        <div class="capture-inline-stat"><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
+        <div class="capture-inline-stat"><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>`;
 }
 
 function showError(msg) {
@@ -174,7 +198,7 @@ function createConnectionCard(conn) {
   const displayName = isSpoof ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
   card.innerHTML = `
     <div class="capture-header">
-      <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${status}">
+      <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${getConnectionStatusLabel(status)}">
         <span class="connection-status-dot"></span>
       </div>
       ${isSpoof
@@ -182,10 +206,9 @@ function createConnectionCard(conn) {
         : `<img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />`}
       <span class="capture-url" title="${conn.url || ''}">${displayName}</span>
       <div class="capture-inline-stats" aria-label="Connection stats">
-        <div class="capture-inline-stat"><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
-        <div class="capture-inline-stat"><strong class="conn-uptime">${formatUptime(conn.uptime || 0)}</strong><span>Uptime</span></div>
+        ${renderConnectionStats(conn, status)}
       </div>
-      <button class="btn small primary conn-refresh-btn">Refresh</button>
+      <button class="btn small primary conn-refresh-btn" ${status === 'connecting' ? 'disabled' : ''}>Refresh</button>
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
 
@@ -199,8 +222,8 @@ function createConnectionCard(conn) {
 
 function updateConnectionCard(card, conn) {
   const status = getConnectionStatus(conn);
-  card.querySelector('.conn-msg-count').textContent = (conn.messageCount || 0).toLocaleString();
-  card.querySelector('.conn-uptime').textContent = formatUptime(conn.uptime || 0);
+  const stats = card.querySelector('.capture-inline-stats');
+  if (stats) stats.innerHTML = renderConnectionStats(conn, status);
   const urlEl = card.querySelector('.capture-url');
   if (urlEl) {
     urlEl.textContent = conn.platform === 'spoof' ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
@@ -209,8 +232,10 @@ function updateConnectionCard(card, conn) {
   const indicator = card.querySelector('.connection-status');
   if (indicator) {
     indicator.className = `connection-status status-${status}`;
-    indicator.setAttribute('aria-label', `Connection ${status}`);
+    indicator.setAttribute('aria-label', `Connection ${getConnectionStatusLabel(status)}`);
   }
+  const refreshBtn = card.querySelector('.conn-refresh-btn');
+  if (refreshBtn) refreshBtn.disabled = status === 'connecting';
 }
 
 function removeConnectionCard(connId) {
@@ -274,6 +299,7 @@ async function handleAddConnect() {
 
   hideError();
   addUrlInput.blur();
+  switchPage('home');
   addConnectBtn.disabled = true;
   addConnectBtn.classList.add('connecting');
   addConnectBtn.innerHTML = '<div class="btn-spinner"></div>';

@@ -32,7 +32,7 @@ import { createSettingsRouter } from './routes/settings';
  */
 interface AppEvents {
   'server-ready': (port: number) => void;
-  'capture-status': (status: { status: string; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number }) => void;
+  'capture-status': (status: { status: string; connectionId?: string | null; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number; error?: string }) => void;
   'capture-error': (error: string) => void;
   'log': (message: string) => void;
 }
@@ -44,6 +44,7 @@ const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
 const MAX_CONNECTIONS = 5;
+const CONNECT_TIMEOUT_MS = 60_000;
 
 // HTTP server + overlay + SSE wiring
 class App extends EventEmitter {
@@ -357,6 +358,7 @@ class App extends EventEmitter {
     const connId = this.generateConnId();
     const identifier = platform === 'youtube' ? await this.extractYouTubeVideoId(url) : config.extractId(url);
     if (!identifier) throw new Error(config.errorMessage);
+    const displayUrl = config.buildDisplayUrl(identifier, url);
 
     const capture = new config.CaptureClass(identifier, {
       pollInterval: this.pollIntervalMs,
@@ -364,33 +366,76 @@ class App extends EventEmitter {
       onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
       onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
-      onStatusChange: (status: any) => { this.io.emit('capture-status', status); this.emit('capture-status', status); if (status?.status === 'active') this.tui?.render(); }
+      onStatusChange: (status: any) => {
+        const payload = { ...status, connectionId: connId };
+        this.io.emit('capture-status', payload);
+        this.emit('capture-status', payload);
+        if (status?.status === 'active') this.tui?.render();
+      }
     });
-    await capture.start();
-
-    const displayUrl = config.buildDisplayUrl(identifier, url);
     this.connections.set(connId, {
       id: connId, capture, platform, url: displayUrl,
-      videoId: identifier, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      videoId: identifier, status: 'connecting', statusText: 'Connecting', messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: this.pollIntervalMs,
       firstPollDone: false,
     });
-    addConnectionHistory({
-      key: `stream:${displayUrl}`,
-      type: 'stream',
-      label: displayUrl,
-      url: displayUrl,
-      platform,
-    });
-    this.tui?.setUrl(displayUrl);
-    startLogging(config.logPrefix);
-    this.tui?.render();
-
-    const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: Date.now(), connectionId: connId };
-    this.io.emit('capture-status', captureStatus);
-    this.emit('capture-status', captureStatus);
     this.broadcastStatus();
+    void this.finishCaptureStartup(connId, capture, config.logPrefix, displayUrl, platform, identifier);
     return connId;
+  }
+
+  private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, logPrefix: string, displayUrl: string, platform: Platform, identifier: string): Promise<void> {
+    let timeout: ReturnType<typeof setTimeout> | null = null;
+    try {
+      await Promise.race([
+        capture.start(),
+        new Promise<never>((_resolve, reject) => {
+          timeout = setTimeout(() => reject(new Error(`Connection timed out after ${Math.round(CONNECT_TIMEOUT_MS / 1000)} seconds.`)), CONNECT_TIMEOUT_MS);
+        }),
+      ]);
+
+      const conn = this.connections.get(connId);
+      if (!conn || conn.status !== 'connecting') return;
+      conn.status = 'active';
+      conn.statusText = 'Active';
+      conn.connectedAt = Date.now();
+      conn.startTime = conn.connectedAt;
+      conn.error = undefined;
+
+      addConnectionHistory({
+        key: `stream:${displayUrl}`,
+        type: 'stream',
+        label: displayUrl,
+        url: displayUrl,
+        platform,
+      });
+      this.tui?.setUrl(displayUrl);
+      startLogging(logPrefix);
+      this.tui?.render();
+
+      const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: conn.connectedAt, connectionId: connId };
+      this.io.emit('capture-status', captureStatus);
+      this.emit('capture-status', captureStatus);
+      this.broadcastStatus();
+    } catch (e: any) {
+      const message = e?.message || String(e);
+      console.log(`[ERROR] ${message}`);
+      const conn = this.connections.get(connId);
+      if (conn) {
+        conn.status = 'failed';
+        conn.statusText = 'Failed';
+        conn.error = message;
+        conn.connectedAt = undefined;
+      }
+      try { await (capture as any).cleanup?.(); } catch { /* ignore cleanup errors */ }
+      const captureStatus = { status: 'failed' as const, platform, videoId: identifier, connectionId: connId, error: message };
+      this.io.emit('capture-status', captureStatus);
+      this.emit('capture-status', captureStatus);
+      this.emit('capture-error', message);
+      this.broadcastStatus();
+    } finally {
+      if (timeout) clearTimeout(timeout);
+    }
   }
 
   // Extract Kick channel name from URL
@@ -630,7 +675,7 @@ class App extends EventEmitter {
     if (preset) spoof.setPreset(preset);
     this.connections.set(connId, {
       id: connId, capture: spoof, platform: 'spoof', url: `Spoof Chat - ${presetLabel}`,
-      videoId: null, messageCount: 0, chatters: new Set(), startTime: Date.now(),
+      videoId: null, status: 'active', statusText: 'Active', messageCount: 0, chatters: new Set(), startTime: Date.now(), connectedAt: Date.now(),
       pollIntervalMs: 0, firstPollDone: true, displayName: `Spoof Chat - ${presetLabel}`, spoofPreset: preset || 'welcome',
     });
     addConnectionHistory({
@@ -708,9 +753,12 @@ class App extends EventEmitter {
         url: c.url,
         displayName: c.displayName,
         videoId: c.videoId,
+        status: c.status,
+        statusText: c.statusText,
+        error: c.error,
         messageCount: c.messageCount,
         chatters: c.chatters.size,
-        uptime: c.startTime ? Date.now() - c.startTime : 0,
+        uptime: c.status === 'active' && c.connectedAt ? Date.now() - c.connectedAt : 0,
         pollIntervalMs: c.pollIntervalMs,
         ...(c.platform === 'spoof' && 'getIntervalMs' in c.capture
           ? { spoofIntervalMs: (c.capture as SpoofCapture).getIntervalMs(), spoofPreset: c.spoofPreset }
@@ -728,8 +776,8 @@ class App extends EventEmitter {
   async apiConnect(url: string): Promise<{ ok: boolean; connectionId?: string; platform?: string; videoId?: string; error?: string }> {
     try {
       await this.ensureServer();
-      const connId = await this.startScraping(url);
       this.sessionActive = true;
+      const connId = await this.startScraping(url);
       const conn = this.connections.get(connId);
       return { ok: true, connectionId: connId, platform: conn?.platform ?? undefined, videoId: conn?.videoId ?? undefined };
     } catch (e: any) {

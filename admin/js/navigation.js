@@ -4,7 +4,7 @@
 import { navButtons, pages } from './dom.js';
 import { stopTestSound } from './audio.js';
 
-function switchPage(pageName) {
+export function switchPage(pageName) {
   stopTestSound();
   for (const [name, el] of Object.entries(pages)) {
     el.classList.toggle('active', name === pageName);
