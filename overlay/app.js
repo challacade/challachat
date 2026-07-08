@@ -48,14 +48,17 @@ function start() {
   const hasPresetParam = url.searchParams.has('preset');
   const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key));
   
-  if (!localStorage.getItem('challachat.settings') && !hasPresetParam && !hasStyleParams) {
+  const hasLocalSettings = !!localStorage.getItem('challachat.settings');
+  const shouldApplyPreset = hasLocalSettings || hasPresetParam;
+
+  if (!hasLocalSettings && !hasPresetParam && !hasStyleParams) {
     state.preset = 'Dark';
   } else if (!state.preset) {
     state.preset = 'Custom';
   }
   
   // Apply settings
-  applyPreset(state.preset);
+  if (shouldApplyPreset) applyPreset(state.preset);
   applyTheme();
   
   // Start SSE connection
