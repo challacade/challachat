@@ -1,4 +1,6 @@
 /* eslint-disable no-console */
+import os from 'os';
+import path from 'path';
 import puppeteer, { Browser } from 'puppeteer-core';
 
 /**
@@ -14,6 +16,7 @@ import puppeteer, { Browser } from 'puppeteer-core';
  */
 
 const LAUNCH_ARGS: string[] = [
+  '--headless=new',
   '--no-sandbox',
   '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
@@ -29,7 +32,15 @@ const LAUNCH_ARGS: string[] = [
   '--disable-plugins',
   '--mute-audio',
   '--disable-web-security',
+  // Some system Chrome/Edge builds briefly create a native surface even in
+  // headless mode. Keep that surface out of the user's workspace without
+  // shrinking the actual Puppeteer page viewport.
+  '--start-minimized',
+  '--window-position=-32000,-32000',
 ];
+
+// Keep capture browser state separate from the user's normal Chrome/Edge profile.
+const USER_DATA_DIR = path.join(os.tmpdir(), 'challachat-capture-browser');
 
 // ── Executable detection ──────────────────────────────────────────
 
@@ -77,7 +88,8 @@ function findLinuxBrowserPaths(): string[] {
  */
 async function launchBrowser(): Promise<Browser> {
   const base: any = {
-    headless: true,
+    headless: 'new',
+    userDataDir: USER_DATA_DIR,
     args: LAUNCH_ARGS,
     timeout: 60_000,
     protocolTimeout: 60_000,
