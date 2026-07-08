@@ -6,12 +6,18 @@ import type { SpoofCapture } from '../../capture/spoof';
 
 /** Per-connection state tracked by the server. */
 export type ConnectionStatus = 'connecting' | 'active' | 'warning' | 'failed' | 'stopped';
+export type YouTubeSourceKind = 'direct-video' | 'channel-live' | 'studio' | 'shortlink';
 
 export interface Connection {
   id: string;
   capture: BaseChatCapture | SpoofCapture;
   platform: 'youtube' | 'twitch' | 'kick' | 'spoof';
   url: string;
+  originalUrl?: string;
+  resolvedUrl?: string;
+  channelUrl?: string;
+  streamTitle?: string;
+  sourceKind?: YouTubeSourceKind;
   videoId: string | null;
   status: ConnectionStatus;
   statusText?: string;

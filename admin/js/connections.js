@@ -41,6 +41,32 @@ function formatDisplayUrl(url) {
   }
 }
 
+function getYouTubeChannelLabel(url) {
+  try {
+    const parsed = new URL(url);
+    const firstPart = parsed.pathname.split('/').filter(Boolean)[0];
+    return firstPart ? decodeURIComponent(firstPart) : '';
+  } catch {
+    const match = String(url || '').match(/youtube\.com\/([^/?#]+)/i);
+    return match?.[1] ? decodeURIComponent(match[1]) : '';
+  }
+}
+
+function getConnectionDisplayName(conn) {
+  if (conn.platform === 'spoof') return conn.displayName || conn.url || 'Spoof Chat';
+  if (conn.platform !== 'youtube') return formatDisplayUrl(conn.url);
+
+  const displayName = String(conn.displayName || '').trim();
+  if (displayName) return displayName;
+
+  if (conn.sourceKind === 'channel-live') {
+    const channelLabel = getYouTubeChannelLabel(conn.channelUrl || conn.originalUrl || conn.url);
+    if (channelLabel) return channelLabel;
+  }
+
+  return formatDisplayUrl(conn.resolvedUrl || conn.url);
+}
+
 function escapeHtml(value) {
   return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
     '&': '&amp;',
@@ -211,7 +237,7 @@ function createConnectionCard(conn) {
 
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
   const isSpoof = conn.platform === 'spoof';
-  const displayName = isSpoof ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
+  const displayName = getConnectionDisplayName(conn);
   const statusLabel = getConnectionStatusLabel(status);
   const refreshLabel = status === 'failed' ? 'Retry' : 'Refresh';
   card.innerHTML = `
@@ -255,7 +281,7 @@ function updateConnectionCard(card, conn) {
   card.dataset.status = status;
   const urlEl = card.querySelector('.capture-url');
   if (urlEl) {
-    urlEl.textContent = conn.platform === 'spoof' ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
+    urlEl.textContent = getConnectionDisplayName(conn);
     urlEl.removeAttribute('title');
   }
   const indicator = card.querySelector('.connection-status');

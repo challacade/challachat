@@ -19,7 +19,7 @@ import KickChatCapture from '../capture/kick';
 import { SpoofCapture } from '../capture/spoof';
 import type { ChatEvent, Platform } from '../capture/types';
 import { closeBrowser } from '../capture/browserPool';
-import type { Connection, RouteContext } from './routes/context';
+import type { Connection, RouteContext, YouTubeSourceKind } from './routes/context';
 import { createCaptureRouter } from './routes/capture';
 import { createMusicRouter } from './routes/music';
 import { createOverlayRouter } from './routes/overlay';
@@ -45,6 +45,13 @@ const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
 const MAX_CONNECTIONS = 5;
 const CONNECT_TIMEOUT_MS = 10_000;
+const YOUTUBE_METADATA_TIMEOUT_MS = 2_500;
+
+interface YouTubeOEmbedResponse {
+  title?: string;
+  author_name?: string;
+  author_url?: string;
+}
 
 // HTTP server + overlay + SSE wiring
 class App extends EventEmitter {
@@ -359,6 +366,7 @@ class App extends EventEmitter {
     const identifier = platform === 'youtube' ? await this.extractYouTubeVideoId(url) : config.extractId(url);
     if (!identifier) throw new Error(config.errorMessage);
     const displayUrl = config.buildDisplayUrl(identifier, url);
+    const youtubeDetails = platform === 'youtube' ? this.getYouTubeInitialDetails(identifier, url) : {};
 
     const capture = new config.CaptureClass(identifier, {
       pollInterval: this.pollIntervalMs,
@@ -378,12 +386,13 @@ class App extends EventEmitter {
       }
     });
     this.connections.set(connId, {
-      id: connId, capture, platform, url: displayUrl,
+      id: connId, capture, platform, url: displayUrl, ...youtubeDetails,
       videoId: identifier, status: 'connecting', statusText: 'Connecting', messageCount: 0, chatters: new Set(), startTime: Date.now(),
       pollIntervalMs: this.pollIntervalMs,
       firstPollDone: false,
     });
     this.broadcastStatus();
+    if (platform === 'youtube') void this.enrichYouTubeConnectionDetails(connId, identifier, url);
     void this.finishCaptureStartup(connId, capture, config.logPrefix, displayUrl, platform, identifier);
     return connId;
   }
@@ -633,6 +642,91 @@ class App extends EventEmitter {
     return `https://www.youtube.com/live/${videoId}`;
   }
 
+  private getYouTubeInitialDetails(videoId: string, originalUrl: string): Partial<Connection> {
+    const channelUrl = this.extractYouTubeChannelLiveUrl(originalUrl);
+    return {
+      originalUrl,
+      resolvedUrl: this.toPublicLiveUrl(videoId),
+      channelUrl,
+      displayName: channelUrl ? this.extractYouTubeChannelLabel(channelUrl) : undefined,
+      sourceKind: this.getYouTubeSourceKind(originalUrl),
+    };
+  }
+
+  private async enrichYouTubeConnectionDetails(connId: string, videoId: string, originalUrl: string): Promise<void> {
+    const metadata = await this.fetchYouTubeOEmbed(videoId);
+    if (!metadata) return;
+
+    const conn = this.connections.get(connId);
+    if (!conn || conn.platform !== 'youtube') return;
+
+    const fallback = this.getYouTubeInitialDetails(videoId, originalUrl);
+    conn.displayName = metadata.author_name?.trim() || fallback.displayName;
+    conn.streamTitle = metadata.title?.trim() || conn.streamTitle;
+    conn.channelUrl = metadata.author_url?.trim() || fallback.channelUrl;
+    conn.resolvedUrl = fallback.resolvedUrl;
+    conn.originalUrl = fallback.originalUrl;
+    conn.sourceKind = fallback.sourceKind;
+    this.broadcastStatus();
+  }
+
+  private async fetchYouTubeOEmbed(videoId: string): Promise<YouTubeOEmbedResponse | null> {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), YOUTUBE_METADATA_TIMEOUT_MS);
+    try {
+      const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(this.toPublicLiveUrl(videoId))}&format=json`, {
+        signal: controller.signal,
+        headers: {
+          'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
+          'accept-language': 'en-US,en;q=0.9',
+        },
+      });
+      if (!response.ok) return null;
+      return await response.json() as YouTubeOEmbedResponse;
+    } catch {
+      return null;
+    } finally {
+      clearTimeout(timeout);
+    }
+  }
+
+  private getYouTubeSourceKind(url: string): YouTubeSourceKind {
+    try {
+      const u = new URL(url);
+      if (u.hostname === 'studio.youtube.com') return 'studio';
+      if (u.hostname === 'youtu.be') return 'shortlink';
+      if (this.isYouTubeHandleLiveUrl(url)) return 'channel-live';
+    } catch {
+      if (this.isYouTubeHandleLiveUrl(url)) return 'channel-live';
+      if (/studio\.youtube\.com/i.test(url)) return 'studio';
+      if (/youtu\.be\//i.test(url)) return 'shortlink';
+    }
+    return 'direct-video';
+  }
+
+  private extractYouTubeChannelLiveUrl(url: string): string | undefined {
+    try {
+      const u = new URL(url);
+      if (!this.isYouTubeHandleLiveUrl(url)) return undefined;
+      const handle = u.pathname.split('/').filter(Boolean)[0];
+      return handle ? `https://www.youtube.com/${handle}` : undefined;
+    } catch {
+      const match = url.match(/(?:^|\.)youtube\.com\/(%40[^/?#]+|@[^/?#]+)\/live\/?/i);
+      return match?.[1] ? `https://www.youtube.com/${decodeURIComponent(match[1])}` : undefined;
+    }
+  }
+
+  private extractYouTubeChannelLabel(channelUrl: string): string | undefined {
+    try {
+      const u = new URL(channelUrl);
+      const firstPart = u.pathname.split('/').filter(Boolean)[0];
+      return firstPart ? decodeURIComponent(firstPart) : undefined;
+    } catch {
+      const match = channelUrl.match(/youtube\.com\/([^/?#]+)/i);
+      return match?.[1] ? decodeURIComponent(match[1]) : undefined;
+    }
+  }
+
   // Gracefully stop one (or all) capture connections
   private async shutdownCapture(connectionId?: string) {
     if (connectionId) {
@@ -755,6 +849,11 @@ class App extends EventEmitter {
         platform: c.platform,
         url: c.url,
         displayName: c.displayName,
+        originalUrl: c.originalUrl,
+        resolvedUrl: c.resolvedUrl,
+        channelUrl: c.channelUrl,
+        streamTitle: c.streamTitle,
+        sourceKind: c.sourceKind,
         videoId: c.videoId,
         status: c.status,
         statusText: c.statusText,
