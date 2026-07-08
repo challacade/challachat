@@ -207,6 +207,7 @@ function createConnectionCard(conn) {
   card.className = 'card capture-card';
   card.dataset.connId = conn.id;
   const status = getConnectionStatus(conn);
+  card.dataset.status = status;
 
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
   const isSpoof = conn.platform === 'spoof';
@@ -239,8 +240,19 @@ function createConnectionCard(conn) {
 
 function updateConnectionCard(card, conn) {
   const status = getConnectionStatus(conn);
+  const previousStatus = card.dataset.status || '';
   const stats = card.querySelector('.capture-inline-stats');
-  if (stats) stats.innerHTML = renderConnectionStats(conn, status);
+  if (stats) {
+    if (status !== previousStatus) {
+      stats.innerHTML = renderConnectionStats(conn, status);
+    } else if (status === 'active') {
+      const msgCount = stats.querySelector('.conn-msg-count');
+      const uptime = stats.querySelector('.conn-uptime');
+      if (msgCount) msgCount.textContent = (conn.messageCount || 0).toLocaleString();
+      if (uptime) uptime.textContent = formatUptime(conn.uptime || 0);
+    }
+  }
+  card.dataset.status = status;
   const urlEl = card.querySelector('.capture-url');
   if (urlEl) {
     urlEl.textContent = conn.platform === 'spoof' ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);

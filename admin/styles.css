@@ -538,6 +538,7 @@ footer {
 }
 .has-tooltip {
   position: relative;
+  cursor: help;
 }
 .has-tooltip[data-tooltip]::before {
   content: attr(data-tooltip);
@@ -546,7 +547,7 @@ footer {
   bottom: calc(100% + 7px);
   z-index: 20;
   width: max-content;
-  max-width: 220px;
+  max-width: 280px;
   padding: 5px 7px;
   border: 1px solid var(--border);
   border-radius: 6px;
