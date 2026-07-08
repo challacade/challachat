@@ -44,7 +44,7 @@ const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
 const MAX_CONNECTIONS = 5;
-const CONNECT_TIMEOUT_MS = 60_000;
+const CONNECT_TIMEOUT_MS = 10_000;
 
 // HTTP server + overlay + SSE wiring
 class App extends EventEmitter {
@@ -363,9 +363,13 @@ class App extends EventEmitter {
     const capture = new config.CaptureClass(identifier, {
       pollInterval: this.pollIntervalMs,
       quiet: true,
+      maxRetries: 1,
       onMessage: (message: ChatEvent) => this.onCaptureMessage(connId, message),
       onDelete: (id: string) => this.onCaptureDelete(id),
-      onError: (err: Error) => { console.log(`[ERROR] ${err.message}`); this.emit('capture-error', err.message); },
+      onError: (err: Error) => {
+        console.log(`[ERROR] ${err.message}`);
+        if (this.connections.get(connId)?.status === 'active') this.emit('capture-error', err.message);
+      },
       onStatusChange: (status: any) => {
         const payload = { ...status, connectionId: connId };
         this.io.emit('capture-status', payload);
@@ -431,7 +435,6 @@ class App extends EventEmitter {
       const captureStatus = { status: 'failed' as const, platform, videoId: identifier, connectionId: connId, error: message };
       this.io.emit('capture-status', captureStatus);
       this.emit('capture-status', captureStatus);
-      this.emit('capture-error', message);
       this.broadcastStatus();
     } finally {
       if (timeout) clearTimeout(timeout);

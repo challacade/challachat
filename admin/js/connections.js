@@ -41,6 +41,16 @@ function formatDisplayUrl(url) {
   }
 }
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, (ch) => ({
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#39;',
+  }[ch]));
+}
+
 function getConnectionStatus(conn) {
   const raw = String(conn.status || conn.captureStatus || (conn.active === false ? 'inactive' : 'active')).toLowerCase();
   if (['connecting', 'starting', 'pending'].includes(raw)) return 'connecting';
@@ -63,8 +73,12 @@ function renderConnectionStats(conn, status) {
     return '<div class="capture-inline-status"><span class="capture-inline-spinner" aria-hidden="true"></span><strong>Connecting</strong></div>';
   }
   if (status === 'failed') {
-    const error = String(conn.error || 'Connection failed.');
-    return `<div class="capture-inline-status capture-inline-status-failed" title="${error}"><strong>Failed</strong></div>`;
+    const reason = escapeHtml(conn.error || 'Connection failed.');
+    return `<div class="capture-inline-status capture-inline-status-failed has-tooltip" data-tooltip="${reason}"><strong>Failed</strong></div>`;
+  }
+  if (status === 'warning') {
+    const reason = escapeHtml(conn.statusText || 'Warning');
+    return `<div class="capture-inline-status capture-inline-status-warning has-tooltip" data-tooltip="${reason}"><strong>Warning</strong></div>`;
   }
   return `
         <div class="capture-inline-stat"><strong class="conn-msg-count">${(conn.messageCount || 0).toLocaleString()}</strong><span>Messages</span></div>
@@ -172,8 +186,9 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
     const selectedItems = items.filter(item => selected.has(item.value));
     if (selectedItems.length === 0) return;
     submitBtn.disabled = true;
-    try { await onSelect(selectedItems); close(); }
-    catch { submitBtn.disabled = false; updateSelectedState(); }
+    close();
+    try { await onSelect(selectedItems); }
+    catch { showError('Failed to start selected connections.'); }
   });
   document.addEventListener('keydown', function onKeyDown(e) {
     if (!overlay.isConnected) {
@@ -196,19 +211,21 @@ function createConnectionCard(conn) {
   const iconSrc = PLATFORM_ICONS[conn.platform] || '';
   const isSpoof = conn.platform === 'spoof';
   const displayName = isSpoof ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
+  const statusLabel = getConnectionStatusLabel(status);
+  const refreshLabel = status === 'failed' ? 'Retry' : 'Refresh';
   card.innerHTML = `
     <div class="capture-header">
-      <div class="connection-status status-${status}" tabindex="0" aria-label="Connection ${getConnectionStatusLabel(status)}">
+      <div class="connection-status status-${status} has-tooltip" aria-label="Connection ${escapeHtml(statusLabel)}" data-tooltip="${escapeHtml(statusLabel)}">
         <span class="connection-status-dot"></span>
       </div>
       ${isSpoof
         ? '<span class="capture-platform-emoji" aria-label="Spoof chat">🤖</span>'
-        : `<img class="capture-platform-icon" src="${iconSrc}" alt="${conn.platform || ''}" style="${iconSrc ? '' : 'display:none'}" />`}
-      <span class="capture-url" title="${conn.url || ''}">${displayName}</span>
+        : `<img class="capture-platform-icon" src="${iconSrc}" alt="${escapeHtml(conn.platform || '')}" style="${iconSrc ? '' : 'display:none'}" />`}
+      <span class="capture-url">${escapeHtml(displayName)}</span>
       <div class="capture-inline-stats" aria-label="Connection stats">
         ${renderConnectionStats(conn, status)}
       </div>
-      <button class="btn small primary conn-refresh-btn" ${status === 'connecting' ? 'disabled' : ''}>Refresh</button>
+      <button class="btn small primary conn-refresh-btn" ${status === 'connecting' ? 'disabled' : ''}>${refreshLabel}</button>
       <button class="btn small danger conn-disconnect-btn">Disconnect</button>
     </div>`;
 
@@ -227,15 +244,22 @@ function updateConnectionCard(card, conn) {
   const urlEl = card.querySelector('.capture-url');
   if (urlEl) {
     urlEl.textContent = conn.platform === 'spoof' ? (conn.displayName || conn.url || 'Spoof Chat') : formatDisplayUrl(conn.url);
-    urlEl.setAttribute('title', conn.url || '');
+    urlEl.removeAttribute('title');
   }
   const indicator = card.querySelector('.connection-status');
   if (indicator) {
-    indicator.className = `connection-status status-${status}`;
-    indicator.setAttribute('aria-label', `Connection ${getConnectionStatusLabel(status)}`);
+    const statusLabel = getConnectionStatusLabel(status);
+    indicator.className = `connection-status status-${status} has-tooltip`;
+    indicator.setAttribute('aria-label', `Connection ${statusLabel}`);
+    indicator.setAttribute('data-tooltip', statusLabel);
+    indicator.removeAttribute('title');
+    indicator.removeAttribute('tabindex');
   }
   const refreshBtn = card.querySelector('.conn-refresh-btn');
-  if (refreshBtn) refreshBtn.disabled = status === 'connecting';
+  if (refreshBtn) {
+    refreshBtn.disabled = status === 'connecting';
+    refreshBtn.textContent = status === 'failed' ? 'Retry' : 'Refresh';
+  }
 }
 
 function removeConnectionCard(connId) {
@@ -354,11 +378,14 @@ function openSpoofSelector() {
     items: SPOOF_OPTIONS,
     pageSize: 6,
     onSelect: async (items) => {
+      switchPage('home');
       await api('POST', '/api/start-session');
-      for (const item of items) {
-        await api('POST', '/api/spoof', { enabled: true, preset: item.value });
-      }
       await fetchStatus();
+      for (const item of items) {
+        const data = await api('POST', '/api/spoof', { enabled: true, preset: item.value });
+        if (!data.ok) showError(data.error || 'Failed to start spoof connection.');
+        await fetchStatus();
+      }
     },
   });
 }
@@ -376,15 +403,19 @@ async function openConnectionHistorySelector() {
       items: history.map(item => ({ ...item, value: item.key, label: formatHistoryLabel(item), icon: getHistoryIcon(item) })),
       pageSize: 8,
       onSelect: async (items) => {
+        switchPage('home');
         await api('POST', '/api/start-session');
+        await fetchStatus();
         for (const item of items) {
           if (item.type === 'spoof') {
-            await api('POST', '/api/spoof', { enabled: true, preset: item.preset || 'welcome' });
+            const data = await api('POST', '/api/spoof', { enabled: true, preset: item.preset || 'welcome' });
+            if (!data.ok) showError(data.error || 'Failed to start spoof connection.');
           } else if (item.url) {
-            await api('POST', '/api/connect', { url: item.url });
+            const data = await api('POST', '/api/connect', { url: item.url });
+            if (!data.ok) showError(data.error || 'Connection failed.');
           }
+          await fetchStatus();
         }
-        await fetchStatus();
       },
     });
   } catch {
