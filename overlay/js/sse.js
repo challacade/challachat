@@ -3,7 +3,7 @@
  * SSE connection handling for chat events
  */
 
-import { state, showToast } from './state.js';
+import { state, showToast, setStatusMessage } from './state.js';
 import { clamp } from '/shared/utils.js';
 import { 
   extEventToItem, renderMessage, pushMessageElement, 
@@ -85,6 +85,32 @@ function lerpTick(now) {
 export function startSSE() {
   showToast('Connecting…');
   const eventSource = new EventSource('/api/stream');
+  let latestStatus = null;
+
+  const platformNames = {
+    youtube: 'YouTube',
+    twitch: 'Twitch',
+    kick: 'Kick',
+  };
+
+  const formatList = (items) => {
+    if (items.length <= 1) return items[0] || 'livestream';
+    if (items.length === 2) return `${items[0]} and ${items[1]}`;
+    return `${items.slice(0, -1).join(', ')}, and ${items[items.length - 1]}`;
+  };
+
+  const updateStatusMessage = (data) => {
+    if (state.hasReceivedChat) return;
+    const connections = Array.isArray(data?.connections) ? data.connections : [];
+    if (!connections.length) {
+      setStatusMessage('No livestream connections found.');
+      return;
+    }
+    const platforms = [...new Set(connections.map(conn => String(conn?.platform || '').toLowerCase()).filter(platform => platform && platform !== 'spoof'))]
+      .map(platform => platformNames[platform] || platform.charAt(0).toUpperCase() + platform.slice(1));
+    const prefix = platforms.length ? `Connected to ${formatList(platforms)}.\n` : '';
+    setStatusMessage(`${prefix}Waiting for chat messages...`);
+  };
 
   eventSource.addEventListener('open', () => {
   });
@@ -108,9 +134,24 @@ export function startSSE() {
         const messageNode = renderMessage(item);
         
         if (messageNode) {
+          if (!state.hasReceivedChat) {
+            state.hasReceivedChat = true;
+            setStatusMessage('');
+          }
           pushMessageElement(messageNode, item.snippet.publishedAt);
         }
       });
+    } catch {}
+  });
+
+  eventSource.addEventListener('status', (event) => {
+    try {
+      const data = JSON.parse(event.data || '{}');
+      latestStatus = data;
+      if (!Array.isArray(data?.connections) || data.connections.length === 0) {
+        state.hasReceivedChat = false;
+      }
+      updateStatusMessage(data);
     } catch {}
   });
 
@@ -216,6 +257,8 @@ export function startSSE() {
 
   eventSource.addEventListener('clear-messages', () => {
     clearAllMessages();
+    state.hasReceivedChat = false;
+    updateStatusMessage(latestStatus);
   });
 
   eventSource.addEventListener('end', () => {

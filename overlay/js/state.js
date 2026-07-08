@@ -12,6 +12,7 @@ export const elements = {
   overlay: document.getElementById('overlay'),
   toast: document.getElementById('toast'),
   songDisplayOverlay: document.getElementById('songDisplayOverlay'),
+  statusMessage: document.getElementById('statusMessage'),
 };
 
 // ================================
@@ -64,6 +65,7 @@ export const state = {
   textShadow: 0.25,
   preset: 'Dark',
   startedAt: null,
+  hasReceivedChat: false,
   songDisplay: {
     position: 'none',  // 'none' | 'top' | 'bottom'
     scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
@@ -84,6 +86,13 @@ export function showToast(message, duration = 1600) {
   setTimeout(() => {
     elements.toast.classList.remove('show');
   }, duration);
+}
+
+export function setStatusMessage(message) {
+  if (!elements.statusMessage) return;
+  const text = String(message || '').trim();
+  elements.statusMessage.textContent = text;
+  elements.statusMessage.classList.toggle('hidden', !text);
 }
 
 // ================================

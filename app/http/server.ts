@@ -68,6 +68,10 @@ class App extends EventEmitter {
   /** Generate a unique connection ID. */
   private generateConnId(): string { return `conn_${this.nextConnId++}`; }
 
+  private broadcastStatus() {
+    try { this.sse.send('status', this.getStatus()); } catch { /* ignore */ }
+  }
+
   // Overlay appearance settings (loaded from settings.json, broadcast via SSE)
   private appearance: Record<string, number | string | boolean> = getSavedAppearance();
 
@@ -385,6 +389,7 @@ class App extends EventEmitter {
     const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: Date.now(), connectionId: connId };
     this.io.emit('capture-status', captureStatus);
     this.emit('capture-status', captureStatus);
+    this.broadcastStatus();
     return connId;
   }
 
@@ -602,6 +607,7 @@ class App extends EventEmitter {
     const stoppedStatus = { status: this.isRunning ? 'active' as const : 'stopped' as const, connectionId: connectionId ?? null };
     this.io.emit('capture-status', stoppedStatus);
     this.emit('capture-status', stoppedStatus);
+    this.broadcastStatus();
   }
 
   // --- Public API (used by Electron main process and REST endpoints) ---
@@ -635,6 +641,7 @@ class App extends EventEmitter {
     });
     startSpoofLogging();
     void spoof.start();
+    this.broadcastStatus();
   }
 
   /** Stop and remove the spoof connection. */
@@ -646,6 +653,7 @@ class App extends EventEmitter {
         this.connections.delete(id);
       }
     }
+    this.broadcastStatus();
   }
 
   /** Update the interval on a specific (or all) spoof connection(s). */
