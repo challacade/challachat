@@ -144,15 +144,32 @@ export class KickChatCapture extends BaseChatCapture {
         const messageText = match[2].trim();
         if (!authorName || !messageText) return null;
 
+        let nameColor = '';
+        const authorCandidates = element.querySelectorAll('button.inline.font-bold, button.font-bold, span.font-bold, [style*="color"]');
+        authorCandidates.forEach((candidate) => {
+          if (nameColor) return;
+          const candidateElement = candidate as HTMLElement;
+          const candidateText = (candidateElement.textContent || '').trim();
+          if (candidateText !== authorName) return;
+          const style = candidateElement.getAttribute('style') || '';
+          const colorMatch = style.match(/color:\s*([^;]+)/i);
+          if (colorMatch) nameColor = colorMatch[1].trim();
+          if (!nameColor) {
+            try { nameColor = getComputedStyle(candidateElement).color || ''; } catch {}
+          }
+        });
+
         const segments: any[] = [{ t: 'text', text: messageText }];
         element.querySelectorAll('img[src], img[srcset]').forEach((img) => {
+          if (img.closest('.inline-flex.shrink-0.items-center')) return;
           const image = img as HTMLImageElement;
           const src = image.getAttribute('src') || image.src || '';
           const alt = image.getAttribute('alt') || '';
           if (src) segments.push({ t: 'emote', url: src, alt });
         });
 
-        return { authorName, messageText, segments };
+        const { badges, flags } = parseBadges(element);
+        return { authorName, messageText, segments, nameColor, badges, flags };
       }
 
       const out: any[] = [];
@@ -317,7 +334,14 @@ export class KickChatCapture extends BaseChatCapture {
 
             out.push({
               id: messageId,
-              author: { name: fallback.authorName, avatar: '', flags: {}, badges: [], badgePosition: 'left' },
+              author: {
+                name: fallback.authorName,
+                avatar: '',
+                flags: fallback.flags,
+                badges: fallback.badges,
+                nameColor: fallback.nameColor || undefined,
+                badgePosition: 'left'
+              },
               text: fallback.messageText,
               segments: fallback.segments,
               timestamp: Date.now(),
