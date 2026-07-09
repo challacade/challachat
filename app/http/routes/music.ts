@@ -4,18 +4,10 @@ import fs from 'fs';
 import { getMusicDisplaySettings, getMusicSettingsStatus, updateSettings, writeSongTxt } from '../../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../../core/music';
 import { getNowPlaying, setNowPlayingByIndex, setNowPlayingExternal, clearNowPlaying } from '../../core/nowPlaying';
-import { getJamStatus, onNowPlayingUpdated, setJamEnabled } from '../../core/jam';
 import { SmtcPoller } from '../../core/smtc';
 import type { RouteContext } from './context';
 
-/** Broadcast a jam-finale system message if a finale was triggered. */
-function announceJamFinale(ctx: RouteContext, finale: ReturnType<typeof onNowPlayingUpdated>) {
-  if (!finale) return;
-  const quotedSongId = `'${String(finale.songId).replace(/'/g, '\u2019')}'`;
-  ctx.broadcastSystemMessage(`${quotedSongId} got ${finale.jamCount} jams!`, { showUsername: false, effects: { jamFinale: true } });
-}
-
-/** Routes: /api/music/*, /api/jam/* */
+/** Routes: /api/music/* */
 export function createMusicRouter(ctx: RouteContext): Router {
   const router = Router();
 
@@ -148,7 +140,6 @@ export function createMusicRouter(ctx: RouteContext): Router {
     }
     const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
     const now = setNowPlayingByIndex(idx, songId);
-    announceJamFinale(ctx, onNowPlayingUpdated(now));
     res.json({ ok: true, nowPlaying: now ? { index: now.index, songId: now.songId, updatedAt: now.updatedAt } : null });
     if (now) {
       ctx.sse.send('now-playing', { songId: now.songId, index: now.index });
@@ -194,8 +185,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
     }
 
     const songId = typeof req.body?.songId === 'string' ? req.body.songId : undefined;
-    const now = setNowPlayingByIndex(idx, songId);
-    announceJamFinale(ctx, onNowPlayingUpdated(now));
+    setNowPlayingByIndex(idx, songId);
 
     const filePath = getTrackByIndex(idx);
     if (!filePath) {
@@ -278,21 +268,6 @@ export function createMusicRouter(ctx: RouteContext): Router {
     } catch {
       res.status(500).json({ error: 'Failed to read track' });
     }
-  });
-
-  // ── Jam mode ──
-
-  router.get('/jam', (_req: Request, res: Response) => {
-    res.json(getJamStatus(getNowPlaying()));
-  });
-
-  router.post('/jam/toggle', (req: Request, res: Response) => {
-    const enabled = req.body?.enabled;
-    if (typeof enabled === 'boolean') {
-      setJamEnabled(enabled);
-      updateSettings({ jamEnabled: enabled });
-    }
-    res.json({ ok: true, ...getJamStatus(getNowPlaying()) });
   });
 
   return router;

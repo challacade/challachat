@@ -123,17 +123,6 @@ body { font-family: var(--font, Inter), "Segoe UI Emoji", "Apple Color Emoji", "
   transition: opacity 0.3s ease-out, transform 0.3s ease-out;
 }
 
-.message.fx-jam .content {
-  font-weight: 800;
-  color: #ff8b64;
-}
-
-/* Jam finale: do NOT bold; only color the trailing "got N jams!" */
-.message.fx-jam-finale .jam-accent {
-  color: #ff8b64;
-  font-weight: 800;
-}
-
 .message.deleting {
   opacity: 0;
   transform: translateX(-20px);

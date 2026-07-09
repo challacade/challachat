@@ -14,7 +14,7 @@ Capture and display any livestream chat in a custom overlay. Add it to your stre
 ```
 app/
   capture/      # Livestream chat capture (Puppeteer)
-  core/         # Config, SSE hub, censor, logger, music, jam mode, terminal UI
+  core/         # Config, SSE hub, censor, logger, music, chat commands, terminal UI
   http/         # Express + Socket.IO server
     routes/     # Modular API route handlers
   main/         # Electron main process, preload, IPC
@@ -110,7 +110,6 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 ### Settings
 - **Profanity filter** - Load a CSV word list, toggle on/off. Matched words are replaced with the first letter + asterisks (e.g. `word` -> `w***`).
 - **Message logger** - Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
-- **Jam mode** - Toggle the `!jam` command. Viewers jam once per track; songs with 3+ jams get a finale message on track change.
 - **Dummy chatters** - Display sample messages at random intervals for testing the overlay without a live stream.
 - **Poll interval** - Set the global capture polling interval used by all livestream connections.
 - **Write song to file** - Writes current track to `song.txt` for OBS text sources.
@@ -169,7 +168,6 @@ All settings are persisted to `settings.json` in the app data directory:
 
   // Toggles
   "loggerEnabled": false,
-  "jamEnabled": false,
 
   // Logger
   "logFolderPath": "",
@@ -257,8 +255,6 @@ The overlay renders chat messages with full platform fidelity:
 | `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop |
 | `POST` | `/api/dummy-chatters` | Enable/disable dummy chatters |
 | `POST` | `/api/clear-messages` | Clear all overlay messages |
-| `GET` | `/api/jam` | Jam mode status |
-| `POST` | `/api/jam/toggle` | Enable/disable jam mode |
 | `GET` | `/api/stream` | SSE event stream |
 
 ## SSE event types

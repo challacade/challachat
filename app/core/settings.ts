@@ -78,7 +78,6 @@ export type AppSettings = {
   // ── Toggles ──
   loggerEnabled?: boolean;
   logSpoofEnabled?: boolean;
-  jamEnabled?: boolean;
 
   // ── Logger ──
   /** Custom folder for chat log files. */
@@ -309,13 +308,12 @@ export function getSavedSounds(): Record<string, number | string> {
   return result;
 }
 
-/** Load saved toggle states (filter active, logger, jam, demo). All default to false. */
-export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; logSpoofEnabled: boolean; jamEnabled: boolean } {
+/** Load saved toggle states (filter active, logger). All default to false. */
+export function getSavedToggles(): { filterActive: boolean; loggerEnabled: boolean; logSpoofEnabled: boolean } {
   const { settings } = readSettings();
   return {
     filterActive: settings.filterActive === true,
     loggerEnabled: settings.loggerEnabled === true,
     logSpoofEnabled: settings.logSpoofEnabled === true,
-    jamEnabled: settings.jamEnabled === true,
   };
 }

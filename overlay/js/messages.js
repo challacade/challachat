@@ -87,9 +87,8 @@ export function extEventToItem(event) {
   }
   
   const showUsername = event?.showUsername !== false;
-  const effects = (event && typeof event === 'object') ? (event.effects || null) : null;
   
-  return { id, snippet, authorDetails, segments, showUsername, effects, ...extras };
+  return { id, snippet, authorDetails, segments, showUsername, ...extras };
 }
 
 // ================================
@@ -105,13 +104,6 @@ export function renderMessage(item) {
   const container = document.createElement('div');
   container.className = `message${isSuper ? ' super' : ''}`;
   container.dataset.id = id;
-
-  // Optional effects (e.g. !jam)
-  if (item?.effects && item.effects.jam) {
-    container.classList.add('fx-jam');
-  } else if (item?.effects && item.effects.jamFinale) {
-    container.classList.add('fx-jam-finale');
-  }
 
   const isOwner = !!authorDetails?.isChatOwner;
   const isMod = !!authorDetails?.isChatModerator;
@@ -168,25 +160,7 @@ export function renderMessage(item) {
   } else if (!isSubMessageType) {
     const text = snippet?.displayMessage || snippet?.textMessageDetails?.messageText || '';
     contentElement.textContent = '';
-
-    // Jam finale system message: only color the trailing "got N jams!" part.
-    if (item?.effects?.jamFinale && typeof text === 'string') {
-      const idx = text.lastIndexOf("' got ");
-      if (idx > 0 && idx + 2 < text.length) {
-        const prefix = text.slice(0, idx + 1);
-        const suffix = text.slice(idx + 2);
-        const accent = document.createElement('span');
-        accent.className = 'jam-accent';
-        accent.textContent = suffix;
-        contentElement.append(prefix);
-        contentElement.append(' ');
-        contentElement.appendChild(accent);
-      } else {
-        contentElement.append(text);
-      }
-    } else {
-      contentElement.append(text);
-    }
+    contentElement.append(text);
   }
 
   // Render header with optional badges

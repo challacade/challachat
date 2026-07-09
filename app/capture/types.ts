@@ -42,11 +42,6 @@ export interface ChatEvent {
   hasCard?: boolean;
   // Optional rendering hint for overlays (primarily for system messages)
   showUsername?: boolean;
-  // Optional visual effects flags for overlays
-  effects?: {
-    jam?: boolean;
-    jamFinale?: boolean;
-  };
   /** System/platform message (e.g. "Subscribed at Tier 1. They've subscribed for 24 months!") */
   systemMessage?: string;
   /** Reply context when this message is a reply to another message */
