@@ -10,7 +10,6 @@ export class TwitchChatCapture extends BaseChatCapture {
   private channel: string;
   protected readonly logPrefix = 'Twitch';
   protected readonly chatUrl: string;
-  protected readonly hashPrefix = 'tw_';
   protected readonly platformDomain = 'twitch.tv';
   protected readonly platformName = 'twitch';
   protected readonly highPriorityKinds = ['sub', 'sub-gift', 'cheer', 'donation'];
@@ -46,7 +45,7 @@ export class TwitchChatCapture extends BaseChatCapture {
   protected async pollMessages(): Promise<void> {
     if (!this.page) return;
     const result = await this.page.evaluate(() => {
-      const cyrb53 = (window as any).__cyrb53;
+      const ccTag = (window as any).__ccTag;
 
       // Extract best URL from srcset (prefer 2x or highest available)
       function getBestSrcFromSrcset(srcset: string | null, fallbackSrc: string): string {
@@ -193,8 +192,8 @@ export class TwitchChatCapture extends BaseChatCapture {
           
           if (!messageText && segments.length === 0) return;
 
-          const stableKey = `twitch|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
-          const messageId = msgId || `tw_${cyrb53(stableKey)}`;
+          const contentKey = `twitch|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
+          const messageId = msgId || `tw_${ccTag(element, contentKey)}`;
           visibleIds.push(messageId);
 
           const { badges, flags } = parseBadges(element);
@@ -247,8 +246,8 @@ export class TwitchChatCapture extends BaseChatCapture {
               cleanSystemMessage = cleanSystemMessage.replace(authorName, '').replace(/\s+/g, ' ').trim();
             }
             
-            const stableKey = `twitch-streak|${authorName}|${systemMessage}`;
-            const messageId = `tw_streak_${cyrb53(stableKey)}`;
+            const contentKey = `twitch-streak|${authorName}|${systemMessage}`;
+            const messageId = `tw_streak_${ccTag(notice, contentKey)}`;
             visibleIds.push(messageId);
             
             const payload = {
@@ -347,8 +346,8 @@ export class TwitchChatCapture extends BaseChatCapture {
           }
 
           const messageText = segments.filter(s => s.t === 'text').map(s => s.text).join('').trim();
-          const stableKey = `twitch-sub|${authorName}|${systemMessage}|${messageText}`;
-          const messageId = `tw_sub_${cyrb53(stableKey)}`;
+          const contentKey = `twitch-sub|${authorName}|${systemMessage}|${messageText}`;
+          const messageId = `tw_sub_${ccTag(notice, contentKey)}`;
           visibleIds.push(messageId);
 
           const payload = {
