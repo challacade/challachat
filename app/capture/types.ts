@@ -28,7 +28,10 @@ export interface AuthorInfo {
   badgePosition?: 'left' | 'right';
 }
 
-export type Segment = { t: 'text'; text: string } | { t: 'emote'; url: string; alt?: string };
+/** Optional visual style for a text segment (set by chat commands). */
+export type SegmentStyle = { bold?: boolean; italic?: boolean; color?: string };
+
+export type Segment = { t: 'text'; text: string; style?: SegmentStyle } | { t: 'emote'; url: string; alt?: string };
 
 export interface ChatEvent {
   id: string;

@@ -13,13 +13,23 @@ import { handleAvatarError } from './utils.js';
 /**
  * Append parsed chat segments (text + emote images) into a container element.
  * @param {HTMLElement} container - Target element to append nodes into
- * @param {Array} segments - Array of {t:'text',text} or {t:'emote',url,alt} objects
+ * @param {Array} segments - Array of {t:'text',text,style?} or {t:'emote',url,alt} objects
  */
 function renderSegments(container, segments) {
   for (const segment of segments) {
     if (!segment) continue;
     if (segment.t === 'text') {
-      container.append(segment.text || '');
+      const style = (segment.style && typeof segment.style === 'object') ? segment.style : null;
+      if (style && (style.bold || style.italic || style.color)) {
+        const span = document.createElement('span');
+        if (style.bold) span.style.fontWeight = '800';
+        if (style.italic) span.style.fontStyle = 'italic';
+        if (typeof style.color === 'string' && style.color) span.style.color = style.color;
+        span.textContent = segment.text || '';
+        container.appendChild(span);
+      } else {
+        container.append(segment.text || '');
+      }
     } else if (segment.t === 'emote' && segment.url) {
       const img = document.createElement('img');
       img.className = 'emoji-img';

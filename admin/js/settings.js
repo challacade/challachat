@@ -1,11 +1,11 @@
 /**
- * Settings panel - filter, logger, UI theme/zoom.
+ * Settings panel - filter, logger, jam command, UI theme/zoom.
  */
 import {
   isElectron,
   filterPathInput, filterBrowseBtn, filterClearBtn, filterToggle, filterMeta,
   loggerToggle, logSpoofToggle, logFolderPathInput, logFolderBrowseBtn, logFolderClearBtn,
-  clearMessagesBtn,
+  jamToggle, clearMessagesBtn,
   uiThemeSelect, uiZoomSelect, globalPollIntervalSlider, globalPollIntervalLabel,
 } from './dom.js';
 import { api } from './api.js';
@@ -27,6 +27,11 @@ function updateLoggerUI(l) {
   logSpoofToggle.checked = l.spoofEnabled || false;
   logFolderPathInput.value = l.logFolderPath || '';
   if (logFolderClearBtn) logFolderClearBtn.style.display = l.logFolderPath ? '' : 'none';
+}
+
+function updateJamUI(j) {
+  if (!j) return;
+  jamToggle.checked = !!j.enabled;
 }
 
 function applyUiTheme(theme) {
@@ -53,9 +58,10 @@ function updatePollIntervalUI(ms) {
 
 export async function fetchSettings() {
   try {
-    const [filter, logger, theme, zoom, filming, poll] = await Promise.all([
+    const [filter, logger, jam, theme, zoom, filming, poll] = await Promise.all([
       api('GET', '/api/filter'),
       api('GET', '/api/logger'),
+      api('GET', '/api/jam'),
       api('GET', '/api/ui-theme'),
       api('GET', '/api/ui-zoom'),
       api('GET', '/api/filming-mode'),
@@ -63,6 +69,7 @@ export async function fetchSettings() {
     ]);
     updateFilterUI(filter);
     updateLoggerUI(logger);
+    updateJamUI(jam);
     if (theme && theme.uiTheme) {
       uiThemeSelect.value = theme.uiTheme;
       applyUiTheme(theme.uiTheme);
@@ -166,6 +173,7 @@ export function bindSettingsListeners() {
     { toggle: filterToggle,        endpoint: '/api/filter/toggle',        payloadKey: 'active',   updateFn: updateFilterUI },
     { toggle: loggerToggle,        endpoint: '/api/logger/toggle',        payloadKey: 'enabled',  updateFn: updateLoggerUI },
     { toggle: logSpoofToggle,      endpoint: '/api/logger/spoof-toggle',  payloadKey: 'enabled',  updateFn: updateLoggerUI },
+    { toggle: jamToggle,           endpoint: '/api/jam/toggle',           payloadKey: 'enabled',  updateFn: updateJamUI },
   ];
 
   for (const { toggle, endpoint, payloadKey, updateFn } of SETTINGS_TOGGLES) {

@@ -10,7 +10,7 @@ import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
 import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles, getConnectionHistory, addConnectionHistory } from '../core/settings';
-import { runChatCommands } from '../core/commands';
+import { runChatCommands, loadCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
@@ -122,6 +122,9 @@ class App extends EventEmitter {
     if (toggles.loggerEnabled) setLogEnabled(true);
     if (toggles.logSpoofEnabled) setLogSpoofEnabled(true);
     if (settings.logFolderPath) setLogsDir(settings.logFolderPath);
+
+    // Load chat commands (commands.json)
+    loadCommands();
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));

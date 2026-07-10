@@ -4,6 +4,7 @@ import fs from 'fs';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
 import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging, setLogSpoofEnabled, startSpoofLogging } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
+import { getCommandStatus, setCommandEnabled } from '../../core/commands';
 import type { RouteContext } from './context';
 
 /** Routes: /api/filter/*, /api/logger/* */
@@ -85,6 +86,26 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     } else {
       res.json({ ok: false, error: 'No path provided', ...getLoggerStatus() });
     }
+  });
+
+  // ── Jam command (backed by commands.json) ──
+
+  router.get('/jam', (_req: Request, res: Response) => {
+    res.json({ enabled: getCommandStatus('!jam').enabled });
+  });
+
+  router.post('/jam/toggle', (req: Request, res: Response) => {
+    const enabled = req.body?.enabled;
+    if (typeof enabled !== 'boolean') {
+      res.status(400).json({ ok: false, error: 'enabled must be a boolean' });
+      return;
+    }
+    const result = setCommandEnabled('!jam', enabled);
+    if (!result.ok) {
+      res.status(500).json({ ok: false, enabled: result.enabled, error: result.error });
+      return;
+    }
+    res.json({ ok: true, enabled: result.enabled });
   });
 
   // ── UI Theme ──

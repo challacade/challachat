@@ -105,7 +105,7 @@ function getSettingsDir(): string {
   return path.join(os.homedir(), '.challachat');
 }
 
-function ensureSettingsDirExists(): string {
+export function ensureSettingsDirExists(): string {
   const settingsDir = getSettingsDir();
   try {
     if (!fs.existsSync(settingsDir)) {
