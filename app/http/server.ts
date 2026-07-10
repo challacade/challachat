@@ -10,9 +10,7 @@ import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
 import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
 import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles, getConnectionHistory, addConnectionHistory } from '../core/settings';
-import { getNowPlaying } from '../core/nowPlaying';
-import { setJamEnabled } from '../core/jam';
-import { runChatCommands } from '../core/commands';
+import { runChatCommands, loadCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
 import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
@@ -89,20 +87,6 @@ class App extends EventEmitter {
   private serverReadyResolve!: (port: number) => void;
   private serverReadyPromise: Promise<number>;
 
-  private broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }) {
-    const msg: ChatEvent = {
-      id: `sys_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`,
-      author: { name: 'ChallaChat', avatar: '', flags: { mod: true } },
-      text: String(text || ''),
-      kind: 'text',
-      ts: Date.now(),
-      showUsername: opts?.showUsername !== false,
-      effects: opts?.effects
-    };
-    try { this.io.emit('chat-message', msg); } catch { /* ignore - best-effort broadcast */ }
-    try { this.sse.send('chat', { events: [this.normalizeForOverlay(msg)] }); } catch { /* ignore */ }
-  }
-
   constructor(options?: { headless?: boolean }) {
   super();
   this.headless = options?.headless ?? false;
@@ -138,7 +122,9 @@ class App extends EventEmitter {
     if (toggles.loggerEnabled) setLogEnabled(true);
     if (toggles.logSpoofEnabled) setLogSpoofEnabled(true);
     if (settings.logFolderPath) setLogsDir(settings.logFolderPath);
-    if (toggles.jamEnabled) setJamEnabled(true);
+
+    // Load chat commands (commands.json)
+    loadCommands();
     
     // Serve overlay static files directly from the filesystem
     this.app.use(express.static(overlayStatic));
@@ -168,7 +154,6 @@ class App extends EventEmitter {
       apiConnect: (url) => this.apiConnect(url),
       apiDisconnect: (id) => this.apiDisconnect(id),
       shutdownCapture: (id) => this.shutdownCapture(id),
-      broadcastSystemMessage: (text, opts) => this.broadcastSystemMessage(text, opts),
     };
 
     // Mount API route modules
@@ -482,7 +467,7 @@ class App extends EventEmitter {
         conn.messageCount++;
         if (message.author?.name) conn.chatters.add(message.author.name);
         // Process message normally but skip sound
-        try { runChatCommands(message, { nowPlaying: getNowPlaying() }); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
+        try { runChatCommands(message); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
         const filtered = censorMessage(message);
         if (conn.platform === 'spoof') { logSpoofMessage(filtered); } else { logMessage(filtered); }
         this.io.emit('chat-message', filtered);
@@ -495,11 +480,9 @@ class App extends EventEmitter {
       if (message.author?.name) conn.chatters.add(message.author.name);
     }
 
-    // Run chat commands (e.g. !jam) before censoring/broadcasting.
+    // Run chat commands before censoring/broadcasting.
     try {
-      runChatCommands(message, {
-        nowPlaying: getNowPlaying(),
-      });
+      runChatCommands(message);
     } catch (err) {
       console.warn('[Commands] Error running chat command:', err);
     }
@@ -558,7 +541,6 @@ class App extends EventEmitter {
       kind: message.kind || 'text',
       ts: message.ts || Date.now(),
       showUsername: message.showUsername,
-      effects: message.effects,
       amountDisplay: message.amountDisplay,
       color: message.color,
       systemMessage: message.systemMessage,

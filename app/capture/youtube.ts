@@ -10,7 +10,6 @@ export class YouTubeChatCapture extends BaseChatCapture {
   private videoId: string;
   protected readonly logPrefix = 'Capture';
   protected readonly chatUrl: string;
-  protected readonly hashPrefix = 'h_';
   protected readonly platformDomain = 'youtube.com';
   protected readonly platformName = 'youtube';
   protected readonly highPriorityKinds = ['donation', 'member', 'member-renewal', 'member-milestone', 'member-gift'];
@@ -62,7 +61,7 @@ export class YouTubeChatCapture extends BaseChatCapture {
       // ─────────────────────────────────────────────────────────────────────
       // Helper functions (must be defined inside evaluate for browser context)
       // ─────────────────────────────────────────────────────────────────────
-      const cyrb53 = (window as any).__cyrb53;
+      const ccTag = (window as any).__ccTag;
 
       function detectYouTubeUserRoles(messageElement: Element) {
         try {
@@ -220,8 +219,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const badges = getAuthorBadges(element);
           if (!messageText && (!segments || segments.length === 0)) return;
           const hasCard = hasCardWithin(element);
-          const stableKey = `text|${authorName}|${messageText}|${(segments||[]).filter((s: any)=>s.t==='emote').map((s: any)=>s.url).join(',')}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `text|${authorName}|${messageText}|${(segments||[]).filter((s: any)=>s.t==='emote').map((s: any)=>s.url).join(',')}`;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'text', hasCard };
           out.push(payload); emitted.add(messageId);
@@ -250,8 +249,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
           let color = '';
           try { const cs = getComputedStyle(element as HTMLElement); color = (cs.getPropertyValue('--yt-live-chat-paid-message-primary-color') || '').trim(); } catch {}
           const hasCard = hasCardWithin(element);
-          const stableKey = `donation|${authorName}|${amountDisplay}|${messageText}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `donation|${authorName}|${amountDisplay}|${messageText}`;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'donation', amountDisplay, color, hasCard };
           out.push(payload); emitted.add(messageId);
@@ -284,8 +283,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
           } catch {}
           const segments = stickerUrl ? [{ t: 'emote', url: stickerUrl, alt: 'Super Sticker' }] : [];
           const hasCard = hasCardWithin(element);
-          const stableKey = `sticker|${authorName}|${amountDisplay}|${stickerUrl}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `sticker|${authorName}|${amountDisplay}|${stickerUrl}`;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
           if (emitted.has(messageId)) return;
           const payload = { id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: '', segments, timestamp: Date.now(), kind: 'donation', amountDisplay, hasCard };
@@ -325,8 +324,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const flags = detectYouTubeUserRoles(element);
           const badges = getAuthorBadges(element);
           const hasCard = hasCardWithin(element);
-          const stableKey = `${kind}|${authorName}|${messageText}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `${kind}|${authorName}|${messageText}`;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind, hasCard });
         } catch {}
@@ -350,8 +349,8 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const flags = detectYouTubeUserRoles(element);
           const badges = getAuthorBadges(element);
           const hasCard = hasCardWithin(element);
-          const stableKey = `member-milestone|${authorName}|${messageText}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `member-milestone|${authorName}|${messageText}`;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text: messageText, segments, timestamp: Date.now(), kind: 'member-milestone', hasCard });
         } catch {}
@@ -372,12 +371,14 @@ export class YouTubeChatCapture extends BaseChatCapture {
           const flags = detectYouTubeUserRoles(element);
           const badges = getAuthorBadges(element);
           const hasCard = true;
-          const stableKey = `member-gift|${authorName}|${text}`;
-          const messageId = rendererId || `h_${cyrb53(stableKey)}`;
+          const contentKey = `member-gift|${authorName}|${text}`;
+          // Gift selectors can match nested elements for the same announcement —
+          // dedupe within this poll by content, not element id.
+          if ((emitted as Set<string>).has(contentKey)) return;
+          const messageId = rendererId || `h_${ccTag(element, contentKey)}`;
           if (!rendererId) visibleIds.push(messageId);
-          if ((emitted as Set<string>).has(messageId)) return;
           out.push({ id: messageId, author: { name: authorName, avatar: avatarUrl, flags, badges }, text, segments: [], timestamp: Date.now(), kind: 'member-gift', hasCard });
-          (emitted as Set<string>).add(messageId);
+          (emitted as Set<string>).add(contentKey);
         } catch {}
       });
 

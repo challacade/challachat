@@ -64,5 +64,5 @@ export interface RouteContext {
   apiConnect(url: string): Promise<{ ok: boolean; connectionId?: string; platform?: string; videoId?: string; error?: string }>;
   apiDisconnect(connectionId?: string): Promise<void>;
   shutdownCapture(connectionId?: string): Promise<void>;
-  broadcastSystemMessage(text: string, opts?: { showUsername?: boolean; effects?: ChatEvent['effects'] }): void;
+
 }

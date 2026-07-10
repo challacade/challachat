@@ -14,7 +14,7 @@ Capture and display any livestream chat in a custom overlay. Add it to your stre
 ```
 app/
   capture/      # Livestream chat capture (Puppeteer)
-  core/         # Config, SSE hub, censor, logger, music, jam mode, terminal UI
+  core/         # Config, SSE hub, censor, logger, music, chat commands, terminal UI
   http/         # Express + Socket.IO server
     routes/     # Modular API route handlers
   main/         # Electron main process, preload, IPC
@@ -110,7 +110,7 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 ### Settings
 - **Profanity filter** - Load a CSV word list, toggle on/off. Matched words are replaced with the first letter + asterisks (e.g. `word` -> `w***`).
 - **Message logger** - Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
-- **Jam mode** - Toggle the `!jam` command. Viewers jam once per track; songs with 3+ jams get a finale message on track change.
+- **Jam mode** - Toggle the built-in `!jam` chat command (see [commands.json](#commandsjson)).
 - **Dummy chatters** - Display sample messages at random intervals for testing the overlay without a live stream.
 - **Poll interval** - Set the global capture polling interval used by all livestream connections.
 - **Write song to file** - Writes current track to `song.txt` for OBS text sources.
@@ -169,7 +169,6 @@ All settings are persisted to `settings.json` in the app data directory:
 
   // Toggles
   "loggerEnabled": false,
-  "jamEnabled": false,
 
   // Logger
   "logFolderPath": "",
@@ -194,6 +193,35 @@ Connection history is persisted separately from settings:
   "connections": []
 }
 ```
+
+### commands.json
+
+Chat commands live in `commands.json` in the app data directory (created automatically on first run with the built-in `!jam` command):
+
+- **Windows:** `%LOCALAPPDATA%\ChallaChat\commands.json`
+- **macOS / Linux:** `~/.challachat/commands.json`
+
+```jsonc
+{
+  "commands": [
+    {
+      "trigger": "!jam",          // exact chat text (case-insensitive, trimmed)
+      "enabled": true,            // optional, defaults to true
+      "action": "rewrite",        // replaces the message content
+      "message": [
+        {
+          "t": "text",
+          "text": "is jamming! ",
+          "style": { "bold": true, "color": "#ff8b64" }   // per-segment; bold, italic, color
+        },
+        { "t": "emote", "url": "https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif", "alt": "NOTED" }
+      ]
+    }
+  ]
+}
+```
+
+When a viewer's chat message exactly matches a `trigger`, the `action` runs. `rewrite` replaces the message body with `message` segments (`text` and `emote` parts — animated emote URLs like 7tv `.avif` work); each text segment may carry its own `style`. Add your own entries to define custom commands; edits are picked up on app restart. `action` is a discriminator — future action kinds beyond text-rewrite will use the same file. The Settings page "Jam mode" checkbox toggles the `enabled` flag of the `!jam` entry (re-adding it if it was removed). If the file is malformed, ChallaChat falls back to the built-in defaults in memory and leaves your file untouched.
 
 ## Multi-connection
 
@@ -257,8 +285,8 @@ The overlay renders chat messages with full platform fidelity:
 | `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop |
 | `POST` | `/api/dummy-chatters` | Enable/disable dummy chatters |
 | `POST` | `/api/clear-messages` | Clear all overlay messages |
-| `GET` | `/api/jam` | Jam mode status |
-| `POST` | `/api/jam/toggle` | Enable/disable jam mode |
+| `GET` | `/api/jam` | Jam command enabled state |
+| `POST` | `/api/jam/toggle` | Enable/disable the `!jam` command |
 | `GET` | `/api/stream` | SSE event stream |
 
 ## SSE event types

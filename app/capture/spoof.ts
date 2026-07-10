@@ -8,19 +8,14 @@ interface SpoofMessage {
   amountDisplay?: string;
   color?: string;
   segments?: Segment[];
-  effects?: { jam?: boolean; jamFinale?: boolean };
 }
 
 function jam(author: AuthorInfo, delay = 3000): SpoofMessage {
+  // Emits a literal "!jam" chat message so it flows through the real command engine.
   return {
     author,
-    text: 'is jamming!',
-    segments: [
-      { t: 'text', text: 'is jamming! ' },
-      { t: 'emote', url: 'https://cdn.7tv.app/emote/01F6MWBB8R000255K4X1KDFFY5/4x.avif', alt: 'NOTED' },
-    ],
+    text: '!jam',
     kind: 'text',
-    effects: { jam: true },
     delay,
   };
 }
@@ -548,7 +543,6 @@ export class SpoofCapture {
       amountDisplay: msg.amountDisplay,
       color: msg.color,
       segments: msg.segments,
-      effects: msg.effects,
     };
     this.callbacks.onMessage(event);
   }

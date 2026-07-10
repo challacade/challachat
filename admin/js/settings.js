@@ -1,5 +1,5 @@
 /**
- * Settings panel - filter, logger, jam, UI theme/zoom.
+ * Settings panel - filter, logger, jam command, UI theme/zoom.
  */
 import {
   isElectron,
@@ -31,7 +31,7 @@ function updateLoggerUI(l) {
 
 function updateJamUI(j) {
   if (!j) return;
-  jamToggle.checked = j.enabled;
+  jamToggle.checked = !!j.enabled;
 }
 
 function applyUiTheme(theme) {

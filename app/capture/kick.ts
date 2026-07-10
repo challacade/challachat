@@ -11,7 +11,6 @@ export class KickChatCapture extends BaseChatCapture {
   private channel: string;
   protected readonly logPrefix = 'Kick';
   protected readonly chatUrl: string;
-  protected readonly hashPrefix = 'kick_';
   protected readonly platformDomain = 'kick.com';
   protected readonly platformName = 'kick';
   protected readonly highPriorityKinds = ['sub', 'sub-gift', 'cheer', 'donation', 'redemption'];
@@ -57,7 +56,7 @@ export class KickChatCapture extends BaseChatCapture {
   protected async pollMessages(): Promise<void> {
     if (!this.page) return;
     const result = await this.page.evaluate(() => {
-      const cyrb53 = (window as any).__cyrb53;
+      const ccTag = (window as any).__ccTag;
 
       // Parse badges from a message container (inline SVGs)
       function parseBadges(container: Element) {
@@ -224,8 +223,8 @@ export class KickChatCapture extends BaseChatCapture {
                   }
                 });
                 
-                const stableKey = `kick-gift|${authorName}|${giftCount}|${totalGifted || 0}`;
-                const messageId = `kick_${cyrb53(stableKey)}`;
+                const contentKey = `kick-gift|${authorName}|${giftCount}|${totalGifted || 0}`;
+                const messageId = `kick_${ccTag(element, contentKey)}`;
                 visibleIds.push(messageId);
                 
                 const payload = {
@@ -266,8 +265,8 @@ export class KickChatCapture extends BaseChatCapture {
                   }
                 });
                 
-                const stableKey = `kick-sub|${authorName}|${months}`;
-                const messageId = `kick_${cyrb53(stableKey)}`;
+                const contentKey = `kick-sub|${authorName}|${months}`;
+                const messageId = `kick_${ccTag(element, contentKey)}`;
                 visibleIds.push(messageId);
                 
                 const payload = {
@@ -302,8 +301,8 @@ export class KickChatCapture extends BaseChatCapture {
                 // Find the reward name
                 const rewardName = rewardSpan.textContent?.trim() || 'Reward';
                 
-                const stableKey = `kick-redeem|${authorName}|${rewardName}`;
-                const messageId = `kick_${cyrb53(stableKey)}`;
+                const contentKey = `kick-redeem|${authorName}|${rewardName}`;
+                const messageId = `kick_${ccTag(element, contentKey)}`;
                 visibleIds.push(messageId);
                 
                 const payload = {
@@ -328,8 +327,8 @@ export class KickChatCapture extends BaseChatCapture {
             const fallback = parseTextRowFallback(element);
             if (!fallback) return;
 
-            const stableKey = `kick|${fallback.authorName}|${fallback.messageText}|${fallback.segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
-            const messageId = `kick_${cyrb53(stableKey)}`;
+            const contentKey = `kick|${fallback.authorName}|${fallback.messageText}|${fallback.segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
+            const messageId = `kick_${ccTag(element, contentKey)}`;
             visibleIds.push(messageId);
 
             out.push({
@@ -384,8 +383,8 @@ export class KickChatCapture extends BaseChatCapture {
           
           if (!messageText && segments.length === 0) return;
 
-          const stableKey = `kick|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
-          const messageId = `kick_${cyrb53(stableKey)}`;
+          const contentKey = `kick|${authorName}|${messageText}|${segments.filter(s => s.t === 'emote').map(s => s.url).join(',')}`;
+          const messageId = `kick_${ccTag(element, contentKey)}`;
           visibleIds.push(messageId);
 
           // Parse badges from the message row

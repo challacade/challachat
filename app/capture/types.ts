@@ -28,7 +28,10 @@ export interface AuthorInfo {
   badgePosition?: 'left' | 'right';
 }
 
-export type Segment = { t: 'text'; text: string } | { t: 'emote'; url: string; alt?: string };
+/** Optional visual style for a text segment (set by chat commands). */
+export type SegmentStyle = { bold?: boolean; italic?: boolean; color?: string };
+
+export type Segment = { t: 'text'; text: string; style?: SegmentStyle } | { t: 'emote'; url: string; alt?: string };
 
 export interface ChatEvent {
   id: string;
@@ -42,11 +45,6 @@ export interface ChatEvent {
   hasCard?: boolean;
   // Optional rendering hint for overlays (primarily for system messages)
   showUsername?: boolean;
-  // Optional visual effects flags for overlays
-  effects?: {
-    jam?: boolean;
-    jamFinale?: boolean;
-  };
   /** System/platform message (e.g. "Subscribed at Tier 1. They've subscribed for 24 months!") */
   systemMessage?: string;
   /** Reply context when this message is a reply to another message */

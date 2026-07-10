@@ -83,9 +83,9 @@ function lerpTick(now) {
 // ================================
 
 export function startSSE() {
-  showToast('Connecting…');
   const eventSource = new EventSource('/api/stream');
   let latestStatus = null;
+  let serverLost = false;
 
   const platformNames = {
     youtube: 'YouTube',
@@ -113,6 +113,13 @@ export function startSSE() {
   };
 
   eventSource.addEventListener('open', () => {
+    if (serverLost) {
+      serverLost = false;
+      // Clear the server-lost message; the server sends a fresh 'status'
+      // event on every SSE connect, which will set the proper message.
+      setStatusMessage('');
+      updateStatusMessage(latestStatus);
+    }
   });
 
   eventSource.addEventListener('chat', (event) => {
@@ -265,7 +272,10 @@ export function startSSE() {
     showToast('Session ended');
   });
   
+  // Fires when the server is unreachable (app closed, server stopped).
+  // EventSource auto-reconnects, so 'open' will fire when it returns.
   eventSource.addEventListener('error', () => {
-    showToast('Connection error');
+    serverLost = true;
+    setStatusMessage(`ChallaChat not found at ${location.host || 'localhost'}`);
   });
 }

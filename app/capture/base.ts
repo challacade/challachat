@@ -19,26 +19,6 @@ export interface CaptureOpts {
 }
 
 /**
- * Simple hash function for generating stable message IDs.
- * NOTE: This function is injected as a string into the browser context
- * via evaluateOnNewDocument (see BaseChatCapture.start). It is not
- * called at runtime in Node - only inside headless browser pages as
- * window.__cyrb53.
- */
-function cyrb53(str: string, seed = 0): string {
-  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-  for (let i = 0, ch; i < str.length; i++) {
-    ch = str.charCodeAt(i);
-    h1 = Math.imul(h1 ^ ch, 2654435761);
-    h2 = Math.imul(h2 ^ ch, 1597334677);
-  }
-  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-  const combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
-  return combined.toString(36);
-}
-
-/**
  * BaseChatCapture - Abstract base class for platform-specific chat capture.
  *
  * Uses BrowserPool for a shared headless browser instance.  Only pages are
@@ -52,14 +32,10 @@ export abstract class BaseChatCapture {
   protected seenIds = new Set<string>();
   /** Maps lowercased author name → set of message IDs they sent (for ban-based bulk deletion) */
   protected authorMessageIds = new Map<string, Set<string>>();
-  /** Content fingerprint → first emission timestamp. Prevents high-priority events re-firing when DOM element IDs change (e.g. countdown progress bar re-renders). */
+  /** Content fingerprint → first emission timestamp. Prevents high-priority events re-firing when their DOM element is replaced/re-rendered (e.g. countdown progress bar). This is the guard that keeps donation/membership sounds from pinging more than once. */
   private recentHighPriorityFingerprints = new Map<string, number>();
-  /** How long (ms) to suppress a high-priority event with the same content fingerprint. Covers DOM re-render / element ID churn scenarios (typically a few seconds) with margin. */
-  private readonly FINGERPRINT_TTL_MS = 60 * 1000;
-  /** Tracks how many times each message ID has been emitted this session. */
-  private messageEmitCounts = new Map<string, number>();
-  /** Maximum number of times a single message ID may fire before being permanently suppressed. */
-  private readonly MAX_EMIT_COUNT = 3;
+  /** How long (ms) to suppress a high-priority event with the same content fingerprint. Long window: a genuinely identical event within it is far less likely than a DOM churn loop. */
+  private readonly FINGERPRINT_TTL_MS = 10 * 60 * 1000;
   protected pollTimer: NodeJS.Timeout | null = null;
   protected opts: CaptureOpts;
   protected callbacks: CaptureCallbacks;
@@ -69,9 +45,6 @@ export abstract class BaseChatCapture {
 
   /** The URL to navigate to for chat */
   protected abstract readonly chatUrl: string;
-
-  /** Prefix used for hash-generated message IDs (e.g. 'h_', 'tw_', 'kick_') */
-  protected abstract readonly hashPrefix: string;
 
   /** Domain substring to match in URL for page validation */
   protected abstract readonly platformDomain: string;
@@ -212,20 +185,25 @@ export abstract class BaseChatCapture {
         this.page.setDefaultTimeout(90000);
         this.page.setDefaultNavigationTimeout(90000);
         await this.applyBrowserIdentity();
-        // Inject cyrb53 hash into browser context (used by all platform scrapers)
+        // Inject the element-tagging helper (used by all platform scrapers).
+        // Assigns each chat message element a unique id the first time it is
+        // scraped and reuses it on later polls, so identical message text from
+        // the same author still yields distinct ids per message. The content
+        // key guards against virtualized lists recycling DOM nodes: if the
+        // element's content changes, it gets a fresh id.
         await this.page.evaluateOnNewDocument(`
-          window.__cyrb53 = function(str, seed) {
-            seed = seed || 0;
-            var h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
-            for (var i = 0, ch; i < str.length; i++) {
-              ch = str.charCodeAt(i);
-              h1 = Math.imul(h1 ^ ch, 2654435761);
-              h2 = Math.imul(h2 ^ ch, 1597334677);
+          window.__ccTag = function(el, key) {
+            key = String(key || '');
+            if (el.getAttribute('data-cc-key') === key) {
+              var existing = el.getAttribute('data-cc-id');
+              if (existing) return existing;
             }
-            h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
-            h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
-            var combined = 4294967296 * (2097151 & h2) + (h1 >>> 0);
-            return combined.toString(36);
+            if (!window.__ccSess) window.__ccSess = Math.random().toString(36).slice(2, 8);
+            window.__ccSeq = (window.__ccSeq || 0) + 1;
+            var id = window.__ccSess + '_' + window.__ccSeq;
+            el.setAttribute('data-cc-id', id);
+            el.setAttribute('data-cc-key', key);
+            return id;
           };
         `);
         await this.page.setViewport({ ...this.viewport, deviceScaleFactor: 1 });
@@ -285,7 +263,6 @@ export abstract class BaseChatCapture {
     this.browser = null;
     this.authorMessageIds.clear();
     this.recentHighPriorityFingerprints.clear();
-    this.messageEmitCounts.clear();
   }
 
   /** Delete all tracked messages for a given author (used when a ban is detected). */
@@ -347,27 +324,18 @@ export abstract class BaseChatCapture {
         this.seenIds.add(message.id);
 
         // ── High-priority content dedup ────────────────────────────────────
-        // Prevents the same donation/gift/sub event from re-firing if its DOM
-        // element's id attribute changes (e.g. countdown progress bar re-render)
-        // or if the element briefly leaves and re-enters the DOM.
+        // Events (donations, gifts, subs) must ping at most once, even when
+        // their DOM element is replaced/re-rendered and receives a fresh id.
+        // Suppressed repeats do NOT refresh the timestamp, so even a
+        // pathological re-render loop is bounded to one emission per TTL.
         if (this.highPriorityKinds.includes(message.kind)) {
-          const fp = `${message.kind}|${(message.author?.name || '').toLowerCase()}|${(message.text || '').trim()}|${message.amountDisplay || ''}|${message.giftCount || ''}`;
+          const fp = `${message.kind}|${(message.author?.name || '').toLowerCase()}|${(message.text || '').trim()}|${message.amountDisplay || ''}|${message.giftCount || ''}|${message.months || ''}`;
           const lastEmit = this.recentHighPriorityFingerprints.get(fp);
           if (lastEmit !== undefined && (Date.now() - lastEmit) < this.FINGERPRINT_TTL_MS) {
             // Same content was emitted recently — skip the callback but keep in seenIds
             continue;
           }
           this.recentHighPriorityFingerprints.set(fp, Date.now());
-        }
-
-        // ── Rate-limit failsafe ────────────────────────────────────────────
-        // Catches any remaining edge case where the same message ID somehow
-        // escapes seenIds and fires repeatedly (e.g. unforeseen platform changes).
-        const emitCount = (this.messageEmitCounts.get(message.id) ?? 0) + 1;
-        this.messageEmitCounts.set(message.id, emitCount);
-        if (emitCount > this.MAX_EMIT_COUNT) {
-          this.logError(`[ALERT LOOP PROTECTION] "${message.id}" (${message.kind} by ${message.author?.name || 'unknown'}) has been emitted ${emitCount} times — suppressing further emissions.`);
-          continue;
         }
 
         const evt: ChatEvent = {
