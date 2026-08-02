@@ -276,7 +276,7 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
 
 // ── Sound defaults ──
 const SOUND_DEFAULTS: Record<string, number | string> = {
-  messageVolume: 1,
+  messageVolume: 0,
   donationVolume: 1,
   memberVolume: 1,
   messageSoundPath: '',

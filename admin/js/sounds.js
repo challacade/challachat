@@ -18,7 +18,7 @@ export { stopTestSound };
 // ─── Volume channel descriptors ────────────────────────────────
 
 const VOLUME_CHANNELS = [
-  { key: 'messageVolume',  pathKey: 'messageSoundPath',  slider: msgVolSlider, labelEl: msgVolLabel, muteIcon: msgMuteIcon, testBtn: testMsgBtn, browseBtn: browseMsgBtn, filenameEl: msgFilename, audioKey: 'message',  savedVol: 1 },
+  { key: 'messageVolume',  pathKey: 'messageSoundPath',  slider: msgVolSlider, labelEl: msgVolLabel, muteIcon: msgMuteIcon, testBtn: testMsgBtn, browseBtn: browseMsgBtn, filenameEl: msgFilename, audioKey: 'message',  savedVol: 0 },
   { key: 'donationVolume', pathKey: 'donationSoundPath', slider: donVolSlider, labelEl: donVolLabel, muteIcon: donMuteIcon, testBtn: testDonBtn, browseBtn: browseDonBtn, filenameEl: donFilename, audioKey: 'donation', savedVol: 1 },
   { key: 'memberVolume',   pathKey: 'memberSoundPath',   slider: memVolSlider, labelEl: memVolLabel, muteIcon: memMuteIcon, testBtn: testMemBtn, browseBtn: browseMemBtn, filenameEl: memFilename, audioKey: 'member',   savedVol: 1 },
 ];
