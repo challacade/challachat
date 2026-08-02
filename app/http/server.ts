@@ -16,7 +16,7 @@ import TwitchChatCapture from '../capture/twitch';
 import KickChatCapture from '../capture/kick';
 import { SpoofCapture } from '../capture/spoof';
 import type { ChatEvent, Platform } from '../capture/types';
-import { closeBrowser } from '../capture/browserPool';
+import { acquireBrowser, closeBrowser } from '../capture/browserPool';
 import type { Connection, RouteContext, YouTubeSourceKind } from './routes/context';
 import { createCaptureRouter } from './routes/capture';
 import { createMusicRouter } from './routes/music';
@@ -387,6 +387,11 @@ class App extends EventEmitter {
     let timeout: ReturnType<typeof setTimeout> | null = null;
     const connectTimeoutMs = platform === 'kick' ? KICK_CONNECT_TIMEOUT_MS : CONNECT_TIMEOUT_MS;
     try {
+      // Browser launch is one-time initialization, not part of a channel
+      // connection. Warm the profile that this capture will use before
+      // applying the platform's normal connection deadline.
+      await acquireBrowser(platform === 'kick' ? 'compatible' : 'default');
+
       await Promise.race([
         capture.start(),
         new Promise<never>((_resolve, reject) => {
