@@ -141,7 +141,18 @@ export class KickChatCapture extends BaseChatCapture {
 
         const authorName = match[1].trim();
         const messageText = match[2].trim();
-        if (!authorName || !messageText) return null;
+        if (!authorName) return null;
+
+        const segments: any[] = [{ t: 'text', text: messageText }];
+        element.querySelectorAll('img[src], img[srcset]').forEach((img) => {
+          if (img.closest('.inline-flex.shrink-0.items-center')) return;
+          const image = img as HTMLImageElement;
+          const src = image.getAttribute('src') || image.src || '';
+          const alt = image.getAttribute('alt') || '';
+          if (src) segments.push({ t: 'emote', url: src, alt });
+        });
+
+        if (!messageText && !segments.some(segment => segment.t === 'emote')) return null;
 
         let nameColor = '';
         const authorCandidates = element.querySelectorAll('button.inline.font-bold, button.font-bold, span.font-bold, [style*="color"]');
@@ -156,15 +167,6 @@ export class KickChatCapture extends BaseChatCapture {
           if (!nameColor) {
             try { nameColor = getComputedStyle(candidateElement).color || ''; } catch {}
           }
-        });
-
-        const segments: any[] = [{ t: 'text', text: messageText }];
-        element.querySelectorAll('img[src], img[srcset]').forEach((img) => {
-          if (img.closest('.inline-flex.shrink-0.items-center')) return;
-          const image = img as HTMLImageElement;
-          const src = image.getAttribute('src') || image.src || '';
-          const alt = image.getAttribute('alt') || '';
-          if (src) segments.push({ t: 'emote', url: src, alt });
         });
 
         const { badges, flags } = parseBadges(element);
