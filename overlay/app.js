@@ -17,6 +17,7 @@ import {
   applyPreset,
   loadFromLocal,
   loadFromUrl,
+  updateSongDisplayText,
 } from './js/settings.js';
 import { startSSE } from './js/sse.js';
 
@@ -63,6 +64,10 @@ function start() {
   
   // Start SSE connection
   startSSE();
+
+  // The initial song can arrive before the selected web font finishes loading.
+  // Rebuild its measured marquee tiles once the final font metrics are available.
+  document.fonts?.ready.then(() => updateSongDisplayText());
 }
 
 // ================================
