@@ -252,6 +252,11 @@ export abstract class BaseChatCapture {
     this.log('Stopped');
   }
 
+  async cancelStartup() {
+    this.isRunning = false;
+    await this.cleanup();
+  }
+
   /**
    * Cleanup the page only - the browser is shared via BrowserPool and stays
    * alive for subsequent capture sessions.

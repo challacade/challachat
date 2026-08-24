@@ -44,6 +44,7 @@ const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 const MAX_CONNECTIONS = 5;
 const CONNECT_TIMEOUT_MS = 10_000;
 const KICK_CONNECT_TIMEOUT_MS = 100_000;
+const MAX_CONNECT_ATTEMPTS = 2;
 const YOUTUBE_METADATA_TIMEOUT_MS = 2_500;
 
 interface YouTubeOEmbedResponse {
@@ -302,6 +303,7 @@ class App extends EventEmitter {
     buildDisplayUrl: (id: string, originalUrl: string) => string;
     logPrefix: string;
     errorMessage: string;
+    connectTimeoutMs: number;
   }> = {
     youtube: {
       extractId: (url) => this.extractVideoId(url),
@@ -309,6 +311,7 @@ class App extends EventEmitter {
       buildDisplayUrl: (id, url) => /^https?:\/\/studio\.youtube\.com\//i.test(url) ? this.toPublicLiveUrl(id) : url,
       logPrefix: 'yt',
       errorMessage: 'Invalid YouTube URL. Please provide a valid YouTube livestream URL.',
+      connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
     twitch: {
       extractId: (url) => this.extractTwitchChannel(url),
@@ -316,6 +319,7 @@ class App extends EventEmitter {
       buildDisplayUrl: (id) => `https://www.twitch.tv/${id}`,
       logPrefix: 'tw',
       errorMessage: 'Invalid Twitch URL. Please provide a valid Twitch channel URL.',
+      connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
     kick: {
       extractId: (url) => this.extractKickChannel(url),
@@ -323,6 +327,7 @@ class App extends EventEmitter {
       buildDisplayUrl: (id) => `https://kick.com/${id}`,
       logPrefix: 'kk',
       errorMessage: 'Invalid Kick URL. Please provide a valid Kick channel URL.',
+      connectTimeoutMs: KICK_CONNECT_TIMEOUT_MS,
     },
   };
 
@@ -379,28 +384,63 @@ class App extends EventEmitter {
     });
     this.broadcastStatus();
     if (platform === 'youtube') void this.enrichYouTubeConnectionDetails(connId, identifier, url);
-    void this.finishCaptureStartup(connId, capture, config.logPrefix, displayUrl, platform, identifier);
+    void this.finishCaptureStartup(connId, capture, config.logPrefix, displayUrl, platform, identifier, config.connectTimeoutMs);
     return connId;
   }
 
-  private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, logPrefix: string, displayUrl: string, platform: Platform, identifier: string): Promise<void> {
-    let timeout: ReturnType<typeof setTimeout> | null = null;
-    const connectTimeoutMs = platform === 'kick' ? KICK_CONNECT_TIMEOUT_MS : CONNECT_TIMEOUT_MS;
+  private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, logPrefix: string, displayUrl: string, platform: Platform, identifier: string, connectTimeoutMs: number): Promise<void> {
     try {
       // Browser launch is one-time initialization, not part of a channel
       // connection. Warm the profile that this capture will use before
       // applying the platform's normal connection deadline.
       await acquireBrowser(platform === 'kick' ? 'compatible' : 'default');
 
-      await Promise.race([
-        capture.start(),
-        new Promise<never>((_resolve, reject) => {
-          timeout = setTimeout(() => reject(new Error(`Connection to ${displayUrl} timed out after ${Math.round(connectTimeoutMs / 1000)} seconds while starting ${platform} capture.`)), connectTimeoutMs);
-        }),
-      ]);
+      for (let attempt = 1; attempt <= MAX_CONNECT_ATTEMPTS; attempt++) {
+        let timedOut = false;
+        let timeout: ReturnType<typeof setTimeout> | null = null;
+        const startup = capture.start();
+
+        try {
+          await Promise.race([
+            startup,
+            new Promise<never>((_resolve, reject) => {
+              timeout = setTimeout(() => {
+                timedOut = true;
+                reject(new Error(`Connection to ${displayUrl} timed out after ${Math.round(connectTimeoutMs / 1000)} seconds.`));
+              }, connectTimeoutMs);
+            }),
+          ]);
+          if (timeout) clearTimeout(timeout);
+          break;
+        } catch (error) {
+          if (timeout) clearTimeout(timeout);
+          if (!timedOut) throw error;
+
+          const conn = this.connections.get(connId);
+          const willRetry = attempt < MAX_CONNECT_ATTEMPTS;
+          if (conn && willRetry) {
+            conn.status = 'connecting';
+            conn.statusText = 'Retrying';
+            conn.error = undefined;
+            const retryStatus = { status: 'retrying' as const, platform, videoId: identifier, connectionId: connId };
+            this.io.emit('capture-status', retryStatus);
+            this.emit('capture-status', retryStatus);
+            this.broadcastStatus();
+          }
+
+          await capture.cancelStartup();
+          await startup.catch(() => {});
+
+          if (!this.connections.has(connId)) return;
+          if (!willRetry) throw error;
+        }
+      }
 
       const conn = this.connections.get(connId);
-      if (!conn || conn.status !== 'connecting') return;
+      if (!conn || conn.status !== 'connecting') {
+        await capture.stop();
+        return;
+      }
       conn.status = 'active';
       conn.statusText = 'Active';
       conn.connectedAt = Date.now();
@@ -432,13 +472,11 @@ class App extends EventEmitter {
         conn.error = message;
         conn.connectedAt = undefined;
       }
-      try { await (capture as any).cleanup?.(); } catch { /* ignore cleanup errors */ }
+      try { await capture.cancelStartup(); } catch { /* ignore cleanup errors */ }
       const captureStatus = { status: 'failed' as const, platform, videoId: identifier, connectionId: connId, error: message };
       this.io.emit('capture-status', captureStatus);
       this.emit('capture-status', captureStatus);
       this.broadcastStatus();
-    } finally {
-      if (timeout) clearTimeout(timeout);
     }
   }
 

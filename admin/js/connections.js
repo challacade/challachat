@@ -83,15 +83,15 @@ function escapeHtml(value) {
 
 function getConnectionStatus(conn) {
   const raw = String(conn.status || conn.captureStatus || (conn.active === false ? 'inactive' : 'active')).toLowerCase();
-  if (['connecting', 'starting', 'pending'].includes(raw)) return 'connecting';
+  if (['connecting', 'starting', 'pending', 'retrying'].includes(raw)) return 'connecting';
   if (['problem', 'warning', 'degraded', 'reconnecting'].includes(raw)) return 'warning';
   if (['error', 'failed'].includes(raw)) return 'failed';
   if (['inactive', 'stopped', 'disconnected'].includes(raw)) return 'inactive';
   return 'active';
 }
 
-function getConnectionStatusLabel(status) {
-  if (status === 'connecting') return 'Connecting';
+function getConnectionStatusLabel(status, conn) {
+  if (status === 'connecting') return conn?.statusText === 'Retrying' ? 'Retrying' : 'Connecting';
   if (status === 'failed') return 'Failed';
   if (status === 'warning') return 'Warning';
   if (status === 'inactive') return 'Inactive';
@@ -100,7 +100,8 @@ function getConnectionStatusLabel(status) {
 
 function renderConnectionStats(conn, status) {
   if (status === 'connecting') {
-    return '<div class="capture-inline-status"><span class="capture-inline-spinner" aria-hidden="true"></span><strong>Connecting</strong></div>';
+    const label = conn.statusText === 'Retrying' ? 'Retrying' : 'Connecting';
+    return `<div class="capture-inline-status"><span class="capture-inline-spinner" aria-hidden="true"></span><strong>${label}</strong></div>`;
   }
   if (status === 'failed') {
     const reason = escapeHtml(conn.error || 'Connection failed.');
@@ -245,7 +246,7 @@ function createConnectionCard(conn) {
   const detailsTooltip = getConnectionDetailsTooltip(conn);
   const identityTooltipClass = detailsTooltip ? ' has-tooltip' : '';
   const identityTooltipAttr = detailsTooltip ? ` data-tooltip="${escapeHtml(detailsTooltip)}"` : '';
-  const statusLabel = getConnectionStatusLabel(status);
+  const statusLabel = getConnectionStatusLabel(status, conn);
   const refreshLabel = status === 'failed' ? 'Retry' : 'Refresh';
   card.innerHTML = `
     <div class="capture-header">
@@ -280,6 +281,8 @@ function updateConnectionCard(card, conn) {
   if (stats) {
     if (status !== previousStatus) {
       stats.innerHTML = renderConnectionStats(conn, status);
+    } else if (status === 'connecting') {
+      stats.innerHTML = renderConnectionStats(conn, status);
     } else if (status === 'active') {
       const msgCount = stats.querySelector('.conn-msg-count');
       const uptime = stats.querySelector('.conn-uptime');
@@ -304,7 +307,7 @@ function updateConnectionCard(card, conn) {
   }
   const indicator = card.querySelector('.connection-status');
   if (indicator) {
-    const statusLabel = getConnectionStatusLabel(status);
+    const statusLabel = getConnectionStatusLabel(status, conn);
     indicator.className = `connection-status status-${status} has-tooltip`;
     indicator.setAttribute('aria-label', `Connection ${statusLabel}`);
     indicator.setAttribute('data-tooltip', statusLabel);
