@@ -281,6 +281,9 @@ footer {
 .settings-clear-control .btn {
   flex: 0 0 auto;
 }
+.settings-wide-toggle {
+  grid-column: 1 / -1;
+}
 
 /* -- Control item (label + slider/picker pair) ---------------- */
 .control-item {
@@ -906,7 +909,7 @@ footer {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-top: 18px;
+  margin-top: 0;
   margin-bottom: 10px;
 }
 .music-progress-row {
@@ -973,24 +976,14 @@ footer {
   padding: 0;
   line-height: 1;
 }
-.music-mode-row {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 8px;
-  align-items: center;
-}
-.music-mode-right {
+.music-path-row {
+  margin-top: 10px;
   display: flex;
   gap: 8px;
   min-width: 0;
 }
-.music-now-playing-inline {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--text);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+.music-path-row .path-input {
+  flex: 1;
   min-width: 0;
 }
 .music-options {

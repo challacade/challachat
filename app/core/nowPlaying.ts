@@ -9,7 +9,9 @@ export type NowPlaying = {
   updatedAt: number;
 };
 
-let current: NowPlaying | null = null;
+let localCurrent: NowPlaying | null = null;
+let externalCurrent: NowPlaying | null = null;
+let localPlaybackRunning = false;
 
 function computeSongIdFromPath(filePath: string): string {
   const base = path.basename(filePath, path.extname(filePath));
@@ -17,13 +19,14 @@ function computeSongIdFromPath(filePath: string): string {
 }
 
 export function getNowPlaying(): NowPlaying | null {
-  return current;
+  return localPlaybackRunning && localCurrent ? localCurrent : externalCurrent;
 }
 
 export function setNowPlayingByIndex(index: number, songIdOverride?: string | null): NowPlaying | null {
   const filePath = getTrackByIndex(index);
   if (!filePath) {
-    current = null;
+    localCurrent = null;
+    localPlaybackRunning = false;
     return null;
   }
 
@@ -37,8 +40,13 @@ export function setNowPlayingByIndex(index: number, songIdOverride?: string | nu
     updatedAt: Date.now()
   };
 
-  current = next;
+  localCurrent = next;
   return next;
+}
+
+export function setLocalPlaybackRunning(running: boolean): NowPlaying | null {
+  localPlaybackRunning = running && localCurrent !== null;
+  return getNowPlaying();
 }
 
 /** Set now-playing from an external source (e.g. OS media session). */
@@ -49,10 +57,16 @@ export function setNowPlayingExternal(songId: string): NowPlaying {
     songId: songId || '',
     updatedAt: Date.now()
   };
-  current = next;
+  externalCurrent = next;
   return next;
 }
 
+export function clearExternalNowPlaying(): void {
+  externalCurrent = null;
+}
+
 export function clearNowPlaying(): void {
-  current = null;
+  localCurrent = null;
+  externalCurrent = null;
+  localPlaybackRunning = false;
 }

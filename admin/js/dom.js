@@ -37,6 +37,7 @@ export const jamToggle       = $('jamToggle');
 export const clearMessagesBtn = $('clearMessagesBtn');
 export const globalPollIntervalSlider = $('globalPollIntervalSlider');
 export const globalPollIntervalLabel  = $('globalPollIntervalLabel');
+export const externalMusicDataToggle = $('externalMusicDataToggle');
 // Appearance
 export const scaleSlider     = $('scaleSlider');
 export const scaleLabel      = $('scaleLabel');
@@ -90,11 +91,6 @@ export const msgFilename       = $('msgFilename');
 export const donFilename       = $('donFilename');
 export const memFilename       = $('memFilename');
 // Music
-export const musicModeSelect       = $('musicModeSelect');
-export const musicModeLocalPath    = $('musicModeLocalPath');
-export const musicModeExternalInfo = $('musicModeExternalInfo');
-export const musicExternalSongId   = $('musicExternalSongId');
-
 export const musicNowPlaying   = $('musicNowPlaying');
 export const musicProgressRow  = $('musicProgressRow');
 export const musicControlsRow  = $('musicControlsRow');
