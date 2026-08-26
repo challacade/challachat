@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { getMusicDisplaySettings, updateSettings } from '../../core/settings';
-import { getNowPlaying } from '../../core/nowPlaying';
+import { getNowPlaying, NO_MUSIC_SONG_ID } from '../../core/nowPlaying';
 import type { RouteContext } from './context';
 
 /** Routes: /api/appearance, /api/sounds, /api/stream (SSE) */
@@ -152,9 +152,9 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     res.write(`event: music-settings\ndata: ${JSON.stringify(getMusicDisplaySettings())}\n\n`);
     res.write(`event: status\ndata: ${JSON.stringify(ctx.getStatus())}\n\n`);
     const np = getNowPlaying();
-    if (np) {
-      res.write(`event: now-playing\ndata: ${JSON.stringify({ songId: np.songId, index: np.index })}\n\n`);
-    }
+    res.write(`event: now-playing\ndata: ${JSON.stringify(np
+      ? { songId: np.songId, index: np.index }
+      : { songId: NO_MUSIC_SONG_ID, index: -1 })}\n\n`);
     ctx.sse.add(res);
   });
 

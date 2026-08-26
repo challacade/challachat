@@ -75,6 +75,7 @@ function lerpTick(now) {
   } else {
     animating = false;
     lastTime = 0;
+    updateSongDisplayText();
   }
 }
 

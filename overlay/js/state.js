@@ -70,7 +70,7 @@ export const state = {
     position: 'none',  // 'none' | 'top' | 'bottom'
     scrollSpeed: 0,    // 0 = off, 1 = 100% (60px/s), 2 = 200%
     textSize: 1,       // extra scale factor (0-2, where 1 = 100%)
-    songId: ''
+    songId: 'No music found'
   }
 };
 

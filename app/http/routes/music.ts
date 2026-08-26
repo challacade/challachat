@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { getMusicDisplaySettings, getMusicSettingsStatus, updateSettings, writeSongTxt } from '../../core/settings';
 import { getTrackByIndex, getTrackMetaByIndex, refreshPlaylist } from '../../core/music';
-import { clearExternalNowPlaying, getNowPlaying, setLocalPlaybackRunning, setNowPlayingByIndex, setNowPlayingExternal } from '../../core/nowPlaying';
+import { clearExternalNowPlaying, getNowPlaying, NO_MUSIC_SONG_ID, setLocalPlaybackRunning, setNowPlayingByIndex, setNowPlayingExternal } from '../../core/nowPlaying';
 import { SmtcPoller } from '../../core/smtc';
 import type { RouteContext } from './context';
 
@@ -19,7 +19,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
     const now = getNowPlaying();
     ctx.sse.send('now-playing', now
       ? { songId: now.songId, index: now.index }
-      : { songId: '', index: -1 });
+      : { songId: NO_MUSIC_SONG_ID, index: -1 });
     return now;
   }
 

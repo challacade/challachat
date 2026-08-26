@@ -36,6 +36,7 @@ function start() {
     recomputeAutoScale();
     applyTheme();
     elements.messages.querySelectorAll('.message').forEach(adjustMessageAlignment);
+    updateSongDisplayText();
   });
   
   // Load settings from localStorage
@@ -65,9 +66,9 @@ function start() {
   // Start SSE connection
   startSSE();
 
-  // The initial song can arrive before the selected web font finishes loading.
-  // Rebuild its measured marquee tiles once the final font metrics are available.
+  // Font selection arrives over SSE and may start loading after the initial ready promise.
   document.fonts?.ready.then(() => updateSongDisplayText());
+  document.fonts?.addEventListener('loadingdone', () => updateSongDisplayText());
 }
 
 // ================================

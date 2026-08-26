@@ -83,6 +83,8 @@ export function applyTheme() {
 // Song Display
 // ================================
 
+let songLayoutRevision = 0;
+
 export function applySongDisplay() {
   const overlay = elements.overlay;
   const songEl = elements.songDisplayOverlay;
@@ -121,10 +123,11 @@ export function updateSongDisplayText() {
   const position = state.songDisplay?.position || 'none';
   if (position === 'none') return;
 
-  const title = state.songDisplay?.songId || '';
-  const display = title ? `\u266b ${title} \u266b` : '';
+  const title = state.songDisplay?.songId || 'No music found';
+  const display = `\u266b ${title} \u266b`;
   const textSpan = songEl.querySelector('.song-display-text');
   if (!textSpan) { songEl.textContent = display; return; }
+  const layoutRevision = ++songLayoutRevision;
 
   const scrolling = songEl.classList.contains('scrolling') && !!display;
 
@@ -136,6 +139,7 @@ export function updateSongDisplayText() {
 
     if (display) {
       requestAnimationFrame(() => {
+        if (layoutRevision !== songLayoutRevision) return;
         autoFitSongText(songEl, textSpan, title);
       });
     }
@@ -156,6 +160,7 @@ export function updateSongDisplayText() {
 
   // Measure after paint so getBoundingClientRect is accurate
   requestAnimationFrame(() => {
+    if (layoutRevision !== songLayoutRevision) return;
     const textWidth = probe.getBoundingClientRect().width;
     const gap = Math.max(60, window.innerWidth * 0.12);
     const unit = textWidth + gap;

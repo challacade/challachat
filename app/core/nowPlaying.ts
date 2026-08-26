@@ -9,6 +9,8 @@ export type NowPlaying = {
   updatedAt: number;
 };
 
+export const NO_MUSIC_SONG_ID = 'No music found';
+
 let localCurrent: NowPlaying | null = null;
 let externalCurrent: NowPlaying | null = null;
 let localPlaybackRunning = false;
@@ -19,7 +21,8 @@ function computeSongIdFromPath(filePath: string): string {
 }
 
 export function getNowPlaying(): NowPlaying | null {
-  return localPlaybackRunning && localCurrent ? localCurrent : externalCurrent;
+  if (localPlaybackRunning && localCurrent) return localCurrent;
+  return externalCurrent || localCurrent;
 }
 
 export function setNowPlayingByIndex(index: number, songIdOverride?: string | null): NowPlaying | null {
