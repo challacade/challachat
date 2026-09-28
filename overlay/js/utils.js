@@ -1,9 +1,9 @@
 /**
  * ChallaChat Overlay - Utility Functions
- * Avatar error handling and fallback generation
+ * Avatar fallback generation and image load retries
  */
 
-import { AVATAR_MAX_RETRIES, AVATAR_RETRY_DELAY_MS } from './state.js';
+import { IMAGE_MAX_RETRIES, IMAGE_RETRY_BASE_DELAY_MS, IMAGE_DEAD_TTL_MS, IMAGE_DEAD_MAX_ENTRIES } from './state.js';
 
 // ================================
 // Avatar Error Handling
@@ -22,39 +22,112 @@ export function generateFallbackAvatar(seed = '') {
   return 'data:image/svg+xml,' + encodeURIComponent(svg);
 }
 
-// Handle avatar image load errors with retry logic
-export function handleAvatarError(event) {
-  const img = event.target;
-  if (!img) return;
-  
-  const retryCount = parseInt(img.dataset.retryCount || '0', 10);
-  const originalSrc = img.dataset.originalSrc || '';
-  
-  if (retryCount < AVATAR_MAX_RETRIES) {
-    // Show fallback immediately while we retry
-    img.src = generateFallbackAvatar(originalSrc);
-    img.dataset.retryCount = String(retryCount + 1);
-    
-    // Schedule a retry
-    setTimeout(() => {
-      if (!img.isConnected) return;
-      
-      const retryUrl = originalSrc + (originalSrc.includes('?') ? '&' : '?') + '_retry=' + Date.now();
-      
-      const testImg = new Image();
-      testImg.onload = () => {
-        if (img.isConnected) {
-          img.src = originalSrc;
-        }
-      };
-      testImg.onerror = () => {
-        // Still failing, leave the fallback in place
-      };
-      testImg.src = retryUrl;
-    }, AVATAR_RETRY_DELAY_MS);
-  } else {
-    // Max retries reached, use permanent fallback
-    img.src = generateFallbackAvatar(originalSrc);
-    img.removeEventListener('error', handleAvatarError);
+// ================================
+// Image Retry (avatars + emotes)
+// ================================
+
+// url -> { attempt, waiters: Set<img> }; one probe chain per URL no matter how many imgs use it
+const pendingRetries = new Map();
+// url -> expiry timestamp; URLs that exhausted retries are not retried again until expiry
+const deadUrls = new Map();
+// img -> { url, fallbackSrc, onGiveUp, failures }
+const trackedImages = new WeakMap();
+
+function isDeadUrl(url) {
+  const expiry = deadUrls.get(url);
+  if (expiry === undefined) return false;
+  if (Date.now() < expiry) return true;
+  deadUrls.delete(url);
+  return false;
+}
+
+function markDeadUrl(url) {
+  if (deadUrls.size >= IMAGE_DEAD_MAX_ENTRIES) {
+    const now = Date.now();
+    for (const [key, expiry] of deadUrls) if (expiry <= now) deadUrls.delete(key);
+    if (deadUrls.size >= IMAGE_DEAD_MAX_ENTRIES) deadUrls.delete(deadUrls.keys().next().value);
   }
+  deadUrls.set(url, Date.now() + IMAGE_DEAD_TTL_MS);
+}
+
+function cacheBust(url, attempt) {
+  if (!/^https?:/i.test(url)) return url;
+  return url + (url.includes('?') ? '&' : '?') + '_r=' + attempt;
+}
+
+function giveUpImage(img) {
+  const info = trackedImages.get(img);
+  img.removeEventListener('error', onImageError);
+  trackedImages.delete(img);
+  if (info?.onGiveUp && img.isConnected) info.onGiveUp(img);
+}
+
+function scheduleProbe(url, entry) {
+  const delay = IMAGE_RETRY_BASE_DELAY_MS * 2 ** entry.attempt + Math.random() * 500;
+  setTimeout(() => probeUrl(url, entry), delay);
+}
+
+function probeUrl(url, entry) {
+  for (const img of entry.waiters) if (!img.isConnected) entry.waiters.delete(img);
+  if (!entry.waiters.size) {
+    pendingRetries.delete(url);
+    return;
+  }
+
+  entry.attempt++;
+  const retryUrl = cacheBust(url, entry.attempt);
+  const tester = new Image();
+  tester.onload = () => {
+    pendingRetries.delete(url);
+    for (const img of entry.waiters) if (img.isConnected) img.src = retryUrl;
+  };
+  tester.onerror = () => {
+    if (entry.attempt >= IMAGE_MAX_RETRIES) {
+      pendingRetries.delete(url);
+      markDeadUrl(url);
+      for (const img of entry.waiters) giveUpImage(img);
+      return;
+    }
+    scheduleProbe(url, entry);
+  };
+  tester.src = retryUrl;
+}
+
+function onImageError(event) {
+  const img = event.currentTarget;
+  const info = trackedImages.get(img);
+  if (!info) return;
+  if (info.fallbackSrc && img.getAttribute('src') === info.fallbackSrc) return;
+  if (info.fallbackSrc) img.src = info.fallbackSrc;
+
+  // Per-img cap guards against a probe succeeding while the real img keeps failing
+  info.failures++;
+  if (info.failures > IMAGE_MAX_RETRIES || isDeadUrl(info.url)) {
+    giveUpImage(img);
+    return;
+  }
+
+  let entry = pendingRetries.get(info.url);
+  if (!entry) {
+    entry = { attempt: 0, waiters: new Set() };
+    pendingRetries.set(info.url, entry);
+    scheduleProbe(info.url, entry);
+  }
+  entry.waiters.add(img);
+}
+
+/**
+ * Retry a failed image load with exponential backoff; gives up after IMAGE_MAX_RETRIES.
+ * @param {HTMLImageElement} img
+ * @param {string} url - Original image URL
+ * @param {{ fallbackSrc?: string, onGiveUp?: (img: HTMLImageElement) => void }} [options]
+ */
+export function retryImageOnError(img, url, options = {}) {
+  trackedImages.set(img, {
+    url,
+    fallbackSrc: options.fallbackSrc || '',
+    onGiveUp: options.onGiveUp || null,
+    failures: 0,
+  });
+  img.addEventListener('error', onImageError);
 }

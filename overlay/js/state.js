@@ -19,8 +19,10 @@ export const elements = {
 // Constants
 // ================================
 
-export const AVATAR_MAX_RETRIES = 3;
-export const AVATAR_RETRY_DELAY_MS = 3000;
+export const IMAGE_MAX_RETRIES = 3;
+export const IMAGE_RETRY_BASE_DELAY_MS = 2000;
+export const IMAGE_DEAD_TTL_MS = 5 * 60 * 1000;
+export const IMAGE_DEAD_MAX_ENTRIES = 500;
 
 // ================================
 // Presets

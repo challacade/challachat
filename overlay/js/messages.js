@@ -4,7 +4,7 @@
  */
 
 import { state, elements, showToast } from './state.js';
-import { handleAvatarError } from './utils.js';
+import { generateFallbackAvatar, retryImageOnError } from './utils.js';
 
 // ================================
 // Shared Segment Renderer
@@ -37,6 +37,9 @@ function renderSegments(container, segments) {
       img.alt = segment.alt || '';
       img.decoding = 'async';
       img.loading = 'lazy';
+      retryImageOnError(img, segment.url, {
+        onGiveUp: (el) => el.replaceWith(el.alt),
+      });
       container.appendChild(img);
     }
   }
@@ -132,9 +135,7 @@ export function renderMessage(item) {
     const avatarImg = document.createElement('img');
     avatarImg.alt = 'avatar';
     avatarImg.src = avatarUrl;
-    avatarImg.dataset.retryCount = '0';
-    avatarImg.dataset.originalSrc = avatarUrl;
-    avatarImg.addEventListener('error', handleAvatarError);
+    retryImageOnError(avatarImg, avatarUrl, { fallbackSrc: generateFallbackAvatar(avatarUrl) });
     avatar.appendChild(avatarImg);
     container.appendChild(avatar);
   }
@@ -202,6 +203,7 @@ export function renderMessage(item) {
         if (b.alt || b.type) img.title = b.alt || b.type;
         img.decoding = 'async';
         img.loading = 'lazy';
+        retryImageOnError(img, b.url, { onGiveUp: (el) => el.remove() });
         badgesWrap.appendChild(img);
       } else if (b?.emoji && state.showEmojiBadges) {
         const span = document.createElement('span');
