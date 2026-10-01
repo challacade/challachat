@@ -3,7 +3,7 @@
  * Message rendering, avatar handling, push/remove/update
  */
 
-import { state, elements, showToast } from './state.js';
+import { state, elements, showToast, MAX_OVERLAY_MESSAGES } from './state.js';
 import { generateFallbackAvatar, retryImageOnError } from './utils.js';
 
 // ================================
@@ -322,6 +322,13 @@ export function pushMessageElement(node, timestamp) {
     const container = elements.messages;
     while (container.scrollHeight > container.clientHeight && container.children.length > 1) {
       container.firstElementChild.remove();
+    }
+  } else {
+    const container = elements.messages;
+    while (container.children.length > MAX_OVERLAY_MESSAGES) {
+      const oldest = state.messageFlow === 'top-down' ? container.lastElementChild : container.firstElementChild;
+      state.seenIds.delete(oldest.dataset.id);
+      oldest.remove();
     }
   }
 

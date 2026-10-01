@@ -58,6 +58,11 @@ export type AppSettings = {
   edgePadding?: number;
   textShadow?: number;
   transitionSpeed?: number;
+  texture?: string;
+  textureIntensity?: number;
+  textureScale?: number;
+  textureGap?: number;
+  textureColor?: string;
 
   // ── Sound volumes ──
   messageVolume?: number;
@@ -155,27 +160,61 @@ function ensureSettingsFileExists(): void {
   }
 }
 
-export function readSettings(): { settings: AppSettings; exists: boolean; path: string } {
-  const settingsPath = getSettingsPath();
-  ensureSettingsFileExists();
-
+/** Write via temp file + rename so a crash mid-write never leaves a truncated file. */
+function writeJsonAtomic(filePath: string, data: unknown): void {
+  const json = JSON.stringify(data, null, 2);
+  const tmpPath = `${filePath}.tmp`;
+  fs.writeFileSync(tmpPath, json, { encoding: 'utf-8' });
   try {
-    const raw = fs.readFileSync(settingsPath, 'utf-8');
-    const parsed = JSON.parse(raw || '{}');
-    const settings: AppSettings = (parsed && typeof parsed === 'object') ? parsed : {};
-    return { settings, exists: true, path: settingsPath };
+    fs.renameSync(tmpPath, filePath);
   } catch {
-    return { settings: {}, exists: false, path: settingsPath };
+    // Windows can refuse the rename while another process (e.g. antivirus) holds the target open.
+    fs.writeFileSync(filePath, json, { encoding: 'utf-8' });
+    try { fs.rmSync(tmpPath, { force: true }); } catch { /* ignore */ }
   }
 }
 
-export function updateSettings(patch: Partial<AppSettings>): { ok: boolean; settings: AppSettings } {
-  const { settings } = readSettings();
-  const merged: AppSettings = { ...settings, ...patch };
-  const settingsPath = getSettingsPath();
-  ensureSettingsDirExists();
+type SettingsLoad = { settings: AppSettings; state: 'ok' | 'corrupt' | 'unreadable' };
+
+function loadSettingsFile(settingsPath: string): SettingsLoad {
+  ensureSettingsFileExists();
+  let raw: string;
   try {
-    fs.writeFileSync(settingsPath, JSON.stringify(merged, null, 2), { encoding: 'utf-8' });
+    raw = fs.readFileSync(settingsPath, 'utf-8');
+  } catch {
+    return { settings: {}, state: 'unreadable' };
+  }
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    return { settings: (parsed && typeof parsed === 'object') ? parsed : {}, state: 'ok' };
+  } catch {
+    return { settings: {}, state: 'corrupt' };
+  }
+}
+
+export function readSettings(): { settings: AppSettings; exists: boolean; path: string } {
+  const settingsPath = getSettingsPath();
+  const { settings, state } = loadSettingsFile(settingsPath);
+  return { settings, exists: state === 'ok', path: settingsPath };
+}
+
+export function updateSettings(patch: Partial<AppSettings>): { ok: boolean; settings: AppSettings } {
+  const settingsPath = getSettingsPath();
+  const { settings, state } = loadSettingsFile(settingsPath);
+  // Never overwrite a file we couldn't read: that would drop every setting not in this patch.
+  if (state === 'unreadable') return { ok: false, settings };
+  if (state === 'corrupt') {
+    const backupPath = `${settingsPath}.corrupt-${Date.now()}.bak`;
+    try {
+      fs.copyFileSync(settingsPath, backupPath);
+      console.warn(`[Settings] settings.json was not valid JSON; backed up to ${backupPath} and starting fresh.`);
+    } catch {
+      return { ok: false, settings };
+    }
+  }
+  const merged: AppSettings = { ...settings, ...patch };
+  try {
+    writeJsonAtomic(settingsPath, merged);
     return { ok: true, settings: merged };
   } catch {
     return { ok: false, settings };
@@ -207,7 +246,7 @@ export function addConnectionHistory(item: Omit<ConnectionHistoryItem, 'lastConn
   const next = [nextItem, ...existing].slice(0, 50);
   ensureSettingsDirExists();
   try {
-    fs.writeFileSync(getHistoryPath(), JSON.stringify({ connections: next }, null, 2), { encoding: 'utf-8' });
+    writeJsonAtomic(getHistoryPath(), { connections: next });
   } catch {
     // ignore - history is non-critical
   }
@@ -275,6 +314,11 @@ const APPEARANCE_DEFAULTS: Record<string, number | string | boolean> = {
   edgePadding: 0.5,
   textShadow: 0.25,
   transitionSpeed: 8,
+  texture: 'none',
+  textureIntensity: 0.25,
+  textureScale: 1,
+  textureGap: 1,
+  textureColor: '#ffffff',
 };
 
 // ── Sound defaults ──

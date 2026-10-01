@@ -51,12 +51,20 @@ const COMPATIBLE_LAUNCH_ARGS: string[] = [
 ];
 
 // Keep capture browser state separate from the user's normal Chrome/Edge profile.
-const USER_DATA_DIRS: Record<BrowserPoolProfile, string> = {
-  default: path.join(os.tmpdir(), 'challachat-capture-browser'),
-  // Fresh per app process: reusing a compatible profile after a Kick 403 can
-  // keep the capture browser blocked on later attempts.
-  compatible: fs.mkdtempSync(path.join(os.tmpdir(), 'challachat-capture-browser-compatible-')),
-};
+const DEFAULT_USER_DATA_DIR = path.join(os.tmpdir(), 'challachat-capture-browser');
+
+// Fresh per app process: reusing a compatible profile after a Kick 403 can
+// keep the capture browser blocked on later attempts. Created lazily so app
+// launches that never use Kick don't leave temp folders behind.
+let compatibleUserDataDir: string | null = null;
+
+function getUserDataDir(profile: BrowserPoolProfile): string {
+  if (profile === 'default') return DEFAULT_USER_DATA_DIR;
+  if (!compatibleUserDataDir) {
+    compatibleUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'challachat-capture-browser-compatible-'));
+  }
+  return compatibleUserDataDir;
+}
 
 // ── Executable detection ──────────────────────────────────────────
 
@@ -106,7 +114,7 @@ async function launchBrowser(profile: BrowserPoolProfile): Promise<Browser> {
   const isCompatible = profile === 'compatible';
   const base: any = {
     headless: isCompatible ? false : 'new',
-    userDataDir: USER_DATA_DIRS[profile],
+    userDataDir: getUserDataDir(profile),
     args: isCompatible ? COMPATIBLE_LAUNCH_ARGS : DEFAULT_LAUNCH_ARGS,
     // The compatible profile is for sites that block Puppeteer's automation
     // flag even when a visible browser is used.
@@ -194,5 +202,10 @@ export async function closeBrowser(): Promise<void> {
   sharedBrowsers.clear();
   for (const browser of browsers) {
     try { await browser.close(); } catch { /* ignore */ }
+  }
+  if (compatibleUserDataDir) {
+    // Chrome can hold profile files briefly after exit, hence the retries.
+    try { fs.rmSync(compatibleUserDataDir, { recursive: true, force: true, maxRetries: 5, retryDelay: 200 }); } catch { /* ignore */ }
+    compatibleUserDataDir = null;
   }
 }

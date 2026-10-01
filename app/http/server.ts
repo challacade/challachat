@@ -41,7 +41,7 @@ const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
 const adminStatic = path.resolve(__dirnameResolved, '..', '..', 'admin');
 const sharedStatic = path.resolve(__dirnameResolved, '..', '..', 'shared');
 
-const MAX_CONNECTIONS = 5;
+const MAX_CONNECTIONS = 10;
 const CONNECT_TIMEOUT_MS = 10_000;
 const KICK_CONNECT_TIMEOUT_MS = 100_000;
 const MAX_CONNECT_ATTEMPTS = 2;

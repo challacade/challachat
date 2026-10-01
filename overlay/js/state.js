@@ -23,6 +23,8 @@ export const IMAGE_MAX_RETRIES = 3;
 export const IMAGE_RETRY_BASE_DELAY_MS = 2000;
 export const IMAGE_DEAD_TTL_MS = 5 * 60 * 1000;
 export const IMAGE_DEAD_MAX_ENTRIES = 500;
+// Far more than fit on screen; bounds DOM growth when upstream never sends deletes (e.g. spoof chat).
+export const MAX_OVERLAY_MESSAGES = 150;
 
 // ================================
 // Presets
