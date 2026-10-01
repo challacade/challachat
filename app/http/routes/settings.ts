@@ -2,7 +2,7 @@ import { Router, type Request, type Response } from 'express';
 import path from 'path';
 import fs from 'fs';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
-import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging, setLogSpoofEnabled, startSpoofLogging } from '../../core/logger';
+import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging, setLogSpoofEnabled } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
 import { getCommandStatus, setCommandEnabled } from '../../core/commands';
 import type { RouteContext } from './context';
@@ -56,11 +56,7 @@ export function createSettingsRouter(ctx: RouteContext): Router {
       setLogEnabled(enabled);
       updateSettings({ loggerEnabled: enabled });
       // If enabling and currently capturing, start logging immediately
-      if (enabled && ctx.isRunning()) {
-        const firstConn = ctx.connections.values().next().value;
-        const platformPrefix = firstConn?.platform === 'kick' ? 'kk' : firstConn?.platform === 'twitch' ? 'tw' : 'yt';
-        startLogging(platformPrefix);
-      }
+      if (enabled && ctx.isRunning()) startLogging();
     }
     res.json({ ok: true, ...getLoggerStatus() });
   });
@@ -70,8 +66,6 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     if (typeof enabled === 'boolean') {
       setLogSpoofEnabled(enabled);
       updateSettings({ logSpoofEnabled: enabled });
-      const spoofActive = [...ctx.connections.values()].some(c => c.platform === 'spoof');
-      if (enabled && spoofActive) startSpoofLogging();
     }
     res.json({ ok: true, ...getLoggerStatus() });
   });

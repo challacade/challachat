@@ -3,7 +3,7 @@ import path from 'path';
 import type { ChatEvent } from '../capture/types';
 
 // Chat message logger that writes messages to JSON Lines files.
-// Uses a daily log file named: chat-{date}-{platform}.jsonl
+// Uses a daily log file named: chat-{date}.jsonl
 // Appends to existing file if it exists for the same day.
 
 let customLogsDir: string | null = null;
@@ -24,10 +24,19 @@ function ensureLogsDir(): string | null {
   return customLogsDir;
 }
 
-function generateLogFilename(platform: string = 'yt'): string {
+function generateLogFilename(): string {
   const dateStr = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-  return `chat-${dateStr}-${platform}.jsonl`;
+  return `chat-${dateStr}.jsonl`;
 }
+
+export type LogPlatform = 'youtube' | 'twitch' | 'kick' | 'spoof';
+
+const SITE_CODES: Record<LogPlatform, string> = {
+  youtube: 'yt',
+  twitch: 'tw',
+  kick: 'kk',
+  spoof: 'spoof',
+};
 
 // ── Shared channel implementation ─────────────────────────────
 
@@ -47,12 +56,12 @@ class LogChannel {
     if (!enabled) this.stop();
   }
 
-  start(platform: string = 'yt'): boolean {
+  start(): boolean {
     if (!this.enabled || !customLogsDir) return false;
     try {
       const logsDir = ensureLogsDir();
       if (!logsDir) return false;
-      const newPath = path.join(logsDir, generateLogFilename(platform));
+      const newPath = path.join(logsDir, generateLogFilename());
 
       if (this.stream && this.logPath === newPath) return true;
       this.stop();
@@ -81,11 +90,12 @@ class LogChannel {
     this.count = 0;
   }
 
-  write(message: ChatEvent): void {
+  write(message: ChatEvent, platform: LogPlatform): void {
     if (!this.enabled || !this.stream) return;
     try {
       const entry: Record<string, any> = {
         ts: message.ts,
+        site: SITE_CODES[platform],
         author: message.author?.name || 'Unknown',
         text: message.text || '',
         kind: message.kind,
@@ -105,21 +115,16 @@ class LogChannel {
 }
 
 const main = new LogChannel('Logger');
-const spoof = new LogChannel('Logger/Spoof');
-
-// ── Real capture logging ──────────────────────────────────────
+let spoofEnabled = false;
 
 export function setLogEnabled(enabled: boolean): void { main.setEnabled(enabled); }
-export function startLogging(platform: string = 'yt'): boolean { return main.start(platform); }
+export function setLogSpoofEnabled(enabled: boolean): void { spoofEnabled = enabled; }
+export function startLogging(): boolean { return main.start(); }
 export function stopLogging(): void { main.stop(); }
-export function logMessage(message: ChatEvent): void { main.write(message); }
-
-// ── Spoof logging ─────────────────────────────────────────────
-
-export function setLogSpoofEnabled(enabled: boolean): void { spoof.setEnabled(enabled); }
-export function startSpoofLogging(): boolean { return spoof.start('spoof'); }
-export function stopSpoofLogging(): void { spoof.stop(); }
-export function logSpoofMessage(message: ChatEvent): void { spoof.write(message); }
+export function logMessage(message: ChatEvent, platform: LogPlatform): void {
+  if (platform === 'spoof' && !spoofEnabled) return;
+  main.write(message, platform);
+}
 
 // ── Status ────────────────────────────────────────────────────
 
@@ -137,6 +142,6 @@ export function getLoggerStatus(): {
     path: main.currentPath,
     messageCount: main.messageCount,
     logFolderPath: customLogsDir || '',
-    spoofEnabled: spoof.isEnabled,
+    spoofEnabled,
   };
 }

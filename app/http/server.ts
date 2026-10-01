@@ -8,7 +8,7 @@ import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
-import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled, startSpoofLogging, stopSpoofLogging, logSpoofMessage } from '../core/logger';
+import { startLogging, stopLogging, logMessage, setLogEnabled, setLogsDir, setLogSpoofEnabled } from '../core/logger';
 import { readSettings, updateSettings, getSavedAppearance, getSavedSounds, getSavedToggles, getConnectionHistory, addConnectionHistory } from '../core/settings';
 import { runChatCommands, loadCommands } from '../core/commands';
 import YouTubeChatCapture from '../capture/youtube';
@@ -301,7 +301,6 @@ class App extends EventEmitter {
     extractId: (url: string) => string | null;
     CaptureClass: new (id: string, opts: any) => YouTubeChatCapture | TwitchChatCapture | KickChatCapture;
     buildDisplayUrl: (id: string, originalUrl: string) => string;
-    logPrefix: string;
     errorMessage: string;
     connectTimeoutMs: number;
   }> = {
@@ -309,7 +308,6 @@ class App extends EventEmitter {
       extractId: (url) => this.extractVideoId(url),
       CaptureClass: YouTubeChatCapture,
       buildDisplayUrl: (id, url) => /^https?:\/\/studio\.youtube\.com\//i.test(url) ? this.toPublicLiveUrl(id) : url,
-      logPrefix: 'yt',
       errorMessage: 'Invalid YouTube URL. Please provide a valid YouTube livestream URL.',
       connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
@@ -317,7 +315,6 @@ class App extends EventEmitter {
       extractId: (url) => this.extractTwitchChannel(url),
       CaptureClass: TwitchChatCapture,
       buildDisplayUrl: (id) => `https://www.twitch.tv/${id}`,
-      logPrefix: 'tw',
       errorMessage: 'Invalid Twitch URL. Please provide a valid Twitch channel URL.',
       connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
@@ -325,7 +322,6 @@ class App extends EventEmitter {
       extractId: (url) => this.extractKickChannel(url),
       CaptureClass: KickChatCapture,
       buildDisplayUrl: (id) => `https://kick.com/${id}`,
-      logPrefix: 'kk',
       errorMessage: 'Invalid Kick URL. Please provide a valid Kick channel URL.',
       connectTimeoutMs: KICK_CONNECT_TIMEOUT_MS,
     },
@@ -384,11 +380,11 @@ class App extends EventEmitter {
     });
     this.broadcastStatus();
     if (platform === 'youtube') void this.enrichYouTubeConnectionDetails(connId, identifier, url);
-    void this.finishCaptureStartup(connId, capture, config.logPrefix, displayUrl, platform, identifier, config.connectTimeoutMs);
+    void this.finishCaptureStartup(connId, capture, displayUrl, platform, identifier, config.connectTimeoutMs);
     return connId;
   }
 
-  private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, logPrefix: string, displayUrl: string, platform: Platform, identifier: string, connectTimeoutMs: number): Promise<void> {
+  private async finishCaptureStartup(connId: string, capture: YouTubeChatCapture | TwitchChatCapture | KickChatCapture, displayUrl: string, platform: Platform, identifier: string, connectTimeoutMs: number): Promise<void> {
     try {
       // Browser launch is one-time initialization, not part of a channel
       // connection. Warm the profile that this capture will use before
@@ -455,7 +451,7 @@ class App extends EventEmitter {
         platform,
       });
       this.tui?.setUrl(displayUrl);
-      startLogging(logPrefix);
+      startLogging();
       this.tui?.render();
 
       const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: conn.connectedAt, connectionId: connId };
@@ -512,7 +508,7 @@ class App extends EventEmitter {
         // Process message normally but skip sound
         try { runChatCommands(message); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
         const filtered = censorMessage(message);
-        if (conn.platform === 'spoof') { logSpoofMessage(filtered); } else { logMessage(filtered); }
+        logMessage(filtered, conn.platform);
         this.io.emit('chat-message', filtered);
         this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
         // Schedule first-poll completion after current tick (all messages from the same poll arrive synchronously)
@@ -533,8 +529,7 @@ class App extends EventEmitter {
     // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
     // Log message to file (if logging is enabled)
-    const isSpoof = this.connections.get(connId)?.platform === 'spoof';
-    if (isSpoof) { logSpoofMessage(filtered); } else { logMessage(filtered); }
+    if (conn) logMessage(filtered, conn.platform);
   // No terminal preview or re-rendering of the header during message flow.
     this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
@@ -808,20 +803,20 @@ class App extends EventEmitter {
       label: `Spoof Chat - ${presetLabel}`,
       preset: preset || 'welcome',
     });
-    startSpoofLogging();
+    startLogging();
     void spoof.start();
     this.broadcastStatus();
   }
 
   /** Stop and remove the spoof connection. */
   private async stopSpoof() {
-    stopSpoofLogging();
     for (const [id, conn] of this.connections) {
       if (conn.platform === 'spoof') {
         try { await conn.capture.stop(); } catch { /* ignore */ }
         this.connections.delete(id);
       }
     }
+    if (this.connections.size === 0) stopLogging();
     this.broadcastStatus();
   }
 
