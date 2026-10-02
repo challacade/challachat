@@ -364,7 +364,6 @@ export function removeMessageById(messageId) {
     }, 300);
   }
   state.seenIds.delete(messageId);
-  state.byId.delete(messageId);
 }
 
 export function updateMessageById(updateEvent) {
@@ -391,6 +390,5 @@ export function updateMessageById(updateEvent) {
 export function clearAllMessages() {
   elements.messages.innerHTML = '';
   state.seenIds.clear();
-  state.byId.clear();
   showToast('All messages cleared');
 }

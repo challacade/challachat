@@ -4,8 +4,7 @@
  * Exposes a safe `window.challachat` API via contextBridge.
  *
  * - `invoke(channel, ...args)` - call an ipcMain.handle handler and await the result.
- * - `on(channel, callback)` - listen for events pushed from the main process.
- * - `off(channel, callback)` - remove a previously registered listener.
+ * - `on(channel, callback)` - listen for events pushed from the main process; returns a dispose function.
  * - `isElectron` - simple boolean marker so the renderer can feature-detect.
  */
 

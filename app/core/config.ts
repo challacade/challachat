@@ -1,4 +1,6 @@
 export const DEFAULT_PORT = Number(process.env.PORT) || 5050;
+// Loopback only; URLs use the IP because "localhost" may resolve to ::1, where another app could hold the same port.
+export const LOOPBACK_HOST = '127.0.0.1';
 export const DEFAULT_POLL_INTERVAL = 500;
 const MIN_POLL_INTERVAL = 100;
 

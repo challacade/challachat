@@ -9,7 +9,7 @@ import {
   uiThemeSelect, uiZoomSelect, globalPollIntervalSlider, globalPollIntervalLabel,
 } from './dom.js';
 import { api } from './api.js';
-import { debounce } from '/shared/utils.js';
+import { debounce, formatPoll } from '/shared/utils.js';
 
 // ─── UI helpers ────────────────────────────────────────────────
 
@@ -41,11 +41,6 @@ function applyUiTheme(theme) {
 function applyUiZoom(pct) {
   const zoom = 1 + (pct / 100);
   document.documentElement.style.setProperty('--ui-zoom', zoom);
-}
-
-function formatPoll(ms) {
-  if (ms >= 1000) return (ms / 1000).toFixed(1).replace(/\.0$/, '') + ' s';
-  return ms + ' ms';
 }
 
 function updatePollIntervalUI(ms) {

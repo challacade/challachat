@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
 import readline from 'readline';
+import { LOOPBACK_HOST } from './config';
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -10,14 +11,11 @@ const ANSI = {
   white: '\x1b[37m'
 };
 
-interface RecentMessage { name: string; text: string }
-
 // Terminal UI: handles prompts and the one-time status header
 export class TerminalUI {
   private rl: readline.Interface;
   private port: number;
   private currentUrl: string | null = null;
-  private recent: RecentMessage[] = [];
   private connectingShown = false;
   private headerPrinted = false;
   private lastPrintedUrl: string | null = null;
@@ -140,7 +138,7 @@ export class TerminalUI {
   this.urlOffsetFromBottom = 8;
   }
   // Instructions block
-  const overlayUrl = `http://localhost:${this.port}`;
+  const overlayUrl = `http://${LOOPBACK_HOST}:${this.port}`;
   console.log('');
   console.log('1. Create a new Browser source in your streaming software.');
   console.log(`2. Set the URL to: ${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);

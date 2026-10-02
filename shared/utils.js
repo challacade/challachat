@@ -43,6 +43,16 @@ export function hexToRgba(hex, opacity) {
 }
 
 /**
+ * Format a poll interval for display, e.g. 500 -> "500 ms", 1500 -> "1.5 s".
+ * @param {number} ms
+ * @returns {string}
+ */
+export function formatPoll(ms) {
+  if (ms >= 1000) return (ms / 1000).toFixed(1).replace(/\.0$/, '') + ' s';
+  return ms + ' ms';
+}
+
+/**
  * Create a debounced version of a function.
  * @param {Function} fn  - Function to debounce
  * @param {number}   ms  - Delay in milliseconds

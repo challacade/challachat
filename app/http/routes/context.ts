@@ -1,6 +1,4 @@
-import type { Server as SocketIOServer } from 'socket.io';
 import type { SSEHub } from '../../core/sseHub';
-import type { ChatEvent } from '../../capture/types';
 import type { BaseChatCapture } from '../../capture/base';
 import type { SpoofCapture } from '../../capture/spoof';
 
@@ -43,7 +41,6 @@ export interface RouteContext {
   // ── Infrastructure ──
   readonly connections: Map<string, Connection>;
   readonly sse: SSEHub<any>;
-  readonly io: SocketIOServer;
   readonly appearance: Record<string, number | string | boolean>;
   readonly sounds: Record<string, number | string>;
 

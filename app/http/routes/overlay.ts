@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { getMusicDisplaySettings, updateSettings } from '../../core/settings';
 import { getNowPlaying, NO_MUSIC_SONG_ID } from '../../core/nowPlaying';
+import { isSupportedAudio } from '../../core/music';
 import type { RouteContext } from './context';
 
 /** Routes: /api/appearance, /api/sounds, /api/stream (SSE) */
@@ -116,6 +117,10 @@ export function createOverlayRouter(ctx: RouteContext): Router {
       res.status(400).json({ ok: false, error: 'Invalid type or filePath.' });
       return;
     }
+    if (soundPath && !isSupportedAudio(soundPath)) {
+      res.status(400).json({ ok: false, error: 'Unsupported audio file type.' });
+      return;
+    }
     if (soundPath && !fs.existsSync(soundPath)) {
       res.status(400).json({ ok: false, error: 'File not found.' });
       return;
@@ -130,7 +135,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     const pathKey = SOUND_PATH_KEYS[req.params.type];
     if (!pathKey) { res.status(400).json({ ok: false, error: 'Invalid type.' }); return; }
     const filePath = ctx.sounds[pathKey];
-    if (!filePath || typeof filePath !== 'string' || !fs.existsSync(filePath)) {
+    if (!filePath || typeof filePath !== 'string' || !isSupportedAudio(filePath) || !fs.existsSync(filePath)) {
       res.status(404).json({ ok: false, error: 'No custom sound set.' });
       return;
     }

@@ -3,8 +3,7 @@ import express, { type Request, type Response } from 'express';
 import http from 'http';
 import path from 'path';
 import { EventEmitter } from 'events';
-import { Server as SocketIOServer, type Socket } from 'socket.io';
-import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
+import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, LOOPBACK_HOST, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
@@ -23,18 +22,6 @@ import { createMusicRouter } from './routes/music';
 import { createOverlayRouter } from './routes/overlay';
 import { createSettingsRouter } from './routes/settings';
 
-/**
- * Typed events emitted by the App class.
- * In headless (Electron) mode these replace console output;
- * the Electron main process listens and forwards them over IPC.
- */
-interface AppEvents {
-  'server-ready': (port: number) => void;
-  'capture-status': (status: { status: string; connectionId?: string | null; platform?: string | null; videoId?: string | null; messageCount?: number; startedAt?: number; error?: string }) => void;
-  'capture-error': (error: string) => void;
-  'log': (message: string) => void;
-}
-
 // Resolve static directories (overlay + admin)
 const __dirnameResolved = __dirname;
 const overlayStatic = path.resolve(__dirnameResolved, '..', '..', 'overlay');
@@ -46,6 +33,21 @@ const CONNECT_TIMEOUT_MS = 10_000;
 const KICK_CONNECT_TIMEOUT_MS = 100_000;
 const MAX_CONNECT_ATTEMPTS = 2;
 const YOUTUBE_METADATA_TIMEOUT_MS = 2_500;
+const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+
+function isLoopbackHostHeader(host: string | undefined): boolean {
+  if (!host) return false;
+  return LOOPBACK_HOSTNAMES.has(host.toLowerCase().replace(/:\d+$/, ''));
+}
+
+function isLoopbackOrigin(origin: string): boolean {
+  try {
+    const u = new URL(origin);
+    return u.protocol === 'http:' && LOOPBACK_HOSTNAMES.has(u.hostname.toLowerCase());
+  } catch {
+    return false;
+  }
+}
 
 interface YouTubeOEmbedResponse {
   title?: string;
@@ -57,7 +59,6 @@ interface YouTubeOEmbedResponse {
 class App extends EventEmitter {
   private app = express();
   private server = http.createServer(this.app);
-  private io = new SocketIOServer(this.server, { cors: { origin: '*', methods: ['GET','POST'] } });
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
@@ -105,6 +106,15 @@ class App extends EventEmitter {
 
   // Configure express, static files, and mount route modules
   private setupServer() {
+    // Host check blocks DNS rebinding; Origin check blocks other websites posting to the API.
+    this.app.use((req: Request, res: Response, next) => {
+      const origin = req.headers.origin;
+      if (isLoopbackHostHeader(req.headers.host) && (!origin || isLoopbackOrigin(origin))) {
+        next();
+        return;
+      }
+      res.status(403).json({ error: 'Forbidden' });
+    });
     this.app.use(express.json());
 
     // If a custom filter path is saved, load from it
@@ -138,7 +148,6 @@ class App extends EventEmitter {
     const ctx: RouteContext = {
       connections: this.connections,
       sse: this.sse,
-      io: this.io,
       appearance: this.appearance,
       sounds: this.sounds,
       getStatus: () => this.getStatus(),
@@ -162,12 +171,6 @@ class App extends EventEmitter {
     this.app.use('/api', createMusicRouter(ctx));
     this.app.use('/api', createOverlayRouter(ctx));
     this.app.use('/api', createSettingsRouter(ctx));
-
-    // Socket.IO connection handler (not an HTTP route - stays here)
-    this.io.on('connection', (socket: Socket) => {
-      const conns = Array.from(this.connections.values());
-      socket.emit('capture-status', { status: this.isRunning ? 'active' : 'stopped', connections: conns.map(c => ({ id: c.id, platform: c.platform, videoId: c.videoId, messageCount: c.messageCount })) });
-    });
 
     // Serve admin control panel (static files from admin/ directory)
     this.app.use('/admin', express.static(adminStatic));
@@ -201,19 +204,16 @@ class App extends EventEmitter {
     process.on('SIGTERM', () => { console.log('\nReceived termination signal...'); this.shutdown(); });
   }
 
-  // One-shot bind if not already listening
+  // Binding is owned by ensureServerWithRetry (started in the constructor); just wait for it.
   private async ensureServer() {
-    if ((this.server as any)._listening) return;
-    await new Promise<void>((resolve) => {
-      this.server.listen(this.port, () => { (this.server as any)._listening = true; resolve(); });
-    });
+    await this.serverReadyPromise;
   }
 
   // Bind with retry: on EADDRINUSE, ask user for a different port until success
   private async ensureServerWithRetry() {
     // Try to listen; on EADDRINUSE, auto-increment to the next port until success.
     let attempts = 0;
-    while (!(this.server as any)._listening) {
+    while (!this.server.listening) {
       try {
         await new Promise<void>((resolve, reject) => {
           const onError = (err: any) => {
@@ -222,7 +222,6 @@ class App extends EventEmitter {
           };
           const onListening = () => {
             this.server.off('error', onError);
-            (this.server as any)._listening = true;
             if (this.pendingPortConfirmation != null && this.pendingPortConfirmation === this.port) {
               console.log(`Port successfully switched to ${this.port}.`);
               console.log('');
@@ -232,7 +231,7 @@ class App extends EventEmitter {
           };
           this.server.once('error', onError);
           this.server.once('listening', onListening);
-          this.server.listen(this.port);
+          this.server.listen(this.port, LOOPBACK_HOST);
         });
       } catch (err: any) {
         if (err?.code === 'EADDRINUSE') {
@@ -367,7 +366,6 @@ class App extends EventEmitter {
       },
       onStatusChange: (status: any) => {
         const payload = { ...status, connectionId: connId };
-        this.io.emit('capture-status', payload);
         this.emit('capture-status', payload);
         if (status?.status === 'active') this.tui?.render();
       }
@@ -419,7 +417,6 @@ class App extends EventEmitter {
             conn.statusText = 'Retrying';
             conn.error = undefined;
             const retryStatus = { status: 'retrying' as const, platform, videoId: identifier, connectionId: connId };
-            this.io.emit('capture-status', retryStatus);
             this.emit('capture-status', retryStatus);
             this.broadcastStatus();
           }
@@ -455,7 +452,6 @@ class App extends EventEmitter {
       this.tui?.render();
 
       const captureStatus = { status: 'active' as const, platform, videoId: identifier, startedAt: conn.connectedAt, connectionId: connId };
-      this.io.emit('capture-status', captureStatus);
       this.emit('capture-status', captureStatus);
       this.broadcastStatus();
     } catch (e: any) {
@@ -470,7 +466,6 @@ class App extends EventEmitter {
       }
       try { await capture.cancelStartup(); } catch { /* ignore cleanup errors */ }
       const captureStatus = { status: 'failed' as const, platform, videoId: identifier, connectionId: connId, error: message };
-      this.io.emit('capture-status', captureStatus);
       this.emit('capture-status', captureStatus);
       this.broadcastStatus();
     }
@@ -500,23 +495,12 @@ class App extends EventEmitter {
   // Relay messages to SSE clients and overlay
   private onCaptureMessage(connId: string, message: ChatEvent) {
     const conn = this.connections.get(connId);
+    // The first poll delivers the visible backlog synchronously; it is shown but plays no sound.
+    const isBacklog = !!conn && !conn.firstPollDone;
     if (conn) {
-      // Mark first poll as done after initial batch (suppress sounds for backlog)
-      if (!conn.firstPollDone) {
-        conn.messageCount++;
-        if (message.author?.name) conn.chatters.add(message.author.name);
-        // Process message normally but skip sound
-        try { runChatCommands(message); } catch (err) { console.warn('[Commands] Error running chat command:', err); }
-        const filtered = censorMessage(message);
-        logMessage(filtered, conn.platform);
-        this.io.emit('chat-message', filtered);
-        this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
-        // Schedule first-poll completion after current tick (all messages from the same poll arrive synchronously)
-        queueMicrotask(() => { conn.firstPollDone = true; });
-        return;
-      }
       conn.messageCount++;
       if (message.author?.name) conn.chatters.add(message.author.name);
+      if (isBacklog) queueMicrotask(() => { conn.firstPollDone = true; });
     }
 
     // Run chat commands before censoring/broadcasting.
@@ -526,13 +510,10 @@ class App extends EventEmitter {
       console.warn('[Commands] Error running chat command:', err);
     }
 
-    // Apply profanity filter before broadcasting
     const filtered = censorMessage(message);
-    // Log message to file (if logging is enabled)
     if (conn) logMessage(filtered, conn.platform);
-  // No terminal preview or re-rendering of the header during message flow.
-    this.io.emit('chat-message', filtered);
     this.sse.send('chat', { events: [this.normalizeForOverlay(filtered)] });
+    if (isBacklog) return;
 
     // Determine sound type and broadcast to admin UI for playback
     const kind = filtered.kind || 'text';
@@ -557,7 +538,6 @@ class App extends EventEmitter {
   // Relay delete events (by id) so overlays can remove them immediately
   private onCaptureDelete(id: string) {
     if (!id) return;
-    try { this.io.emit('chat-delete', { id }); } catch { /* ignore */ }
     try { this.sse.send('chat', { events: [{ type: 'delete', id }] as any }); } catch { /* ignore */ }
   }
 
@@ -769,20 +749,11 @@ class App extends EventEmitter {
       stopLogging();
     }
     const stoppedStatus = { status: this.isRunning ? 'active' as const : 'stopped' as const, connectionId: connectionId ?? null };
-    this.io.emit('capture-status', stoppedStatus);
     this.emit('capture-status', stoppedStatus);
     this.broadcastStatus();
   }
 
   // --- Public API (used by Electron main process and REST endpoints) ---
-
-  /** Check if a spoof connection is currently active. */
-  private isSpoofActive(): boolean {
-    for (const conn of this.connections.values()) {
-      if (conn.platform === 'spoof') return true;
-    }
-    return false;
-  }
 
   /** Start a spoof connection (dummy chatters). */
   private startSpoof(preset?: string) {
@@ -892,7 +863,7 @@ class App extends EventEmitter {
       isRunning: this.isRunning,
       sessionActive: this.sessionActive,
       connections,
-      overlayUrl: `http://localhost:${this.port}/`,
+      overlayUrl: `http://${LOOPBACK_HOST}:${this.port}/`,
     };
   }
 
@@ -918,9 +889,8 @@ class App extends EventEmitter {
     await this.shutdownCapture();
     this.sessionActive = false;
     await closeBrowser();
-    // Close all SSE and Socket.IO connections so server.close() can drain
+    // Close all SSE connections so server.close() can drain
     this.sse.close();
-    this.io.close();
     return new Promise<void>((resolve) => {
       // Force-exit if server.close() doesn't complete within 5 seconds
       const forceTimer = setTimeout(() => {

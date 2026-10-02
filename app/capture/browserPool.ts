@@ -19,12 +19,9 @@ export type BrowserPoolProfile = 'default' | 'compatible';
  */
 
 const DEFAULT_LAUNCH_ARGS: string[] = [
-  '--no-sandbox',
-  '--disable-setuid-sandbox',
   '--disable-dev-shm-usage',
   '--disable-accelerated-2d-canvas',
   '--no-first-run',
-  '--no-zygote',
   '--disable-gpu',
   '--disable-background-timer-throttling',
   '--disable-backgrounding-occluded-windows',
@@ -33,7 +30,6 @@ const DEFAULT_LAUNCH_ARGS: string[] = [
   '--disable-extensions',
   '--disable-plugins',
   '--mute-audio',
-  '--disable-web-security',
   // Some system Chrome/Edge builds briefly create a native surface even in
   // headless mode. Keep that surface out of the user's workspace without
   // shrinking the actual Puppeteer page viewport.

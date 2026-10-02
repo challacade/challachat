@@ -38,8 +38,6 @@ export const PRESETS = { ..._SHARED_PRESETS, Custom: null };
 // ================================
 
 export const state = {
-  sessionId: 'global',
-  apiBase: '',
   scale: 1.35,
   showAvatars: true,
   showBadges: true,
@@ -55,7 +53,6 @@ export const state = {
   messageGapRem: 0.4,
   pageBgColor: '#000000',
   pageBgOpacity: 0,
-  byId: new Map(),
   seenIds: new Set(),
   autoScale: 1,
   texture: 'none',
@@ -97,26 +94,4 @@ export function setStatusMessage(message) {
   const text = String(message || '').trim();
   elements.statusMessage.textContent = text;
   elements.statusMessage.classList.toggle('hidden', !text);
-}
-
-// ================================
-// State Persistence
-// ================================
-
-export function saveToLocal() {
-  const settingsToSave = {
-    scale: state.scale,
-    showAvatars: state.showAvatars,
-    showBadges: state.showBadges,
-    showEmojiBadges: state.showEmojiBadges,
-    theme: state.theme,
-    showBubbles: state.showBubbles,
-    messageGapRem: state.messageGapRem,
-    pageBgColor: state.pageBgColor,
-    pageBgOpacity: state.pageBgOpacity,
-    preset: state.preset || 'Custom'
-  };
-  try {
-    localStorage.setItem('challachat.settings', JSON.stringify(settingsToSave));
-  } catch {}
 }

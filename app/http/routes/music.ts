@@ -71,7 +71,12 @@ export function createMusicRouter(ctx: RouteContext): Router {
       patch.writeSongFile = req.body.writeSongFile;
     }
     if (typeof req.body?.songFilePath === 'string') {
-      patch.songFilePath = req.body.songFilePath;
+      const songFilePath = req.body.songFilePath.trim();
+      if (songFilePath && path.extname(songFilePath).toLowerCase() !== '.txt') {
+        res.status(400).json({ error: 'Song file must be a .txt file.' });
+        return;
+      }
+      patch.songFilePath = songFilePath;
     }
     if (typeof req.body?.songScrollSpeed === 'number') {
       patch.songScrollSpeed = Math.max(0, Math.min(2, req.body.songScrollSpeed));

@@ -21,7 +21,7 @@ const SUPPORTED_AUDIO_EXTS = new Set([
   '.aac', '.m4a', '.opus', '.wma', '.webm',
 ]);
 
-function isSupportedAudio(filePath: string): boolean {
+export function isSupportedAudio(filePath: string): boolean {
   return SUPPORTED_AUDIO_EXTS.has(path.extname(filePath).toLowerCase());
 }
 

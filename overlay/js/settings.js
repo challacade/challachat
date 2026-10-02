@@ -1,7 +1,6 @@
 /**
  * ChallaChat Overlay - Settings
- * Theme application, presets, URL overrides, localStorage persistence,
- * and song-display positioning.
+ * Theme application, presets, URL overrides, and song-display positioning.
  *
  * All interactive settings UI (HUD buttons, panels, controls) has been
  * moved to the admin panel - this module is purely declarative.
@@ -263,33 +262,8 @@ export function applyPreset(name) {
 }
 
 // ================================
-// State Persistence
+// URL Overrides
 // ================================
-
-export function loadFromLocal() {
-  let settingsString = null;
-  try {
-    settingsString = localStorage.getItem('challachat.settings');
-  } catch {}
-  if (!settingsString) return;
-
-  try {
-    const data = JSON.parse(settingsString);
-    if (typeof data.scale === 'number') state.scale = data.scale;
-    if (typeof data.showAvatars === 'boolean') state.showAvatars = data.showAvatars;
-    if (typeof data.showBadges === 'boolean') state.showBadges = data.showBadges;
-    if (typeof data.showEmojiBadges === 'boolean') state.showEmojiBadges = data.showEmojiBadges;
-    if (data.theme) {
-      state.theme = { ...state.theme, ...data.theme };
-      if (typeof state.theme.textOpacity !== 'number') state.theme.textOpacity = 1;
-    }
-    if (typeof data.pageBgColor === 'string') state.pageBgColor = data.pageBgColor;
-    if (typeof data.pageBgOpacity === 'number') state.pageBgOpacity = data.pageBgOpacity;
-    if (typeof data.showBubbles === 'boolean') state.showBubbles = data.showBubbles;
-    if (typeof data.messageGapRem === 'number') state.messageGapRem = data.messageGapRem;
-    if (typeof data.preset === 'string') state.preset = data.preset;
-  } catch {}
-}
 
 export function loadFromUrl() {
   const url = new URL(location.href);

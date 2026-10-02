@@ -10,6 +10,7 @@ import {
 } from './dom.js';
 import { api } from './api.js';
 import { switchPage } from './navigation.js';
+import { formatPoll } from '/shared/utils.js';
 
 // ─── Helpers ───────────────────────────────────────────────────
 
@@ -23,11 +24,6 @@ function formatUptime(ms) {
   const h = Math.floor(m / 60);
   const rm = m % 60;
   return `${h}h ${rm}m`;
-}
-
-function formatPoll(ms) {
-  if (ms >= 1000) return (ms / 1000).toFixed(1).replace(/\.0$/, '') + ' s';
-  return ms + ' ms';
 }
 
 function formatDisplayUrl(url) {

@@ -12,6 +12,7 @@
 import { app, BrowserWindow, dialog, ipcMain, screen, shell } from 'electron';
 import path from 'path';
 import { readSettings, updateSettings } from '../core/settings';
+import { LOOPBACK_HOST } from '../core/config';
 
 // Prevent server.ts from auto-instantiating when we require it
 process.env.CHALLACHAT_ELECTRON = '1';
@@ -78,7 +79,7 @@ async function createWindow(port: number) {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
-  await mainWindow.loadURL(`http://localhost:${port}/admin`);
+  await mainWindow.loadURL(`http://${LOOPBACK_HOST}:${port}/admin`);
 
   // Persist window bounds on resize / move (debounced)
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -121,13 +122,16 @@ async function createWindow(port: number) {
   mainWindow.on('unmaximize', saveWindowBounds);
 
   // Open external links in the user's default browser instead of Electron
+  const isAppUrl = (url: string) => {
+    try { return new URL(url).origin === `http://${LOOPBACK_HOST}:${port}`; } catch { return false; }
+  };
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http://localhost')) return { action: 'allow' };
+    if (isAppUrl(url)) return { action: 'allow' };
     shell.openExternal(url);
     return { action: 'deny' };
   });
   mainWindow.webContents.on('will-navigate', (event, url) => {
-    if (!url.startsWith(`http://localhost:${port}`)) {
+    if (!isAppUrl(url)) {
       event.preventDefault();
       shell.openExternal(url);
     }

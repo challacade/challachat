@@ -15,7 +15,6 @@ import {
   recomputeAutoScale,
   applyTheme,
   applyPreset,
-  loadFromLocal,
   loadFromUrl,
   updateSongDisplayText,
 } from './js/settings.js';
@@ -39,9 +38,6 @@ function start() {
     updateSongDisplayText();
   });
   
-  // Load settings from localStorage
-  loadFromLocal();
-  
   // Apply URL overrides
   loadFromUrl();
   
@@ -49,18 +45,15 @@ function start() {
   const url = new URL(location.href);
   const hasPresetParam = url.searchParams.has('preset');
   const hasStyleParams = ['scale', 'noavatars', 'nobadges', 'nobubbles', 'gap', 'text', 'bubble', 'bg', 'pagebgcol', 'pagebgop'].some(key => url.searchParams.has(key));
-  
-  const hasLocalSettings = !!localStorage.getItem('challachat.settings');
-  const shouldApplyPreset = hasLocalSettings || hasPresetParam;
 
-  if (!hasLocalSettings && !hasPresetParam && !hasStyleParams) {
+  if (!hasPresetParam && !hasStyleParams) {
     state.preset = 'Dark';
   } else if (!state.preset) {
     state.preset = 'Custom';
   }
   
   // Apply settings
-  if (shouldApplyPreset) applyPreset(state.preset);
+  if (hasPresetParam) applyPreset(state.preset);
   applyTheme();
   
   // Start SSE connection
