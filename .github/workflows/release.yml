@@ -1,4 +1,5 @@
 name: Build Full Release
+run-name: Build Full Release ${{ inputs.version }}
 
 on:
   workflow_dispatch:
