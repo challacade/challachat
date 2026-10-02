@@ -109,6 +109,7 @@ export function startAdminSSE() {
   es.addEventListener('error', () => {
     // Auto-reconnect is built into EventSource
   });
+  return es;
 }
 
 // ─── Tracked test-sound playback ───────────────────────────

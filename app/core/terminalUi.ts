@@ -1,6 +1,5 @@
 /* eslint-disable no-console */
 import readline from 'readline';
-import { LOOPBACK_HOST } from './config';
 
 const ANSI = {
   reset: '\x1b[0m',
@@ -138,7 +137,7 @@ export class TerminalUI {
   this.urlOffsetFromBottom = 8;
   }
   // Instructions block
-  const overlayUrl = `http://${LOOPBACK_HOST}:${this.port}`;
+  const overlayUrl = `http://localhost:${this.port}`;
   console.log('');
   console.log('1. Create a new Browser source in your streaming software.');
   console.log(`2. Set the URL to: ${ANSI.bold}${ANSI.cyan}${overlayUrl}${ANSI.reset}`);

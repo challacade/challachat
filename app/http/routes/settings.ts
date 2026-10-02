@@ -1,6 +1,7 @@
 import { Router, type Request, type Response } from 'express';
 import path from 'path';
 import fs from 'fs';
+import { execFileSync } from 'child_process';
 import { clearFilter, getFilterStatus, loadFilterFromPath, setFilterActive } from '../../core/censor';
 import { getLoggerStatus, setLogEnabled, setLogsDir, startLogging, setLogSpoofEnabled } from '../../core/logger';
 import { updateSettings, readSettings } from '../../core/settings';
@@ -151,21 +152,37 @@ export function createSettingsRouter(ctx: RouteContext): Router {
   // ── Version / build info ──
 
   router.get('/version', (_req: Request, res: Response) => {
-    try {
-      const pkgPath = path.resolve(__dirname, '..', '..', '..', 'package.json');
-      const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8'));
-      res.json({
-        version: pkg.version || 'unknown',
-        name: pkg.name || 'challachat',
-        platform: process.platform,
-        arch: process.arch,
-        nodeVersion: process.version,
-        electronVersion: process.versions.electron || null,
-      });
-    } catch {
-      res.json({ version: 'unknown' });
-    }
+    appVersion ??= resolveAppVersion();
+    res.json({
+      version: appVersion,
+      platform: process.platform,
+      arch: process.arch,
+      nodeVersion: process.version,
+      electronVersion: process.versions.electron || null,
+    });
   });
 
   return router;
+}
+
+const ROOT_DIR = path.resolve(__dirname, '..', '..', '..');
+let appVersion: string | null = null;
+
+// Release builds get the tag injected into package.json; source checkouts ask git so dev runs aren't stale.
+function resolveAppVersion(): string {
+  if (fs.existsSync(path.join(ROOT_DIR, '.git'))) {
+    try {
+      const described = execFileSync('git', ['describe', '--tags'], {
+        cwd: ROOT_DIR, encoding: 'utf-8', timeout: 2000, stdio: ['ignore', 'pipe', 'ignore'], windowsHide: true,
+      }).trim();
+      // "v0.9.94" on a tag, "v0.9.94-4-g149dae7" when there are unreleased commits after it.
+      const match = described.match(/^v?(\d+\.\d+\.\d+)(-\d+-g[0-9a-f]+)?$/);
+      if (match) return match[2] ? `${match[1]}+dev` : match[1];
+    } catch { /* git not installed or no tags */ }
+  }
+  try {
+    return JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8')).version || 'unknown';
+  } catch {
+    return 'unknown';
+  }
 }

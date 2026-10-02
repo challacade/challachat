@@ -1,9 +1,10 @@
 /* eslint-disable no-console */
 import express, { type Request, type Response } from 'express';
 import http from 'http';
+import net from 'net';
 import path from 'path';
 import { EventEmitter } from 'events';
-import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, LOOPBACK_HOST, clampPollInterval } from '../core/config';
+import { DEFAULT_PORT, DEFAULT_POLL_INTERVAL, clampPollInterval } from '../core/config';
 import { SSEHub } from '../core/sseHub';
 import { TerminalUI } from '../core/terminalUi';
 import { censorMessage, loadFilterFromPath, setFilterActive } from '../core/censor';
@@ -16,7 +17,11 @@ import KickChatCapture from '../capture/kick';
 import { SpoofCapture } from '../capture/spoof';
 import type { ChatEvent, Platform } from '../capture/types';
 import { acquireBrowser, closeBrowser } from '../capture/browserPool';
-import type { Connection, RouteContext, YouTubeSourceKind } from './routes/context';
+import {
+  detectPlatform, extractKickChannel, extractTwitchChannel, extractVideoId, extractVideoIdFromYouTubeHtml,
+  extractYouTubeChannelLabel, extractYouTubeChannelLiveUrl, getYouTubeSourceKind, isYouTubeHandleLiveUrl, toPublicLiveUrl,
+} from '../capture/urls';
+import type { Connection, RouteContext } from './routes/context';
 import { createCaptureRouter } from './routes/capture';
 import { createMusicRouter } from './routes/music';
 import { createOverlayRouter } from './routes/overlay';
@@ -34,6 +39,32 @@ const KICK_CONNECT_TIMEOUT_MS = 100_000;
 const MAX_CONNECT_ATTEMPTS = 2;
 const YOUTUBE_METADATA_TIMEOUT_MS = 2_500;
 const LOOPBACK_HOSTNAMES = new Set(['localhost', '127.0.0.1', '[::1]']);
+const PORT_PROBE_TIMEOUT_MS = 250;
+
+function listenOn(server: http.Server, port: number, host: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const onError = (err: Error) => { server.off('listening', onListening); reject(err); };
+    const onListening = () => { server.off('error', onError); resolve(); };
+    server.once('error', onError);
+    server.once('listening', onListening);
+    server.listen(port, host);
+  });
+}
+
+function closeServer(server: http.Server): Promise<void> {
+  return new Promise(resolve => server.close(() => resolve()));
+}
+
+// Windows lets us bind loopback even when another app holds the port on all interfaces, so ask the port directly.
+function isPortAnswering(host: string, port: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    const socket = net.connect({ host, port });
+    const finish = (answering: boolean) => { clearTimeout(timer); socket.destroy(); resolve(answering); };
+    const timer = setTimeout(() => finish(false), PORT_PROBE_TIMEOUT_MS);
+    socket.once('connect', () => finish(true));
+    socket.once('error', () => finish(false));
+  });
+}
 
 function isLoopbackHostHeader(host: string | undefined): boolean {
   if (!host) return false;
@@ -59,6 +90,8 @@ interface YouTubeOEmbedResponse {
 class App extends EventEmitter {
   private app = express();
   private server = http.createServer(this.app);
+  // Second listener so "localhost" reaches us whether it resolves to IPv4 or IPv6.
+  private serverV6 = http.createServer(this.app);
   private port = DEFAULT_PORT;
   private pendingPortConfirmation: number | null = null;
   private sse = new SSEHub<any>();
@@ -209,90 +242,45 @@ class App extends EventEmitter {
     await this.serverReadyPromise;
   }
 
-  // Bind with retry: on EADDRINUSE, ask user for a different port until success
+  // Listen on IPv4 + IPv6 loopback only, so nothing on the network can reach the server.
+  private async bindLoopback(port: number): Promise<void> {
+    const answering = await Promise.all([isPortAnswering('127.0.0.1', port), isPortAnswering('::1', port)]);
+    if (answering.some(Boolean)) throw Object.assign(new Error(`Port ${port} is in use.`), { code: 'EADDRINUSE' });
+    await listenOn(this.server, port, '127.0.0.1');
+    try {
+      await listenOn(this.serverV6, port, '::1');
+    } catch (err: any) {
+      // Any other error means IPv6 loopback is unavailable; IPv4 alone still serves localhost.
+      if (err?.code !== 'EADDRINUSE') return;
+      await closeServer(this.server);
+      throw err;
+    }
+  }
+
+  // Bind, auto-incrementing the port while it is in use.
   private async ensureServerWithRetry() {
-    // Try to listen; on EADDRINUSE, auto-increment to the next port until success.
-    let attempts = 0;
-    while (!this.server.listening) {
+    for (let attempts = 0; ; attempts++) {
       try {
-        await new Promise<void>((resolve, reject) => {
-          const onError = (err: any) => {
-            this.server.off('listening', onListening);
-            reject(err);
-          };
-          const onListening = () => {
-            this.server.off('error', onError);
-            if (this.pendingPortConfirmation != null && this.pendingPortConfirmation === this.port) {
-              console.log(`Port successfully switched to ${this.port}.`);
-              console.log('');
-              this.pendingPortConfirmation = null;
-            }
-            resolve();
-          };
-          this.server.once('error', onError);
-          this.server.once('listening', onListening);
-          this.server.listen(this.port, LOOPBACK_HOST);
-        });
+        await this.bindLoopback(this.port);
+        break;
       } catch (err: any) {
-        if (err?.code === 'EADDRINUSE') {
-          console.log(`Port ${this.port} is in use. Trying ${this.port + 1}...`);
-          this.port = Math.min(65535, this.port + 1);
-          this.tui?.setPort(this.port);
-          this.pendingPortConfirmation = this.port;
-          attempts++;
-          if (attempts > 50) throw new Error('Failed to find a free port.');
-          continue;
-        }
-        // Unknown error: show concise message, not stack
-        console.log(`Failed to bind to port ${this.port}: ${err?.message || String(err)}. Trying next port...`);
+        if (attempts >= 50) throw new Error('Failed to find a free port.');
+        const reason = err?.code === 'EADDRINUSE' ? 'is in use' : `failed to bind (${err?.message || String(err)})`;
+        console.log(`Port ${this.port} ${reason}. Trying ${this.port + 1}...`);
         this.port = Math.min(65535, this.port + 1);
         this.tui?.setPort(this.port);
         this.pendingPortConfirmation = this.port;
-        attempts++;
-        if (attempts > 50) throw err;
       }
+    }
+    if (this.pendingPortConfirmation === this.port) {
+      console.log(`Port successfully switched to ${this.port}.`);
+      console.log('');
+      this.pendingPortConfirmation = null;
     }
     // Signal that the server is ready (used by Electron main process)
     this.serverReadyResolve(this.port);
     this.emit('server-ready', this.port);
     this.emit('log', `Server listening on port ${this.port}`);
-  }
-
-  // Detect platform from URL
-  private detectPlatform(url: string): Platform | null {
-    const normalized = String(url || '').toLowerCase();
-    if (normalized.includes('youtube.com') || normalized.includes('youtu.be') || normalized.includes('studio.youtube.com')) {
-      return 'youtube';
-    }
-    if (normalized.includes('twitch.tv')) {
-      return 'twitch';
-    }
-    if (normalized.includes('kick.com')) {
-      return 'kick';
-    }
-    return null;
-  }
-
-  // Extract Twitch channel name from URL
-  private extractTwitchChannel(url: string): string | null {
-    try {
-      const u = new URL(url);
-      if (!u.hostname.includes('twitch.tv')) return null;
-      // Handle various Twitch URL formats:
-      // https://www.twitch.tv/channelname
-      // https://www.twitch.tv/channelname/chat
-      // https://www.twitch.tv/popout/channelname/chat
-      const parts = u.pathname.split('/').filter(Boolean);
-      if (parts.length === 0) return null;
-      // Skip 'popout' if present
-      if (parts[0] === 'popout' && parts.length >= 2) return parts[1].toLowerCase();
-      // Standard channel URL
-      return parts[0].toLowerCase();
-    } catch {
-      // Fallback regex
-      const match = url.match(/twitch\.tv\/(?:popout\/)?([^/?&#]+)/i);
-      return match ? match[1].toLowerCase() : null;
-    }
   }
 
   // Per-platform config used by the unified startCapture method
@@ -304,21 +292,21 @@ class App extends EventEmitter {
     connectTimeoutMs: number;
   }> = {
     youtube: {
-      extractId: (url) => this.extractVideoId(url),
+      extractId: (url) => extractVideoId(url),
       CaptureClass: YouTubeChatCapture,
-      buildDisplayUrl: (id, url) => /^https?:\/\/studio\.youtube\.com\//i.test(url) ? this.toPublicLiveUrl(id) : url,
+      buildDisplayUrl: (id, url) => /^https?:\/\/studio\.youtube\.com\//i.test(url) ? toPublicLiveUrl(id) : url,
       errorMessage: 'Invalid YouTube URL. Please provide a valid YouTube livestream URL.',
       connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
     twitch: {
-      extractId: (url) => this.extractTwitchChannel(url),
+      extractId: (url) => extractTwitchChannel(url),
       CaptureClass: TwitchChatCapture,
       buildDisplayUrl: (id) => `https://www.twitch.tv/${id}`,
       errorMessage: 'Invalid Twitch URL. Please provide a valid Twitch channel URL.',
       connectTimeoutMs: CONNECT_TIMEOUT_MS,
     },
     kick: {
-      extractId: (url) => this.extractKickChannel(url),
+      extractId: (url) => extractKickChannel(url),
       CaptureClass: KickChatCapture,
       buildDisplayUrl: (id) => `https://kick.com/${id}`,
       errorMessage: 'Invalid Kick URL. Please provide a valid Kick channel URL.',
@@ -337,7 +325,7 @@ class App extends EventEmitter {
       if (conn.url === url) throw new Error('Already connected to this URL.');
     }
 
-    const platform = this.detectPlatform(url);
+    const platform = detectPlatform(url);
     if (!platform) {
       throw new Error('Unsupported URL. Please provide a YouTube, Twitch, or Kick livestream URL.');
     }
@@ -471,27 +459,6 @@ class App extends EventEmitter {
     }
   }
 
-  // Extract Kick channel name from URL
-  private extractKickChannel(url: string): string | null {
-    try {
-      const u = new URL(url);
-      if (!u.hostname.includes('kick.com')) return null;
-      // Handle various Kick URL formats:
-      // https://kick.com/channelname
-      // https://kick.com/popout/channelname/chat
-      const parts = u.pathname.split('/').filter(Boolean);
-      if (parts.length === 0) return null;
-      // Skip 'popout' if present
-      if (parts[0] === 'popout' && parts.length >= 2) return parts[1].toLowerCase();
-      // Standard channel URL
-      return parts[0].toLowerCase();
-    } catch {
-      // Fallback regex
-      const match = url.match(/kick\.com\/(?:popout\/)?([^/?&#]+)/i);
-      return match ? match[1].toLowerCase() : null;
-    }
-  }
-
   // Relay messages to SSE clients and overlay
   private onCaptureMessage(connId: string, message: ChatEvent) {
     const conn = this.connections.get(connId);
@@ -566,35 +533,10 @@ class App extends EventEmitter {
     };
   }
 
-  // Support multiple YouTube URL shapes for extracting the video id
-  private extractVideoId(url: string): string | null {
-    try {
-      const u = new URL(url);
-      // Creator/admin URLs (YouTube Studio)
-      if (u.hostname === 'studio.youtube.com') {
-        if (u.pathname === '/live_chat') return u.searchParams.get('v');
-        // e.g. https://studio.youtube.com/video/<videoId>/livestreaming
-        const parts = u.pathname.split('/').filter(Boolean);
-        if (parts.length >= 2 && parts[0] === 'video') return parts[1];
-      }
-
-      if (u.pathname === '/watch') return u.searchParams.get('v');
-      if (u.pathname.startsWith('/live/')) return u.pathname.replace('/live/', '');
-      if (u.pathname === '/live_chat') return u.searchParams.get('v');
-      if (u.pathname === '/live_dashboard') return u.searchParams.get('v');
-      if (u.hostname === 'youtu.be') return u.pathname.slice(1);
-    } catch {
-      const regex = /(?:studio\.youtube\.com\/video\/|studio\.youtube\.com\/live_chat\?[^\n]*v=|youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/live\/|youtube\.com\/live_chat\?v=|youtube\.com\/live_dashboard\?v=)([^&\n?#/]+)/;
-      const match = url.match(regex);
-      return match ? match[1] : null;
-    }
-    return null;
-  }
-
   private async extractYouTubeVideoId(url: string): Promise<string | null> {
-    const directVideoId = this.extractVideoId(url);
+    const directVideoId = extractVideoId(url);
     if (directVideoId) return directVideoId;
-    if (!this.isYouTubeHandleLiveUrl(url)) return null;
+    if (!isYouTubeHandleLiveUrl(url)) return null;
 
     try {
       const response = await fetch(url, {
@@ -608,50 +550,23 @@ class App extends EventEmitter {
       });
       if (!response.ok) return null;
 
-      const resolvedVideoId = this.extractVideoId(response.url || '');
+      const resolvedVideoId = extractVideoId(response.url || '');
       if (resolvedVideoId) return resolvedVideoId;
 
-      return this.extractVideoIdFromYouTubeHtml(await response.text());
+      return extractVideoIdFromYouTubeHtml(await response.text());
     } catch {
       return null;
     }
   }
 
-  private extractVideoIdFromYouTubeHtml(html: string): string | null {
-    if (!html) return null;
-
-    const canonicalWatch = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']https?:\/\/(?:www\.)?youtube\.com\/watch\?v=([A-Za-z0-9_-]{11})/i);
-    if (canonicalWatch?.[1]) return canonicalWatch[1];
-
-    const shortLink = html.match(/<link[^>]+rel=["']shortlinkUrl["'][^>]+href=["']https?:\/\/youtu\.be\/([A-Za-z0-9_-]{11})/i);
-    if (shortLink?.[1]) return shortLink[1];
-
-    const embedded = html.match(/"videoId":"([A-Za-z0-9_-]{11})"/);
-    return embedded?.[1] ?? null;
-  }
-
-  private isYouTubeHandleLiveUrl(url: string): boolean {
-    try {
-      const u = new URL(url);
-      if (u.hostname !== 'youtube.com' && !u.hostname.endsWith('.youtube.com')) return false;
-      return /^\/@[^/]+\/live\/?$/i.test(u.pathname);
-    } catch {
-      return /(?:^|\.)youtube\.com\/@[^/?#]+\/live\/?(?:[?#].*)?$/i.test(url);
-    }
-  }
-
-  private toPublicLiveUrl(videoId: string): string {
-    return `https://www.youtube.com/live/${videoId}`;
-  }
-
   private getYouTubeInitialDetails(videoId: string, originalUrl: string): Partial<Connection> {
-    const channelUrl = this.extractYouTubeChannelLiveUrl(originalUrl);
+    const channelUrl = extractYouTubeChannelLiveUrl(originalUrl);
     return {
       originalUrl,
-      resolvedUrl: this.toPublicLiveUrl(videoId),
+      resolvedUrl: toPublicLiveUrl(videoId),
       channelUrl,
-      displayName: channelUrl ? this.extractYouTubeChannelLabel(channelUrl) : undefined,
-      sourceKind: this.getYouTubeSourceKind(originalUrl),
+      displayName: channelUrl ? extractYouTubeChannelLabel(channelUrl) : undefined,
+      sourceKind: getYouTubeSourceKind(originalUrl),
     };
   }
 
@@ -676,7 +591,7 @@ class App extends EventEmitter {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), YOUTUBE_METADATA_TIMEOUT_MS);
     try {
-      const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(this.toPublicLiveUrl(videoId))}&format=json`, {
+      const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(toPublicLiveUrl(videoId))}&format=json`, {
         signal: controller.signal,
         headers: {
           'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/137.0.0.0 Safari/537.36',
@@ -689,43 +604,6 @@ class App extends EventEmitter {
       return null;
     } finally {
       clearTimeout(timeout);
-    }
-  }
-
-  private getYouTubeSourceKind(url: string): YouTubeSourceKind {
-    try {
-      const u = new URL(url);
-      if (u.hostname === 'studio.youtube.com') return 'studio';
-      if (u.hostname === 'youtu.be') return 'shortlink';
-      if (this.isYouTubeHandleLiveUrl(url)) return 'channel-live';
-    } catch {
-      if (this.isYouTubeHandleLiveUrl(url)) return 'channel-live';
-      if (/studio\.youtube\.com/i.test(url)) return 'studio';
-      if (/youtu\.be\//i.test(url)) return 'shortlink';
-    }
-    return 'direct-video';
-  }
-
-  private extractYouTubeChannelLiveUrl(url: string): string | undefined {
-    try {
-      const u = new URL(url);
-      if (!this.isYouTubeHandleLiveUrl(url)) return undefined;
-      const handle = u.pathname.split('/').filter(Boolean)[0];
-      return handle ? `https://www.youtube.com/${handle}` : undefined;
-    } catch {
-      const match = url.match(/(?:^|\.)youtube\.com\/(%40[^/?#]+|@[^/?#]+)\/live\/?/i);
-      return match?.[1] ? `https://www.youtube.com/${decodeURIComponent(match[1])}` : undefined;
-    }
-  }
-
-  private extractYouTubeChannelLabel(channelUrl: string): string | undefined {
-    try {
-      const u = new URL(channelUrl);
-      const firstPart = u.pathname.split('/').filter(Boolean)[0];
-      return firstPart ? decodeURIComponent(firstPart) : undefined;
-    } catch {
-      const match = channelUrl.match(/youtube\.com\/([^/?#]+)/i);
-      return match?.[1] ? decodeURIComponent(match[1]) : undefined;
     }
   }
 
@@ -863,7 +741,7 @@ class App extends EventEmitter {
       isRunning: this.isRunning,
       sessionActive: this.sessionActive,
       connections,
-      overlayUrl: `http://${LOOPBACK_HOST}:${this.port}/`,
+      overlayUrl: `http://localhost:${this.port}/`,
     };
   }
 
@@ -899,7 +777,7 @@ class App extends EventEmitter {
         resolve();
       }, 5000);
       forceTimer.unref();
-      this.server.close(() => {
+      void Promise.all([closeServer(this.server), closeServer(this.serverV6)]).then(() => {
         clearTimeout(forceTimer);
         console.log('Server closed. Goodbye!');
         if (!this.headless) process.exit(0);

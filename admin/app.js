@@ -14,8 +14,8 @@ import { initAdminAudio, startAdminSSE } from './js/audio.js';
 import { initMusic, bindMusicListeners } from './js/music.js';
 import { fetchAppearance, bindAppearanceListeners } from './js/appearance.js';
 import { fetchSounds, bindSoundListeners } from './js/sounds.js';
-import { fetchStatus, bindConnectionListeners } from './js/connections.js';
-import { fetchSettings, bindSettingsListeners } from './js/settings.js';
+import { fetchStatus, updateUI, bindConnectionListeners } from './js/connections.js';
+import { fetchSettings, fetchBuildInfo, bindSettingsListeners } from './js/settings.js';
 import { bindNavigationListeners } from './js/navigation.js';
 
 // ─── Bind all event listeners ──────────────────────────────────
@@ -31,12 +31,21 @@ bindSoundListeners();
 
 fetchStatus();
 fetchSettings();
+fetchBuildInfo();
 fetchSounds();
 fetchAppearance();
 initAdminAudio().catch(() => {});
 initMusic().catch(() => {});
-startAdminSSE();
-setInterval(() => { fetchStatus(); fetchSettings(); }, isElectron ? 5000 : 2000);
+const adminEvents = startAdminSSE();
+
+// Connection changes are pushed instantly; the timer only refreshes live stats (message counts, uptime).
+adminEvents.addEventListener('status', (event) => {
+  try { updateUI(JSON.parse(event.data)); } catch {}
+});
+setInterval(fetchStatus, isElectron ? 5000 : 2000);
+
+// Settings only change from this panel; re-read on focus to pick up hand edits to settings.json.
+window.addEventListener('focus', () => fetchSettings());
 
 // Electron capture events also refresh settings
 if (isElectron) {

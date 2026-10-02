@@ -322,7 +322,7 @@ function removeConnectionCard(connId) {
   if (card) { card.remove(); connectionCards.delete(connId); }
 }
 
-function updateUI(status) {
+export function updateUI(status) {
   const isActive = status.sessionActive;
   setServerActive(isActive);
   if (status.overlayUrl) overlayUrl.textContent = status.overlayUrl;

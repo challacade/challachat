@@ -82,14 +82,11 @@ export async function fetchSettings() {
   } catch {
     // Server may not be ready yet - ignore
   }
-
-  // Build info (fire-and-forget, non-blocking)
-  fetchBuildInfo();
 }
 
 // ─── Build info ────────────────────────────────────────────────
 
-async function fetchBuildInfo() {
+export async function fetchBuildInfo() {
   const grid = document.getElementById('buildInfoGrid');
   if (!grid) return;
   try {

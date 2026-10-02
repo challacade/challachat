@@ -5,7 +5,7 @@ Capture and display any livestream chat in a custom overlay. Add it to your stre
 - **Multi-platform** - YouTube, Twitch, and Kick support
 - **Multi-connection** - Monitor up to 10 livestreams simultaneously
 - **Ultra-low latency** - Local SSE stream to your overlay
-- **Secure & private** - All processing runs on your machine
+- **Secure & private** - All processing runs on your machine, and the local server only accepts connections from this PC
 - **Electron admin panel** - Manage connections, appearance, music, and settings from one window
 - **Portable & installer** - Windows, Mac, and Linux builds via electron-builder
 
@@ -13,9 +13,9 @@ Capture and display any livestream chat in a custom overlay. Add it to your stre
 
 ```
 app/
-  capture/      # Livestream chat capture (Puppeteer)
+  capture/      # Livestream chat capture (Puppeteer) and URL parsing
   core/         # Config, SSE hub, censor, logger, music, chat commands, terminal UI
-  http/         # Express + Socket.IO server
+  http/         # Express server (REST API + SSE)
     routes/     # Modular API route handlers
   main/         # Electron main process, preload, IPC
 admin/          # Electron admin panel (HTML/CSS/JS)
@@ -23,6 +23,7 @@ admin/          # Electron admin panel (HTML/CSS/JS)
 overlay/        # Client overlay (HTML/CSS/JS, images, sounds)
   js/           # Overlay ES modules (messages, settings, sse, state, etc.)
 shared/         # Shared ES modules used by both admin and overlay (presets, utils)
+test/           # Unit tests (node:test)
 scripts/        # Build and startup scripts
 website/        # Marketing / landing page (static)
 ```
@@ -60,6 +61,13 @@ npm run electron:dev
 npm run dev
 ```
 
+#### Typecheck and test
+```bash
+npm run typecheck
+npm test
+```
+Both also run in CI on every push and pull request.
+
 #### Run locally
 - **macOS / Linux:** `npm run start:system`
 - **Windows:** `npm run start:system:win`
@@ -81,6 +89,8 @@ npm run dist:linux  # Linux AppImage + DEB
 | `http://localhost:5050/api/status` | Server status JSON |
 
 The port auto-increments if 5050 is already in use (up to 50 attempts).
+
+The server listens only on the loopback addresses (`127.0.0.1` and `::1`), so other devices on your network cannot reach it. Requests whose `Host` or `Origin` is not `localhost`/loopback are rejected with `403`, which blocks other websites from controlling the app.
 
 ## Admin panel
 
@@ -109,9 +119,9 @@ The port auto-increments if 5050 is already in use (up to 50 attempts).
 
 ### Settings
 - **Profanity filter** - Load a CSV word list, toggle on/off. Matched words are replaced with the first letter + asterisks (e.g. `word` -> `w***`).
-- **Message logger** - Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac).
+- **Message logger** - Log chat to `.jsonl` files in `%LOCALAPPDATA%\ChallaChat\logs\` (Windows) or `~/.challachat/logs/` (Linux/Mac), or a custom folder. Optionally include spoof chat messages.
 - **Jam mode** - Toggle the built-in `!jam` chat command (see [commands.json](#commandsjson)).
-- **Dummy chatters** - Display sample messages at random intervals for testing the overlay without a live stream.
+- **External song data** - Show the OS media session (e.g. Spotify) in the music banner when local music isn't playing (Windows).
 - **Poll interval** - Set the global capture polling interval used by all livestream connections.
 - **Write song to file** - Writes current track to `song.txt` for OBS text sources.
 
@@ -156,11 +166,21 @@ All settings are persisted to `settings.json` in the app data directory:
   "edgePadding": 0,
   "textShadow": 0,
   "transitionSpeed": 0,
+  "texture": "none",            // "none", "dots", "grid", "stripes", "crosshatch"
+  "textureIntensity": 0.25,
+  "textureScale": 1,
+  "textureGap": 1,
+  "textureColor": "#ffffff",
 
   // Sound volumes (0-200)
   "messageVolume": 100,
   "donationVolume": 100,
   "memberVolume": 100,
+
+  // Music playback
+  "musicVolume": 1,             // 0-2
+  "musicPan": 0,                // -1 (left) to 1 (right)
+  "externalMusicData": false,
 
   // Custom sound file paths
   "messageSoundPath": "",
@@ -169,6 +189,7 @@ All settings are persisted to `settings.json` in the app data directory:
 
   // Toggles
   "loggerEnabled": false,
+  "logSpoofEnabled": false,
 
   // Logger
   "logFolderPath": "",
@@ -180,6 +201,8 @@ All settings are persisted to `settings.json` in the app data directory:
   "pollIntervalMs": 500
 }
 ```
+
+Writes are atomic (temp file + rename). If `settings.json` ever contains invalid JSON, it is backed up to `settings.json.corrupt-<timestamp>.bak` before a fresh file is written.
 
 ### history.json
 
@@ -266,32 +289,43 @@ The overlay renders chat messages with full platform fidelity:
 | `POST` | `/api/start-session` | Start session without connecting |
 | `POST` | `/api/end-session` | End session and disconnect all |
 | `GET` | `/api/status` | Server status and all connections |
-| `GET/POST` | `/api/poll-interval` | Get/set poll interval per connection |
+| `GET` | `/api/connection-history` | Previously used connections |
+| `GET/POST` | `/api/poll-interval` | Get/set the capture poll interval (global or per connection) |
+| `POST` | `/api/spoof` | Start/stop a spoof chat connection |
+| `POST` | `/api/spoof-interval` | Set spoof message interval |
+| `POST` | `/api/spoof-preset` | Set spoof message preset |
 | `GET/POST` | `/api/appearance` | Get/set overlay appearance |
 | `GET/POST` | `/api/sounds` | Get/set sound volume levels |
+| `POST` | `/api/sounds/path` | Set a custom sound file (audio files only) |
+| `GET` | `/api/sounds/file/:type` | Serve a custom sound file (`message`, `donation`, `member`) |
 | `GET` | `/api/filter` | Filter status |
 | `POST` | `/api/filter/toggle` | Enable/disable filter |
 | `POST` | `/api/filter/path` | Load filter word list |
 | `GET` | `/api/logger` | Logger status |
 | `POST` | `/api/logger/toggle` | Enable/disable logging |
+| `POST` | `/api/logger/spoof-toggle` | Include/exclude spoof messages in logs |
+| `POST` | `/api/logger/path` | Set a custom log folder |
 | `GET` | `/api/music` | Music settings |
 | `POST` | `/api/music/path` | Set music folder |
 | `GET` | `/api/music/playlist` | Full playlist |
 | `GET` | `/api/music/track/:index` | Stream audio (supports range requests) |
 | `GET` | `/api/music/track/:index/meta` | Track ID3 metadata |
 | `GET/POST` | `/api/music/nowplaying` | Get/set now-playing track |
-| `POST` | `/api/music/songfile` | Write current track to song.txt |
+| `POST` | `/api/music/songfile` | Write current track to the song file (`.txt` only) |
 | `GET/POST` | `/api/music/display-settings` | Song display settings |
-| `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop |
-| `POST` | `/api/dummy-chatters` | Enable/disable dummy chatters |
+| `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop / volume / pan / externalMusicData |
 | `POST` | `/api/clear-messages` | Clear all overlay messages |
 | `GET` | `/api/jam` | Jam command enabled state |
 | `POST` | `/api/jam/toggle` | Enable/disable the `!jam` command |
+| `GET/POST` | `/api/ui-theme` | Admin panel theme (`dark` / `light`) |
+| `GET/POST` | `/api/ui-zoom` | Admin panel zoom (0-100) |
+| `GET` | `/api/filming-mode` | Filming mode flag (set by editing `settings.json`) |
+| `GET` | `/api/version` | App, platform, Node, and Electron versions |
 | `GET` | `/api/stream` | SSE event stream |
 
 ## SSE event types
 
-Events on `/api/stream`: `chat`, `appearance`, `sounds`, `music-settings`, `now-playing`, `play-sound`, `clear-messages`, `ping` (heartbeat every 15s).
+Events on `/api/stream`: `chat` (new messages and deletions), `status`, `appearance`, `sounds`, `music-settings`, `now-playing`, `play-sound`, `clear-messages`, `ping` (heartbeat every 15s).
 
 ## Releases (GitHub Actions)
 

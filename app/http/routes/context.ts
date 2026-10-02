@@ -1,10 +1,10 @@
 import type { SSEHub } from '../../core/sseHub';
 import type { BaseChatCapture } from '../../capture/base';
 import type { SpoofCapture } from '../../capture/spoof';
+import type { YouTubeSourceKind } from '../../capture/urls';
 
 /** Per-connection state tracked by the server. */
 export type ConnectionStatus = 'connecting' | 'active' | 'warning' | 'failed' | 'stopped';
-export type YouTubeSourceKind = 'direct-video' | 'channel-live' | 'studio' | 'shortlink';
 
 export interface Connection {
   id: string;
