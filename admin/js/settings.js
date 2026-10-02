@@ -98,9 +98,18 @@ export async function fetchBuildInfo() {
       ['Node', info.nodeVersion],
     ];
     if (info.electronVersion) items.push(['Electron', `v${info.electronVersion}`]);
-    grid.innerHTML = items
-      .map(([label, value]) => `<span class="build-info-item"><span class="build-info-label">${label}</span><span class="build-info-value">${value}</span></span>`)
-      .join('');
+    grid.replaceChildren(...items.map(([label, value]) => {
+      const item = document.createElement('span');
+      item.className = 'build-info-item';
+      const labelEl = document.createElement('span');
+      labelEl.className = 'build-info-label';
+      labelEl.textContent = label;
+      const valueEl = document.createElement('span');
+      valueEl.className = 'build-info-value';
+      valueEl.textContent = value;
+      item.append(labelEl, valueEl);
+      return item;
+    }));
   } catch {
     // Non-critical - leave card empty
   }

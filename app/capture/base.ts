@@ -340,7 +340,11 @@ export abstract class BaseChatCapture {
             // Same content was emitted recently — skip the callback but keep in seenIds
             continue;
           }
-          this.recentHighPriorityFingerprints.set(fp, Date.now());
+          const now = Date.now();
+          for (const [key, ts] of this.recentHighPriorityFingerprints) {
+            if (now - ts >= this.FINGERPRINT_TTL_MS) this.recentHighPriorityFingerprints.delete(key);
+          }
+          this.recentHighPriorityFingerprints.set(fp, now);
         }
 
         const evt: ChatEvent = {

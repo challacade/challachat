@@ -297,7 +297,7 @@ The overlay renders chat messages with full platform fidelity:
 | `GET/POST` | `/api/appearance` | Get/set overlay appearance |
 | `GET/POST` | `/api/sounds` | Get/set sound volume levels |
 | `POST` | `/api/sounds/path` | Set a custom sound file (audio files only) |
-| `GET` | `/api/sounds/file/:type` | Serve a custom sound file (`message`, `donation`, `member`) |
+| `GET` | `/api/sounds/file/:type` | Serve a custom sound file (`message`, `donation`, `member`); `204` if none is set |
 | `GET` | `/api/filter` | Filter status |
 | `POST` | `/api/filter/toggle` | Enable/disable filter |
 | `POST` | `/api/filter/path` | Load filter word list |

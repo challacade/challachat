@@ -74,7 +74,7 @@ async function loadCustomOrDefault(type) {
   // Try loading custom sound from server
   try {
     const resp = await fetch(`/api/sounds/file/${type}`);
-    if (resp.ok) {
+    if (resp.status === 200) {
       const handle = await loadAudioBuffer(resp.url);
       if (handle) return handle;
     }

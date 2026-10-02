@@ -354,7 +354,7 @@ export function adjustMessageAlignment(node) {
 
 export function removeMessageById(messageId) {
   if (!messageId) return;
-  const messageElement = document.querySelector(`.message[data-id="${messageId}"]`);
+  const messageElement = document.querySelector(`.message[data-id="${CSS.escape(messageId)}"]`);
   if (messageElement) {
     messageElement.classList.add('deleting');
     setTimeout(() => {
@@ -368,7 +368,7 @@ export function removeMessageById(messageId) {
 
 export function updateMessageById(updateEvent) {
   if (!updateEvent.id) return;
-  const messageElement = document.querySelector(`.message[data-id="${updateEvent.id}"]`);
+  const messageElement = document.querySelector(`.message[data-id="${CSS.escape(updateEvent.id)}"]`);
   if (!messageElement) return;
   
   const contentElement = messageElement.querySelector('.content');

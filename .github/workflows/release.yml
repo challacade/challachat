@@ -25,9 +25,11 @@ jobs:
       - name: Compute version and tag
         id: version
         shell: pwsh
+        env:
+          VERSION_INPUT: ${{ github.event.inputs.version }}
         run: |
-          $input = '${{ github.event.inputs.version }}'
-          if ($input.StartsWith('v')) { $tag = $input; $version = $input.Substring(1) } else { $tag = "v$input"; $version = $input }
+          $versionInput = $env:VERSION_INPUT
+          if ($versionInput.StartsWith('v')) { $tag = $versionInput; $version = $versionInput.Substring(1) } else { $tag = "v$versionInput"; $version = $versionInput }
           echo "tag=$tag" >> $env:GITHUB_OUTPUT
           echo "version=$version" >> $env:GITHUB_OUTPUT
           git tag $tag
@@ -66,8 +68,9 @@ jobs:
           cache: 'npm'
       - name: Compute version and tag
         id: version
+        env:
+          INPUT: ${{ github.event.inputs.version }}
         run: |
-          INPUT='${{ github.event.inputs.version }}'
           if [[ "$INPUT" == v* ]]; then TAG="$INPUT"; VERSION="${INPUT#v}"; else TAG="v$INPUT"; VERSION="$INPUT"; fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -75,7 +78,9 @@ jobs:
       - name: Install dependencies
         run: npm ci || npm install
       - name: Set version from tag
-        run: npm version "${{ steps.version.outputs.version }}" --no-git-tag-version
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: npm version "$VERSION" --no-git-tag-version
       - name: Build TypeScript
         run: npm run build
       - name: Build signed and notarized ZIP
@@ -113,8 +118,9 @@ jobs:
           cache: 'npm'
       - name: Compute version and tag
         id: version
+        env:
+          INPUT: ${{ github.event.inputs.version }}
         run: |
-          INPUT='${{ github.event.inputs.version }}'
           if [[ "$INPUT" == v* ]]; then TAG="$INPUT"; VERSION="${INPUT#v}"; else TAG="v$INPUT"; VERSION="$INPUT"; fi
           echo "tag=$TAG" >> "$GITHUB_OUTPUT"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
@@ -155,11 +161,12 @@ jobs:
           path: dist
       - name: Generate release notes
         shell: bash
+        env:
+          TAG: ${{ needs.build-windows.outputs.tag }}
         run: |
           set -e
           git fetch origin main --tags --force
           PREV=$(git describe --abbrev=0 --tags HEAD^ 2>/dev/null || echo "")
-          TAG='${{ needs.build-windows.outputs.tag }}'
           if [ -n "$PREV" ]; then
             RANGE="$PREV..origin/main"
           else

@@ -136,7 +136,8 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     if (!pathKey) { res.status(400).json({ ok: false, error: 'Invalid type.' }); return; }
     const filePath = ctx.sounds[pathKey];
     if (!filePath || typeof filePath !== 'string' || !isSupportedAudio(filePath) || !fs.existsSync(filePath)) {
-      res.status(404).json({ ok: false, error: 'No custom sound set.' });
+      // Not an error: the admin falls back to the built-in sound.
+      res.status(204).end();
       return;
     }
     res.sendFile(filePath);
