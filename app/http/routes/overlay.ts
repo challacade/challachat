@@ -110,7 +110,7 @@ export function createOverlayRouter(ctx: RouteContext): Router {
     member: 'memberSoundPath',
   };
 
-  router.post('/sounds/path', (req: Request, res: Response) => {
+  router.post('/sounds/path', ctx.requireTokenForPath('filePath'), (req: Request, res: Response) => {
     const { type, filePath: soundPath } = req.body || {};
     const pathKey = SOUND_PATH_KEYS[type];
     if (!pathKey || typeof soundPath !== 'string') {

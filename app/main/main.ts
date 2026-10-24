@@ -18,6 +18,27 @@ process.env.CHALLACHAT_ELECTRON = '1';
 
 let mainWindow: BrowserWindow | null = null;
 let appServer: any = null;
+let appOrigin: string | null = null;
+
+function isAppUrl(url: string): boolean {
+  try { return appOrigin !== null && new URL(url).origin === appOrigin; } catch { return false; }
+}
+
+// Only hand web links to the OS; file:, UNC, and custom protocol handlers could launch programs.
+function openExternalSafely(url: string) {
+  try {
+    const { protocol } = new URL(url);
+    if (protocol === 'https:' || protocol === 'http:') void shell.openExternal(url);
+  } catch { /* ignore malformed URLs */ }
+}
+
+/** Register an IPC handler that only answers the admin page served by our own server. */
+function handleTrusted(channel: string, handler: (event: Electron.IpcMainInvokeEvent, ...args: any[]) => unknown) {
+  ipcMain.handle(channel, (event, ...args) => {
+    if (!isAppUrl(event.senderFrame?.url ?? '')) throw new Error(`Blocked IPC from untrusted sender: ${channel}`);
+    return handler(event, ...args);
+  });
+}
 
 /* ── Helper: send to renderer only when the window is alive ────────── */
 function sendToRenderer(channel: string, ...args: any[]) {
@@ -69,6 +90,8 @@ async function createWindow(port: number) {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
     },
   });
 
@@ -78,7 +101,15 @@ async function createWindow(port: number) {
 
   mainWindow.once('ready-to-show', () => mainWindow?.show());
 
-  await mainWindow.loadURL(`http://localhost:${port}/admin`);
+  appOrigin = `http://localhost:${port}`;
+  const ses = mainWindow.webContents.session;
+  // The admin only needs clipboard writes (copy overlay URL); deny camera, mic, notifications, etc.
+  ses.setPermissionRequestHandler((wc, permission, callback) => {
+    callback(permission === 'clipboard-sanitized-write' && isAppUrl(wc.getURL()));
+  });
+  mainWindow.webContents.on('will-attach-webview', (event) => event.preventDefault());
+
+  await mainWindow.loadURL(`${appOrigin}/admin`);
 
   // Persist window bounds on resize / move (debounced)
   let saveTimer: ReturnType<typeof setTimeout> | null = null;
@@ -121,18 +152,15 @@ async function createWindow(port: number) {
   mainWindow.on('unmaximize', saveWindowBounds);
 
   // Open external links in the user's default browser instead of Electron
-  const isAppUrl = (url: string) => {
-    try { return new URL(url).origin === `http://localhost:${port}`; } catch { return false; }
-  };
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (isAppUrl(url)) return { action: 'allow' };
-    shell.openExternal(url);
+    openExternalSafely(url);
     return { action: 'deny' };
   });
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (!isAppUrl(url)) {
       event.preventDefault();
-      shell.openExternal(url);
+      openExternalSafely(url);
     }
   });
 
@@ -143,26 +171,30 @@ async function createWindow(port: number) {
 
 /* ── IPC handlers (invoke/handle pattern) ──────────────────────────── */
 function registerIpcHandlers() {
-  ipcMain.handle('get-status', () => {
+  handleTrusted('get-status', () => {
     if (!appServer) return null;
     return appServer.getStatus();
   });
 
-  ipcMain.handle('connect', async (_e: Electron.IpcMainInvokeEvent, url: string) => {
+  handleTrusted('connect', async (_e: Electron.IpcMainInvokeEvent, url: string) => {
     if (!appServer) return { error: 'Server not ready' };
     return appServer.apiConnect(url);
   });
 
-  ipcMain.handle('disconnect', async (_e: Electron.IpcMainInvokeEvent, connectionId?: string) => {
+  handleTrusted('disconnect', async (_e: Electron.IpcMainInvokeEvent, connectionId?: string) => {
     if (!appServer) return { error: 'Server not ready' };
     return appServer.apiDisconnect(connectionId);
   });
 
-  ipcMain.handle('get-port', () => {
+  handleTrusted('get-port', () => {
     return appServer?.getPort() ?? null;
   });
 
-  ipcMain.handle('pick-folder', async () => {
+  handleTrusted('get-api-token', () => {
+    return appServer?.getApiToken() ?? null;
+  });
+
+  handleTrusted('pick-folder', async () => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openDirectory'],
@@ -172,7 +204,7 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('pick-file', async (_event, options?: { title?: string; filters?: { name: string; extensions: string[] }[] }) => {
+  handleTrusted('pick-file', async (_event, options?: { title?: string; filters?: { name: string; extensions: string[] }[] }) => {
     if (!mainWindow) return null;
     const result = await dialog.showOpenDialog(mainWindow, {
       properties: ['openFile'],
@@ -183,7 +215,7 @@ function registerIpcHandlers() {
     return result.filePaths[0];
   });
 
-  ipcMain.handle('save-file', async (_event, options?: { title?: string; defaultPath?: string; filters?: { name: string; extensions: string[] }[] }) => {
+  handleTrusted('save-file', async (_event, options?: { title?: string; defaultPath?: string; filters?: { name: string; extensions: string[] }[] }) => {
     if (!mainWindow) return null;
     const result = await dialog.showSaveDialog(mainWindow, {
       title: options?.title ?? 'Save File',

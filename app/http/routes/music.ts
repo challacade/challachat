@@ -61,7 +61,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
     res.json(getMusicDisplaySettings());
   });
 
-  router.post('/music/display-settings', (req: Request, res: Response) => {
+  router.post('/music/display-settings', ctx.requireTokenForPath('songFilePath'), (req: Request, res: Response) => {
     const patch: Record<string, unknown> = {};
     if (typeof req.body?.songDisplay === 'string') {
       const val = req.body.songDisplay;
@@ -121,7 +121,7 @@ export function createMusicRouter(ctx: RouteContext): Router {
     if (patch.externalMusicData !== undefined) syncSmtcPoller();
   });
 
-  router.post('/music/path', (req: Request, res: Response) => {
+  router.post('/music/path', ctx.requireTokenForPath('musicPath'), (req: Request, res: Response) => {
     const musicPath = typeof req.body?.musicPath === 'string' ? req.body.musicPath.trim() : '';
     const result = updateSettings({ musicPath: musicPath || undefined });
     if (!result.ok) {

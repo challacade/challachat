@@ -2,8 +2,27 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   detectPlatform, extractKickChannel, extractTwitchChannel, extractVideoId, extractVideoIdFromYouTubeHtml,
-  extractYouTubeChannelLabel, extractYouTubeChannelLiveUrl, getYouTubeSourceKind, isYouTubeHandleLiveUrl, toPublicLiveUrl,
+  extractYouTubeChannelLabel, extractYouTubeChannelLiveUrl, getYouTubeSourceKind, isYouTubeHandleLiveUrl, normalizeStreamUrl, toPublicLiveUrl,
 } from '../app/capture/urls';
+
+test('normalizeStreamUrl', () => {
+  assert.equal(normalizeStreamUrl('  https://www.youtube.com/watch?v=abc  '), 'https://www.youtube.com/watch?v=abc');
+  assert.equal(normalizeStreamUrl('youtube.com/watch?v=abc'), 'https://youtube.com/watch?v=abc');
+  assert.equal(normalizeStreamUrl('twitch.tv/somechannel'), 'https://twitch.tv/somechannel');
+  assert.equal(normalizeStreamUrl('https://studio.youtube.com/video/abc/livestreaming'), 'https://studio.youtube.com/video/abc/livestreaming');
+  assert.equal(normalizeStreamUrl('https://youtu.be/abc'), 'https://youtu.be/abc');
+  // HTML in the query is percent-encoded so it can never be stored or rendered raw.
+  const encoded = normalizeStreamUrl('youtube.com/watch?v=abc&t=<img src=x onerror=alert(1)>');
+  assert.ok(encoded);
+  assert.ok(!/[<>"]/.test(encoded!));
+  assert.equal(extractVideoId(encoded!), 'abc');
+  assert.equal(normalizeStreamUrl('https://evil.example/?u=youtube.com/watch?v=abc'), null);
+  assert.equal(normalizeStreamUrl('https://youtube.com.evil.example/watch?v=abc'), null);
+  assert.equal(normalizeStreamUrl('javascript:alert(1)//youtube.com'), null);
+  assert.equal(normalizeStreamUrl('file://youtube.com/watch?v=abc'), null);
+  assert.equal(normalizeStreamUrl('https://user:pass@youtube.com/watch?v=abc'), null);
+  assert.equal(normalizeStreamUrl(''), null);
+});
 
 test('detectPlatform', () => {
   assert.equal(detectPlatform('https://www.youtube.com/watch?v=abc'), 'youtube');

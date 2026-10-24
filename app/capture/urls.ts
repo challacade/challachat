@@ -2,6 +2,28 @@ import type { Platform } from './types';
 
 export type YouTubeSourceKind = 'direct-video' | 'channel-live' | 'studio' | 'shortlink';
 
+const SUPPORTED_HOSTS = ['youtube.com', 'youtu.be', 'twitch.tv', 'kick.com'];
+
+/**
+ * Canonicalize user-pasted stream URLs: adds a missing https:// scheme, rejects
+ * non-http(s) schemes and unsupported hosts, and percent-encodes stray characters.
+ */
+export function normalizeStreamUrl(input: string): string | null {
+  const trimmed = String(input || '').trim();
+  if (!trimmed) return null;
+  const withScheme = /^[a-z][a-z\d+.-]*:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`;
+  try {
+    const u = new URL(withScheme);
+    if (u.protocol !== 'https:' && u.protocol !== 'http:') return null;
+    if (u.username || u.password) return null;
+    const host = u.hostname.toLowerCase();
+    if (!SUPPORTED_HOSTS.some(h => host === h || host.endsWith(`.${h}`))) return null;
+    return u.href;
+  } catch {
+    return null;
+  }
+}
+
 export function detectPlatform(url: string): Platform | null {
   const normalized = String(url || '').toLowerCase();
   if (normalized.includes('youtube.com') || normalized.includes('youtu.be')) return 'youtube';

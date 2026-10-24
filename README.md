@@ -282,6 +282,8 @@ The overlay renders chat messages with full platform fidelity:
 
 ## API reference
 
+The server only listens on loopback and rejects requests whose `Host` isn't localhost or whose `Origin` isn't the app's own address. Endpoints marked † need the per-launch `X-ChallaChat-Token` header to set a non-empty filesystem path. Only the Electron admin window gets this token, so other programs can't redirect file reads or writes. Clearing a path doesn't need the token.
+
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/connect` | Connect to a livestream URL |
@@ -296,23 +298,23 @@ The overlay renders chat messages with full platform fidelity:
 | `POST` | `/api/spoof-preset` | Set spoof message preset |
 | `GET/POST` | `/api/appearance` | Get/set overlay appearance |
 | `GET/POST` | `/api/sounds` | Get/set sound volume levels |
-| `POST` | `/api/sounds/path` | Set a custom sound file (audio files only) |
+| `POST` | `/api/sounds/path` | Set a custom sound file (audio files only) † |
 | `GET` | `/api/sounds/file/:type` | Serve a custom sound file (`message`, `donation`, `member`); `204` if none is set |
 | `GET` | `/api/filter` | Filter status |
 | `POST` | `/api/filter/toggle` | Enable/disable filter |
-| `POST` | `/api/filter/path` | Load filter word list |
+| `POST` | `/api/filter/path` | Load filter word list † |
 | `GET` | `/api/logger` | Logger status |
 | `POST` | `/api/logger/toggle` | Enable/disable logging |
 | `POST` | `/api/logger/spoof-toggle` | Include/exclude spoof messages in logs |
-| `POST` | `/api/logger/path` | Set a custom log folder |
+| `POST` | `/api/logger/path` | Set a custom log folder † |
 | `GET` | `/api/music` | Music settings |
-| `POST` | `/api/music/path` | Set music folder |
+| `POST` | `/api/music/path` | Set music folder † |
 | `GET` | `/api/music/playlist` | Full playlist |
 | `GET` | `/api/music/track/:index` | Stream audio (supports range requests) |
 | `GET` | `/api/music/track/:index/meta` | Track ID3 metadata |
 | `GET/POST` | `/api/music/nowplaying` | Get/set now-playing track |
 | `POST` | `/api/music/songfile` | Write current track to the song file (`.txt` only) |
-| `GET/POST` | `/api/music/display-settings` | Song display settings |
+| `GET/POST` | `/api/music/display-settings` | Song display settings († when setting `songFilePath`) |
 | `POST` | `/api/music/settings` | Update autoShuffle / playlistLoop / volume / pan / externalMusicData |
 | `POST` | `/api/clear-messages` | Clear all overlay messages |
 | `GET` | `/api/jam` | Jam command enabled state |

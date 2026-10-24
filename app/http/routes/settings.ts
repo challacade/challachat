@@ -27,7 +27,7 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     res.json({ ok: true, ...getFilterStatus() });
   });
 
-  router.post('/filter/path', (req: Request, res: Response) => {
+  router.post('/filter/path', ctx.requireTokenForPath('filterPath'), (req: Request, res: Response) => {
     const filterPath = req.body?.filterPath;
     if (typeof filterPath === 'string' && filterPath.trim().length > 0) {
       const trimmed = filterPath.trim();
@@ -71,7 +71,7 @@ export function createSettingsRouter(ctx: RouteContext): Router {
     res.json({ ok: true, ...getLoggerStatus() });
   });
 
-  router.post('/logger/path', (req: Request, res: Response) => {
+  router.post('/logger/path', ctx.requireTokenForPath('logFolderPath'), (req: Request, res: Response) => {
     const logFolderPath = req.body?.logFolderPath;
     if (typeof logFolderPath === 'string') {
       const trimmed = logFolderPath.trim();

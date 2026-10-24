@@ -117,6 +117,14 @@
                                 "icon":  "website/img/challachat.png"
                             },
                   "asar":  true,
+                  "electronFuses":  {
+                                        "runAsNode":  false,
+                                        "enableNodeOptionsEnvironmentVariable":  false,
+                                        "enableNodeCliInspectArguments":  false,
+                                        "enableEmbeddedAsarIntegrityValidation":  true,
+                                        "onlyLoadAppFromAsar":  true,
+                                        "grantFileProtocolExtraPrivileges":  false
+                                    },
                   "npmRebuild":  true
               },
     "dependencies":  {

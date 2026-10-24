@@ -1,5 +1,6 @@
 /* eslint-disable no-console */
-import express, { type Request, type Response } from 'express';
+import express, { type NextFunction, type Request, type RequestHandler, type Response } from 'express';
+import crypto from 'crypto';
 import http from 'http';
 import net from 'net';
 import path from 'path';
@@ -19,7 +20,7 @@ import type { ChatEvent, Platform } from '../capture/types';
 import { acquireBrowser, closeBrowser } from '../capture/browserPool';
 import {
   detectPlatform, extractKickChannel, extractTwitchChannel, extractVideoId, extractVideoIdFromYouTubeHtml,
-  extractYouTubeChannelLabel, extractYouTubeChannelLiveUrl, getYouTubeSourceKind, isYouTubeHandleLiveUrl, toPublicLiveUrl,
+  extractYouTubeChannelLabel, extractYouTubeChannelLiveUrl, getYouTubeSourceKind, isYouTubeHandleLiveUrl, normalizeStreamUrl, toPublicLiveUrl,
 } from '../capture/urls';
 import type { Connection, RouteContext } from './routes/context';
 import { createCaptureRouter } from './routes/capture';
@@ -71,14 +72,32 @@ function isLoopbackHostHeader(host: string | undefined): boolean {
   return LOOPBACK_HOSTNAMES.has(host.toLowerCase().replace(/:\d+$/, ''));
 }
 
-function isLoopbackOrigin(origin: string): boolean {
+function isLoopbackOrigin(origin: string, port: number): boolean {
   try {
     const u = new URL(origin);
-    return u.protocol === 'http:' && LOOPBACK_HOSTNAMES.has(u.hostname.toLowerCase());
+    return u.protocol === 'http:' && LOOPBACK_HOSTNAMES.has(u.hostname.toLowerCase()) && Number(u.port || 80) === port;
   } catch {
     return false;
   }
 }
+
+const API_TOKEN_HEADER = 'x-challachat-token';
+
+// Scripts are same-origin only. Inline styles are needed by the overlay/admin markup;
+// images stay open to https so chat avatars, emotes, and badges from platform CDNs load.
+const BASE_CSP = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+  "font-src 'self' https://fonts.gstatic.com data:",
+  "img-src 'self' https: data: blob:",
+  "media-src 'self' blob: data:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+].join('; ');
+const ADMIN_CSP = `${BASE_CSP}; frame-ancestors 'none'`;
 
 interface YouTubeOEmbedResponse {
   title?: string;
@@ -103,6 +122,8 @@ class App extends EventEmitter {
   private pollIntervalMs = clampPollInterval(readSettings().settings.pollIntervalMs ?? DEFAULT_POLL_INTERVAL);
   /** Sound types already played in the current synchronous poll batch. */
   private soundBatchPlayed = new Set<string>();
+  /** Per-launch secret handed only to the Electron admin window; required to change filesystem paths. */
+  private readonly apiToken = crypto.randomBytes(32).toString('hex');
 
   /** True when at least one capture connection is active. */
   private get isRunning(): boolean { return this.connections.size > 0; }
@@ -139,14 +160,19 @@ class App extends EventEmitter {
 
   // Configure express, static files, and mount route modules
   private setupServer() {
-    // Host check blocks DNS rebinding; Origin check blocks other websites posting to the API.
+    // Host check blocks DNS rebinding; Origin check blocks other websites (and other local ports) posting to the API.
     this.app.use((req: Request, res: Response, next) => {
       const origin = req.headers.origin;
-      if (isLoopbackHostHeader(req.headers.host) && (!origin || isLoopbackOrigin(origin))) {
+      if (isLoopbackHostHeader(req.headers.host) && (!origin || isLoopbackOrigin(origin, this.port))) {
         next();
         return;
       }
       res.status(403).json({ error: 'Forbidden' });
+    });
+    this.app.use((req: Request, res: Response, next) => {
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      res.setHeader('Content-Security-Policy', /^\/admin(\/|$)/i.test(req.path) ? ADMIN_CSP : BASE_CSP);
+      next();
     });
     this.app.use(express.json());
 
@@ -197,6 +223,7 @@ class App extends EventEmitter {
       apiConnect: (url) => this.apiConnect(url),
       apiDisconnect: (id) => this.apiDisconnect(id),
       shutdownCapture: (id) => this.shutdownCapture(id),
+      requireTokenForPath: (field) => this.requireTokenForPath(field),
     };
 
     // Mount API route modules
@@ -207,6 +234,13 @@ class App extends EventEmitter {
 
     // Serve admin control panel (static files from admin/ directory)
     this.app.use('/admin', express.static(adminStatic));
+
+    // Return JSON errors instead of Express's default HTML page, which includes stack traces and file paths.
+    this.app.use((err: any, _req: Request, res: Response, next: NextFunction) => {
+      if (res.headersSent) { next(err); return; }
+      const status = Number(err?.status || err?.statusCode) || 500;
+      res.status(status >= 400 && status < 600 ? status : 500).json({ error: status < 500 ? 'Bad request' : 'Internal server error' });
+    });
 
   // Do not auto-listen here; let ensureServerWithRetry handle binding and retry prompts
   }
@@ -315,19 +349,20 @@ class App extends EventEmitter {
   };
 
   // Start capture for the provided livestream URL
-  private async startScraping(url: string): Promise<string> {
+  private async startScraping(rawUrl: string): Promise<string> {
     if (this.connections.size >= MAX_CONNECTIONS) {
       throw new Error(`Maximum of ${MAX_CONNECTIONS} concurrent connections reached.`);
+    }
+
+    const url = normalizeStreamUrl(rawUrl);
+    const platform = url ? detectPlatform(url) : null;
+    if (!url || !platform) {
+      throw new Error('Unsupported URL. Please provide a YouTube, Twitch, or Kick livestream URL.');
     }
 
     // Prevent duplicate URLs
     for (const conn of this.connections.values()) {
       if (conn.url === url) throw new Error('Already connected to this URL.');
-    }
-
-    const platform = detectPlatform(url);
-    if (!platform) {
-      throw new Error('Unsupported URL. Please provide a YouTube, Twitch, or Kick livestream URL.');
     }
 
     return this.startCapture(url, platform);
@@ -746,6 +781,31 @@ class App extends EventEmitter {
   }
 
   /** Connect to a livestream URL. Returns a result object with connectionId. */
+  /** Token the Electron main process passes to the admin window (never served over HTTP). */
+  getApiToken(): string {
+    return this.apiToken;
+  }
+
+  private hasValidApiToken(req: Request): boolean {
+    const provided = req.get(API_TOKEN_HEADER);
+    if (typeof provided !== 'string') return false;
+    const a = Buffer.from(provided);
+    const b = Buffer.from(this.apiToken);
+    return a.length === b.length && crypto.timingSafeEqual(a, b);
+  }
+
+  /** Setting a non-empty path in `req.body[field]` requires the API token; clearing it does not. */
+  private requireTokenForPath(field: string): RequestHandler {
+    return (req: Request, res: Response, next: NextFunction) => {
+      const value = req.body?.[field];
+      if (typeof value === 'string' && value.trim() && !this.hasValidApiToken(req)) {
+        res.status(403).json({ ok: false, error: 'File paths can only be changed from the ChallaChat app.' });
+        return;
+      }
+      next();
+    };
+  }
+
   async apiConnect(url: string): Promise<{ ok: boolean; connectionId?: string; platform?: string; videoId?: string; error?: string }> {
     try {
       await this.ensureServer();

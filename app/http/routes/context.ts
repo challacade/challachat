@@ -1,3 +1,4 @@
+import type { RequestHandler } from 'express';
 import type { SSEHub } from '../../core/sseHub';
 import type { BaseChatCapture } from '../../capture/base';
 import type { SpoofCapture } from '../../capture/spoof';
@@ -62,4 +63,7 @@ export interface RouteContext {
   apiDisconnect(connectionId?: string): Promise<void>;
   shutdownCapture(connectionId?: string): Promise<void>;
 
+  // ── Guards ──
+  /** Middleware: rejects requests that set a non-empty `req.body[field]` path without the per-launch API token. */
+  requireTokenForPath(field: string): RequestHandler;
 }

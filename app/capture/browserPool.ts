@@ -3,6 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import puppeteer, { Browser } from 'puppeteer-core';
+import { ensureSettingsDirExists } from '../core/settings';
 
 export type BrowserPoolProfile = 'default' | 'compatible';
 
@@ -26,7 +27,7 @@ const DEFAULT_LAUNCH_ARGS: string[] = [
   '--disable-background-timer-throttling',
   '--disable-backgrounding-occluded-windows',
   '--disable-renderer-backgrounding',
-  '--disable-features=TranslateUI,VizDisplayCompositor,site-per-process',
+  '--disable-features=TranslateUI,VizDisplayCompositor',
   '--disable-extensions',
   '--disable-plugins',
   '--mute-audio',
@@ -47,7 +48,11 @@ const COMPATIBLE_LAUNCH_ARGS: string[] = [
 ];
 
 // Keep capture browser state separate from the user's normal Chrome/Edge profile.
-const DEFAULT_USER_DATA_DIR = path.join(os.tmpdir(), 'challachat-capture-browser');
+// Lives in the per-user settings dir (not a fixed name in the shared temp dir) so
+// other local users can't pre-create or tamper with it.
+function getDefaultUserDataDir(): string {
+  return path.join(ensureSettingsDirExists(), 'capture-browser');
+}
 
 // Fresh per app process: reusing a compatible profile after a Kick 403 can
 // keep the capture browser blocked on later attempts. Created lazily so app
@@ -55,7 +60,7 @@ const DEFAULT_USER_DATA_DIR = path.join(os.tmpdir(), 'challachat-capture-browser
 let compatibleUserDataDir: string | null = null;
 
 function getUserDataDir(profile: BrowserPoolProfile): string {
-  if (profile === 'default') return DEFAULT_USER_DATA_DIR;
+  if (profile === 'default') return getDefaultUserDataDir();
   if (!compatibleUserDataDir) {
     compatibleUserDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'challachat-capture-browser-compatible-'));
   }

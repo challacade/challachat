@@ -154,9 +154,9 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
   const overlay = document.createElement('div');
   overlay.className = 'selector-overlay';
   overlay.innerHTML = `
-    <section class="selector-dialog" role="dialog" aria-modal="true" aria-label="${title}">
+    <section class="selector-dialog" role="dialog" aria-modal="true" aria-label="${escapeHtml(title)}">
       <div class="selector-header">
-        <h3>${title}</h3>
+        <h3>${escapeHtml(title)}</h3>
       </div>
       <div class="selector-list"></div>
       <div class="selector-pagination hidden">
@@ -166,7 +166,7 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
       </div>
       <div class="selector-footer">
         <span class="selector-selected-count">0 selected</span>
-        <button class="btn small primary selector-submit" type="button" disabled>${actionLabel}</button>
+        <button class="btn small primary selector-submit" type="button" disabled>${escapeHtml(actionLabel)}</button>
       </div>
     </section>`;
   const dialog = overlay.querySelector('.selector-dialog');
@@ -188,8 +188,8 @@ function openSelector({ title, items, pageSize = 8, actionLabel = 'Connect', onS
     list.innerHTML = visible.map((item, index) => `
       <label class="selector-option ${selected.has(item.value) ? 'selected' : ''}">
         <input type="checkbox" class="selector-checkbox" data-index="${start + index}" ${selected.has(item.value) ? 'checked' : ''} />
-        ${item.icon ? `<span class="selector-option-icon">${item.icon.src ? `<img src="${item.icon.src}" alt="${item.icon.alt || ''}" />` : item.icon.emoji || ''}</span>` : ''}
-        <span class="selector-option-text">${item.label}</span>
+        ${item.icon ? `<span class="selector-option-icon">${item.icon.src ? `<img src="${escapeHtml(item.icon.src)}" alt="${escapeHtml(item.icon.alt)}" />` : escapeHtml(item.icon.emoji)}</span>` : ''}
+        <span class="selector-option-text">${escapeHtml(item.label)}</span>
       </label>`).join('');
     pagination.classList.toggle('hidden', pageCount <= 1);
     pageLabel.textContent = `Page ${page + 1} of ${pageCount}`;

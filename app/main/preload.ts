@@ -11,7 +11,7 @@
 import { contextBridge, ipcRenderer, type IpcRendererEvent } from 'electron';
 
 // Allowed IPC channels (whitelist for security)
-const INVOKE_CHANNELS = ['get-status', 'connect', 'disconnect', 'get-port', 'pick-folder', 'pick-file', 'save-file'] as const;
+const INVOKE_CHANNELS = ['get-status', 'connect', 'disconnect', 'get-port', 'get-api-token', 'pick-folder', 'pick-file', 'save-file'] as const;
 const EVENT_CHANNELS = ['capture-status', 'capture-error', 'log'] as const;
 
 type InvokeChannel = typeof INVOKE_CHANNELS[number];
